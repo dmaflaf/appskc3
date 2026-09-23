@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Keeper Cup 3 · Programación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Saira:ital,wght@0,600;0,800;1,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#eef1fb; --hdr:#ffffff; --panel:#ffffff; --panel2:#f1f4fc; --ink:#12163a; --mute:#5a6190;
+  --line:#cbd3ee; --accent:#0a72b8; --accent-ink:#ffffff; --hot:#c25a06; --danger:#c62f40;
+  --gA:#d92f43; --gB:#1c72d6; --gC:#0f9d64; --gD:#c98600;
+  --s1:#5b3fe0; --s2:#c92a86;
+  --shadow:0 6px 22px rgba(20,30,90,.12);
+  --scrim:rgba(10,14,40,.55);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#080c2b; --hdr:#0d1340; --panel:#121a52; --panel2:#0e1546; --ink:#f2f5ff; --mute:#9aa6e0;
+    --line:#2b3680; --accent:#38d9ff; --accent-ink:#04122b; --hot:#ff9f4a; --danger:#ff6b7d;
+    --gA:#ff6b7a; --gB:#5aaeff; --gC:#3ddc97; --gD:#ffc247;
+    --s1:#8f7dff; --s2:#ff6fd8;
+    --shadow:0 6px 22px rgba(0,0,0,.35);
+    --scrim:rgba(2,4,20,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#080c2b; --hdr:#0d1340; --panel:#121a52; --panel2:#0e1546; --ink:#f2f5ff; --mute:#9aa6e0;
+  --line:#2b3680; --accent:#38d9ff; --accent-ink:#04122b; --hot:#ff9f4a; --danger:#ff6b7d;
+  --gA:#ff6b7a; --gB:#5aaeff; --gC:#3ddc97; --gD:#ffc247;
+  --s1:#8f7dff; --s2:#ff6fd8;
+  --shadow:0 6px 22px rgba(0,0,0,.35);
+  --scrim:rgba(2,4,20,.7);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:16px;-webkit-text-size-adjust:100%;overscroll-behavior-y:none}
+button{font:inherit;color:inherit;cursor:pointer}
+input{font:inherit;color:var(--ink)}
+h1,h2,h3{margin:0;font-family:'Saira','Arial Black',Impact,sans-serif;font-style:italic;font-weight:800}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* ---------- Encabezado fijo ---------- */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--hdr);border-bottom:1px solid var(--line);box-shadow:var(--shadow);padding:10px 14px 8px}
+.bar{display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.brand h1{font-size:28px;line-height:1;white-space:nowrap}
+.brand .ball{font-size:26px}
+.tabs{flex:1;min-width:0;display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 0}
+.tabs::-webkit-scrollbar,.strip::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:700}
+.tab.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.tab.add{border-style:dashed;color:var(--mute)}
+.actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.saved{font-size:13px;color:var(--mute);white-space:nowrap}
+.btn{height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:700;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.danger{color:var(--danger)}
+.btn.sm{height:38px;padding:0 12px;font-size:14px}
+.btn:active{transform:scale(.97)}
+
+/* ---------- Equipos ---------- */
+.pool{margin-top:8px;border-radius:14px;transition:outline-color .15s}
+.pool.over-remove{outline:3px dashed var(--danger);outline-offset:2px}
+.poolhead{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;margin-bottom:4px}
+.poolhead .hint{font-size:14px;color:var(--mute);min-width:0}
+.poolhead .sel{font-size:15px;min-width:0}
+.poolhead .sel b{color:var(--accent)}
+.pool.closed .grow{display:none}
+.grow{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.gtag{flex:0 0 36px;height:36px;border-radius:10px;background:var(--g);color:#08102e;display:grid;place-items:center;font:italic 800 19px 'Saira',sans-serif}
+.strip{flex:1;min-width:0;display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 0}
+.chip{flex:0 0 auto;display:inline-flex;align-items:center;height:44px;padding-left:12px;border-radius:10px;border:1px solid var(--line);border-left:6px solid var(--g);background:var(--panel);font-weight:700;white-space:nowrap;position:relative}
+@supports (background:color-mix(in srgb,red 10%,blue)){
+  .chip,.cell.filled{background:color-mix(in srgb,var(--g) 16%,var(--panel))}
+}
+.chip .ok{margin-left:6px;color:var(--g);font-size:14px}
+.chip.used{opacity:.55}
+.chip.picked,.cell.picked{outline:3px solid var(--accent);outline-offset:1px}
+.chip .edit{width:38px;height:40px;border:0;background:transparent;color:var(--mute);font-size:17px}
+[data-drag]{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.lifted{opacity:.3}
+
+/* ---------- Programación ---------- */
+main{padding:16px 14px 90px;max-width:1500px;margin:0 auto}
+.fhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.fhead h2{font-size:34px;line-height:1.05}
+.fhead .sub{margin:4px 0 0;color:var(--mute);font-size:15px}
+.fbtns{display:flex;gap:8px;flex-wrap:wrap}
+.day{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:18px;box-shadow:var(--shadow)}
+.dayh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.dayt{background:transparent;border:0;padding:4px 0;font:italic 800 26px 'Saira','Arial Black',sans-serif;color:var(--hot);text-align:left}
+.dayt small{font-size:16px;color:var(--mute);margin-left:6px}
+.stads{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.stad h3{font-size:19px;border-left:6px solid var(--s);padding:2px 0 2px 10px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.stad h3 button{background:transparent;border:0;color:var(--mute);width:40px;height:36px;font-size:16px}
+.stad h3 span{flex:1;min-width:0}
+.slot{display:grid;grid-template-columns:82px 1fr;gap:8px;align-items:center;background:var(--panel2);border-radius:12px;padding:8px;margin-bottom:8px}
+.time{height:50px;border-radius:10px;border:1px solid var(--line);border-top:4px solid var(--s);background:var(--panel);font:italic 800 21px 'Saira','Arial Black',sans-serif}
+.cells{display:grid;grid-template-columns:1fr 24px 1fr;align-items:center;gap:2px;min-width:0}
+.vs{text-align:center;font-size:12px;color:var(--mute);font-weight:700}
+.cell{min-height:50px;min-width:0;border-radius:10px;display:flex;align-items:center;padding:0 4px 0 12px;font-size:15px;transition:background .12s,outline-color .12s}
+.cell.empty{border:2px dashed var(--line);color:var(--mute);justify-content:center;padding:0 8px}
+body.hasSel .cell.empty{border-color:var(--accent);color:var(--accent)}
+.cell.filled{border:1px solid var(--line);border-left:6px solid var(--g);background:var(--panel);font-weight:700;cursor:grab}
+.cell .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell .x{flex:0 0 36px;width:36px;height:40px;border:0;background:transparent;color:var(--mute);font-size:24px;line-height:1}
+.cell.over{outline:3px solid var(--accent);outline-offset:1px;background:color-mix(in srgb,var(--accent) 22%,var(--panel))}
+.addslot{width:100%;height:46px;border-radius:12px;border:2px dashed var(--line);background:transparent;color:var(--mute);font-weight:700}
+.empty-state{text-align:center;padding:50px 20px;color:var(--mute);border:2px dashed var(--line);border-radius:18px}
+.empty-state h3{font-size:24px;color:var(--ink);margin-bottom:8px}
+.ghost{position:fixed;left:0;top:0;z-index:100;pointer-events:none;padding:10px 16px;border-radius:12px;border-left:7px solid var(--g);background:var(--panel);color:var(--ink);font-weight:700;font-size:17px;box-shadow:0 10px 30px rgba(0,0,0,.35);white-space:nowrap}
+body.dragging{cursor:grabbing}
+
+/* ---------- Ventanas ---------- */
+.scrim{position:fixed;inset:0;z-index:200;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+.sheet{width:min(520px,100%);max-height:100%;overflow:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.sheet.wide{width:min(980px,100%)}
+.sheet h3{font-size:24px;margin-bottom:12px}
+.fld{display:block;margin-bottom:14px;font-weight:600;font-size:15px;color:var(--mute)}
+.fld input[type=text],.fld input[type=date],.fld input[type=time]{display:block;width:100%;height:50px;margin-top:6px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font-size:18px;font-weight:600}
+.seg{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.seg label{position:relative;flex:1 1 0;min-width:70px}
+.seg input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.seg span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:46px;padding:4px 10px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:700;font-size:15px}
+.seg input:checked+span{border-color:var(--g,var(--accent));background:var(--g,var(--accent));color:#08102e}
+.seg input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
+.mbtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
+.pv{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--line)}
+.note{font-size:14px;color:var(--mute);margin:10px 0 0}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);z-index:300;background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:90vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:1000px){
+  .brand h1{font-size:24px}
+  .poolhead .hint{display:none}
+}
+@media (max-width:820px){
+  .stads{grid-template-columns:1fr}
+  .bar{flex-wrap:wrap}
+  .tabs{order:3;flex:1 1 100%}
+  .saved{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= Utilidades ================= */
+var $=function(s){return document.querySelector(s);};
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+var uid=function(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-3);};
+var WD=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+var MO=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function parseISO(s){var p=s.split('-').map(Number);return new Date(Date.UTC(p[0],p[1]-1,p[2]));}
+function toISO(d){return d.toISOString().slice(0,10);}
+function addDays(s,n){var d=parseISO(s);d.setUTCDate(d.getUTCDate()+n);return toISO(d);}
+function wdOf(s){return WD[parseISO(s).getUTCDay()];}
+function dateLabel(s){var d=parseISO(s);return d.getUTCDate()+' de '+MO[d.getUTCMonth()];}
+function todayISO(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function fmtT(t){return String(t).replace(':','h');}
+function addHours(t,h){var p=t.split(':').map(Number);return String((p[0]+h)%24).padStart(2,'0')+':'+String(p[1]).padStart(2,'0');}
+
+/* ================= Datos iniciales ================= */
+var GROUPS=['A','B','C','D'];
+var GCOL={A:'var(--gA)',B:'var(--gB)',C:'var(--gC)',D:'var(--gD)'};
+var TEAMS={
+  A:['Galacticos','Corintians','Arapaima','Barrio Fino','Cordovez','Alianza Jr.','Huracán','Gladiadores AZ'],
+  B:['Sub 21','Leones','Real Sevilla','Templo Fit','Libert','Mandela','Pecezuelos','Jolines'],
+  C:['Barcelona','La banda','Atl. Madrid','Cormoran','San Andres','Vaster','Somec','Real Potosí'],
+  D:['Canteranos','Legacy','Juventus','America','Clowiss','Randagi','Universitarios','Xeneise']
+};
+function mkSlot(t){return {id:uid(),time:t,home:null,away:null};}
+function mkDay(date,a,b){return {id:uid(),date:date,slots:{s1:a.map(mkSlot),s2:b.map(mkSlot)}};}
+function defaultState(){
+  var teams=[];
+  GROUPS.forEach(function(g){TEAMS[g].forEach(function(n,i){teams.push({id:g+(i+1),name:n,group:g});});});
+  var f={id:uid(),name:'Fecha 2',days:[
+    mkDay('2026-09-25',['19:00','21:00'],[]),
+    mkDay('2026-09-26',['14:00','16:00','18:00','20:00'],['14:00','16:00','18:00','20:00']),
+    mkDay('2026-09-27',['09:00','11:00','13:00','15:00','17:00','19:00'],['17:00','19:00'])
+  ]};
+  return {v:1,teams:teams,stadiums:[{id:'s1',name:'Estadio San Miguel'},{id:'s2',name:'Estadio Los Sauces'}],fechas:[f],active:f.id};
+}
+
+/* ================= Estado y guardado ================= */
+var KEY='keepercup3_v1';
+function load(){
+  try{var s=localStorage.getItem(KEY);if(s){var o=JSON.parse(s);if(o&&o.teams&&o.fechas&&o.fechas.length)return o;}}catch(e){}
+  return null;
+}
+var state=load()||defaultState();
+var ui={sel:null,poolOpen:true,saved:null};
+function persist(){
+  try{localStorage.setItem(KEY,JSON.stringify(state));var n=new Date();ui.saved=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');return true;}
+  catch(e){ui.saved=null;return false;}
+}
+function normalize(){
+  state.fechas.forEach(function(f){
+    f.days.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+    f.days.forEach(function(d){Object.keys(d.slots).forEach(function(k){d.slots[k].sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0;});});});
+  });
+}
+function commit(){normalize();persist();render();}
+function curF(){return state.fechas.find(function(f){return f.id===state.active;})||state.fechas[0];}
+function teamById(id){return state.teams.find(function(t){return t.id===id;});}
+function usedSet(f){
+  var s=new Set();
+  f.days.forEach(function(d){Object.keys(d.slots).forEach(function(k){d.slots[k].forEach(function(sl){if(sl.home)s.add(sl.home);if(sl.away)s.add(sl.away);});});});
+  return s;
+}
+function stats(f){
+  var tot=0,ok=0;
+  f.days.forEach(function(d){Object.keys(d.slots).forEach(function(k){d.slots[k].forEach(function(s){tot++;if(s.home&&s.away)ok++;});});});
+  return {tot:tot,ok:ok};
+}
+function cellObj(ref){
+  var f=curF();var day=f.days.find(function(d){return d.id===ref.day;});if(!day)return null;
+  var slot=(day.slots[ref.stad]||[]).find(function(s){return s.id===ref.slot;});if(!slot)return null;
+  return {slot:slot,side:ref.side};
+}
+function sameRef(a,b){return a&&b&&a.day===b.day&&a.stad===b.stad&&a.slot===b.slot&&a.side===b.side;}
+function refOf(el){return {day:el.dataset.day,stad:el.dataset.stad,slot:el.dataset.slot,side:el.dataset.side};}
+
+function clearTeamEverywhere(f,teamId){
+  f.days.forEach(function(d){Object.keys(d.slots).forEach(function(k){d.slots[k].forEach(function(s){if(s.home===teamId)s.home=null;if(s.away===teamId)s.away=null;});});});
+}
+function moveTeam(src,tgtRef){
+  var f=curF();var t=cellObj(tgtRef);if(!t)return false;
+  if(src.type==='slot'){
+    var s=cellObj(src.ref);if(!s||sameRef(src.ref,tgtRef))return false;
+    var a=s.slot[s.side],b=t.slot[t.side];
+    s.slot[s.side]=b||null;t.slot[t.side]=a;
+  }else{
+    clearTeamEverywhere(f,src.teamId);
+    t.slot[t.side]=src.teamId;
+  }
+  return true;
+}
+function removeFromCell(ref){var c=cellObj(ref);if(c){c.slot[c.side]=null;}}
+
+/* ================= Render ================= */
+function chipHTML(t,used){
+  var picked=ui.sel&&ui.sel.type==='pool'&&ui.sel.teamId===t.id;
+  var u=used.has(t.id);
+  return '<div class="chip'+(u?' used':'')+(picked?' picked':'')+'" data-drag="pool" data-team="'+t.id+'" style="--g:'+GCOL[t.group]+'">'+
+    '<span>'+esc(t.name)+'</span>'+(u?'<span class="ok">✓</span>':'')+
+    '<button class="edit" data-act="editTeam" data-team="'+t.id+'" aria-label="Editar '+esc(t.name)+'">✎</button></div>';
+}
+function selName(){
+  if(!ui.sel)return '';
+  if(ui.sel.type==='pool'){var t=teamById(ui.sel.teamId);return t?t.name:'';}
+  var c=cellObj(ui.sel.ref);var id=c&&c.slot[c.side];var t2=id&&teamById(id);return t2?t2.name:'';
+}
+function headerHTML(){
+  var f=curF(),used=usedSet(f);
+  var tabs=state.fechas.map(function(x){return '<button class="tab'+(x.id===f.id?' on':'')+'" data-act="selFecha" data-f="'+x.id+'">'+esc(x.name)+'</button>';}).join('');
+  tabs+='<button class="tab add" data-act="newFecha">+ Fecha</button>';
+  var rows=GROUPS.map(function(g){
+    return '<div class="grow"><span class="gtag" style="--g:'+GCOL[g]+'">'+g+'</span><div class="strip" data-g="'+g+'">'+
+      state.teams.filter(function(t){return t.group===g;}).map(function(t){return chipHTML(t,used);}).join('')+'</div></div>';
+  }).join('');
+  var head=ui.sel
+    ? '<div class="sel">Colocar a <b>'+esc(selName())+'</b>: toca un espacio del partido. <button class="btn sm" data-act="cancelSel">Cancelar</button></div>'
+    : '<div class="hint">Mantén presionado un equipo y arrástralo, o tócalo y luego toca el espacio.</div>';
+  return '<header class="top"><div class="bar">'+
+    '<div class="brand"><span class="ball" aria-hidden="true">⚽</span><h1>Keeper Cup 3</h1></div>'+
+    '<nav class="tabs" aria-label="Fechas">'+tabs+'</nav>'+
+    '<div class="actions"><span class="saved">'+(ui.saved?'Guardado '+ui.saved:'')+'</span>'+
+    '<button class="btn" data-act="save">Guardar</button>'+
+    '<button class="btn pri" data-act="export">Exportar PNG</button></div></div>'+
+    '<section class="pool'+(ui.poolOpen?'':' closed')+'" data-poolzone="1" aria-label="Equipos">'+
+    '<div class="poolhead">'+head+'<button class="btn sm" data-act="togglePool">'+(ui.poolOpen?'Ocultar equipos':'Mostrar equipos')+'</button></div>'+rows+'</section></header>';
+}
+function cellHTML(day,stad,slot,side){
+  var id=slot[side],t=id?teamById(id):null;
+  var a='data-day="'+day.id+'" data-stad="'+stad.id+'" data-slot="'+slot.id+'" data-side="'+side+'"';
+  if(t){
+    var picked=ui.sel&&ui.sel.type==='slot'&&sameRef(ui.sel.ref,{day:day.id,stad:stad.id,slot:slot.id,side:side});
+    return '<div class="cell filled'+(picked?' picked':'')+'" '+a+' data-drop="1" data-drag="slot" style="--g:'+GCOL[t.group]+'">'+
+      '<span class="nm">'+esc(t.name)+'</span><button class="x" data-act="clearCell" '+a+' aria-label="Quitar equipo">×</button></div>';
+  }
+  return '<div class="cell empty" '+a+' data-drop="1"><span>'+(side==='home'?'Local':'Visitante')+'</span></div>';
+}
+function dayHTML(d){
+  var cols=state.stadiums.map(function(s,i){
+    var slots=(d.slots[s.id]||[]).map(function(sl){
+      return '<div class="slot"><button class="time" data-act="editSlot" data-day="'+d.id+'" data-stad="'+s.id+'" data-slot="'+sl.id+'" aria-label="Editar horario">'+fmtT(sl.time)+'</button>'+
+        '<div class="cells">'+cellHTML(d,s,sl,'home')+'<span class="vs">vs</span>'+cellHTML(d,s,sl,'away')+'</div></div>';
+    }).join('');
+    return '<div class="stad" style="--s:var(--s'+(i+1)+')"><h3><span>'+esc(s.name)+'</span><button data-act="editStad" data-stad="'+s.id+'" aria-label="Renombrar estadio">✎</button></h3>'+slots+
+      '<button class="addslot" data-act="addSlot" data-day="'+d.id+'" data-stad="'+s.id+'">+ Agregar horario</button></div>';
+  }).join('');
+  return '<section class="day"><div class="dayh"><button class="dayt" data-act="editDay" data-day="'+d.id+'">'+wdOf(d.date)+' <small>'+dateLabel(d.date)+' ✎</small></button>'+
+    '<button class="btn sm danger" data-act="delDay" data-day="'+d.id+'">Eliminar día</button></div><div class="stads">'+cols+'</div></section>';
+}
+function mainHTML(){
+  var f=curF(),st=stats(f);
+  var days=f.days.length?f.days.map(dayHTML).join(''):'<div class="empty-state"><h3>Esta fecha no tiene días</h3><p>Agrega el primer día y luego los horarios de cada estadio.</p><button class="btn pri" data-act="addDay">+ Agregar día</button></div>';
+  return '<main><div class="fhead"><div><h2>'+esc(f.name)+'</h2><p class="sub">'+f.days.length+' días · '+st.ok+' de '+st.tot+' partidos con los dos equipos</p></div>'+
+    '<div class="fbtns"><button class="btn" data-act="renameFecha">Renombrar fecha</button><button class="btn" data-act="clearTeams">Vaciar equipos</button>'+
+    '<button class="btn pri" data-act="addDay">+ Agregar día</button></div></div>'+days+'</main>';
+}
+function render(){
+  var keep={y:window.scrollY,strips:{},tabs:0};
+  document.querySelectorAll('.strip').forEach(function(s){keep.strips[s.dataset.g]=s.scrollLeft;});
+  var tb=$('.tabs');if(tb)keep.tabs=tb.scrollLeft;
+  $('#app').innerHTML=headerHTML()+mainHTML();
+  document.body.classList.toggle('hasSel',!!ui.sel);
+  document.querySelectorAll('.strip').forEach(function(s){if(keep.strips[s.dataset.g]!=null)s.scrollLeft=keep.strips[s.dataset.g];});
+  var tb2=$('.tabs');if(tb2)tb2.scrollLeft=keep.tabs;
+  window.scrollTo(0,keep.y);
+}
+
+/* ================= Ventanas ================= */
+function closeModal(){$('#modal-root').innerHTML='';}
+function modal(o){
+  var root=$('#modal-root');
+  root.innerHTML='<div class="scrim"><div class="sheet'+(o.wide?' wide':'')+'" role="dialog" aria-modal="true"><h3>'+o.title+'</h3><div class="mbody">'+(o.html||'')+'</div><div class="mbtns"></div></div></div>';
+  var box=root.querySelector('.mbtns');
+  function values(){
+    var v={};
+    root.querySelectorAll('[name]').forEach(function(el){
+      if(el.type==='radio'){if(el.checked)v[el.name]=el.value;}else v[el.name]=el.value;
+    });
+    return v;
+  }
+  var primary=null;
+  (o.buttons||[]).forEach(function(b){
+    var btn=document.createElement('button');
+    btn.className='btn'+(b.kind?' '+b.kind:'');btn.textContent=b.label;
+    btn.addEventListener('click',function(){
+      var r=b.onClick?b.onClick(values()):undefined;
+      if(r!==false)closeModal();
+    });
+    if(b.kind==='pri')primary=btn;
+    box.appendChild(btn);
+  });
+  root.querySelector('.scrim').addEventListener('click',function(e){if(e.target.classList.contains('scrim'))closeModal();});
+  root.querySelectorAll('input[type=text],input[type=date],input[type=time]').forEach(function(i){
+    i.addEventListener('keydown',function(e){if(e.key==='Enter'&&primary){e.preventDefault();primary.click();}});
+  });
+  var first=root.querySelector('input[type=text]');
+  if(first&&!o.noFocus){first.focus();try{first.select();}catch(e){}}
+  return {root:root};
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+function confirmBox(title,msg,label,fn){
+  modal({title:title,html:'<p class="note" style="margin:0 0 14px;font-size:16px;color:var(--ink)">'+msg+'</p>',buttons:[
+    {label:'Cancelar'},{label:label,kind:'danger',onClick:function(){fn();}}]});
+}
+var tt;
+function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('on');},2400);}
+
+/* ================= Acciones ================= */
+function editTeam(id){
+  var t=teamById(id);if(!t)return;
+  modal({title:'Editar equipo',html:
+    '<label class="fld">Nombre del equipo<input type="text" name="name" value="'+esc(t.name)+'" maxlength="30" autocapitalize="words" autocomplete="off"></label>'+
+    '<div class="fld">Grupo<div class="seg">'+GROUPS.map(function(g){return '<label><input type="radio" name="group" value="'+g+'"'+(g===t.group?' checked':'')+'><span style="--g:'+GCOL[g]+'">'+g+'</span></label>';}).join('')+'</div></div>',
+    buttons:[{label:'Cancelar'},{label:'Guardar',kind:'pri',onClick:function(v){t.name=(v.name||'').trim()||t.name;t.group=v.group||t.group;commit();}}]});
+}
+function newFecha(){
+  var f0=curF();
+  modal({title:'Nueva fecha',html:
+    '<label class="fld">Nombre<input type="text" name="name" value="Fecha '+(state.fechas.length+2)+'" maxlength="30" autocomplete="off"></label>'+
+    '<div class="fld">Contenido inicial<div class="seg">'+
+    '<label><input type="radio" name="mode" value="empty" checked><span>Vacía</span></label>'+
+    '<label><input type="radio" name="mode" value="copy"><span>Copiar horarios de «'+esc(f0.name)+'» (+7 días)</span></label></div></div>',
+    buttons:[{label:'Cancelar'},{label:'Crear fecha',kind:'pri',onClick:function(v){
+      var nf={id:uid(),name:(v.name||'').trim()||'Fecha',days:[]};
+      if(v.mode==='copy'){
+        nf.days=f0.days.map(function(d){
+          var nd={id:uid(),date:addDays(d.date,7),slots:{}};
+          Object.keys(d.slots).forEach(function(k){nd.slots[k]=d.slots[k].map(function(s){return mkSlot(s.time);});});
+          return nd;
+        });
+      }
+      state.fechas.push(nf);state.active=nf.id;ui.sel=null;commit();window.scrollTo(0,0);
+    }}]});
+}
+function renameFecha(){
+  var f=curF();
+  var btns=[{label:'Cancelar'}];
+  if(state.fechas.length>1)btns.push({label:'Eliminar fecha',kind:'danger',onClick:function(){
+    confirmBox('Eliminar fecha','Se borrará «'+esc(f.name)+'» con todos sus días y partidos.','Eliminar',function(){
+      state.fechas=state.fechas.filter(function(x){return x.id!==f.id;});state.active=state.fechas[0].id;ui.sel=null;commit();
+    });
+    return false;
+  }});
+  btns.push({label:'Guardar',kind:'pri',onClick:function(v){f.name=(v.name||'').trim()||f.name;commit();}});
+  modal({title:'Renombrar fecha',html:'<label class="fld">Nombre<input type="text" name="name" value="'+esc(f.name)+'" maxlength="30" autocomplete="off"></label>',buttons:btns});
+}
+function addDay(){
+  var f=curF();var last=f.days.length?f.days[f.days.length-1]:null;
+  var def=last?addDays(last.date,1):todayISO();
+  modal({title:'Agregar día',html:
+    '<label class="fld">Fecha del día<input type="date" name="date" value="'+def+'"></label>'+
+    (last?'<div class="fld">Horarios<div class="seg"><label><input type="radio" name="mode" value="empty" checked><span>Sin horarios</span></label><label><input type="radio" name="mode" value="copy"><span>Copiar los del último día</span></label></div></div>':'<input type="hidden" name="mode" value="empty">'),
+    noFocus:true,
+    buttons:[{label:'Cancelar'},{label:'Agregar',kind:'pri',onClick:function(v){
+      if(!v.date){toast('Elige una fecha');return false;}
+      var nd={id:uid(),date:v.date,slots:{}};
+      state.stadiums.forEach(function(s){nd.slots[s.id]=(v.mode==='copy'&&last)?(last.slots[s.id]||[]).map(function(x){return mkSlot(x.time);}):[];});
+      f.days.push(nd);commit();
+    }}]});
+}
+function editDay(id){
+  var f=curF();var d=f.days.find(function(x){return x.id===id;});if(!d)return;
+  modal({title:'Editar día',html:'<label class="fld">Fecha del día<input type="date" name="date" value="'+d.date+'"></label>',noFocus:true,buttons:[
+    {label:'Cancelar'},
+    {label:'Eliminar día',kind:'danger',onClick:function(){delDay(id);return false;}},
+    {label:'Guardar',kind:'pri',onClick:function(v){if(!v.date){toast('Elige una fecha');return false;}d.date=v.date;commit();}}]});
+}
+function delDay(id){
+  var f=curF();var d=f.days.find(function(x){return x.id===id;});if(!d)return;
+  confirmBox('Eliminar día','Se borrarán '+wdOf(d.date)+' '+dateLabel(d.date)+' y sus partidos.','Eliminar',function(){
+    f.days=f.days.filter(function(x){return x.id!==id;});ui.sel=null;commit();
+  });
+}
+function addSlot(dayId,stadId){
+  var f=curF();var d=f.days.find(function(x){return x.id===dayId;});if(!d)return;
+  var list=d.slots[stadId]||(d.slots[stadId]=[]);
+  var lastT=list.length?list[list.length-1].time:'',def=lastT?addHours(lastT,2):'14:00';
+  var m=modal({title:'Agregar horario',html:'<label class="fld">Hora del partido<input type="time" name="time" value="'+def+'"></label><p class="note">«Agregar y otro» deja la ventana abierta con dos horas más.</p>',noFocus:true,buttons:[
+    {label:'Cerrar'},
+    {label:'Agregar y otro',onClick:function(v){
+      if(!v.time){toast('Elige una hora');return false;}
+      list.push(mkSlot(v.time));normalize();persist();render();
+      m.root.querySelector('[name=time]').value=addHours(v.time,2);toast('Horario '+fmtT(v.time)+' agregado');return false;
+    }},
+    {label:'Agregar',kind:'pri',onClick:function(v){if(!v.time){toast('Elige una hora');return false;}list.push(mkSlot(v.time));commit();}}]});
+}
+function editSlot(dayId,stadId,slotId){
+  var f=curF();var d=f.days.find(function(x){return x.id===dayId;});if(!d)return;
+  var sl=(d.slots[stadId]||[]).find(function(s){return s.id===slotId;});if(!sl)return;
+  modal({title:'Editar horario',html:'<label class="fld">Hora del partido<input type="time" name="time" value="'+sl.time+'"></label>',noFocus:true,buttons:[
+    {label:'Cancelar'},
+    {label:'Eliminar horario',kind:'danger',onClick:function(){d.slots[stadId]=d.slots[stadId].filter(function(s){return s.id!==slotId;});ui.sel=null;commit();}},
+    {label:'Guardar',kind:'pri',onClick:function(v){if(!v.time){toast('Elige una hora');return false;}sl.time=v.time;commit();}}]});
+}
+function editStad(id){
+  var s=state.stadiums.find(function(x){return x.id===id;});if(!s)return;
+  modal({title:'Nombre del estadio',html:'<label class="fld">Nombre<input type="text" name="name" value="'+esc(s.name)+'" maxlength="40" autocomplete="off"></label>',buttons:[
+    {label:'Cancelar'},{label:'Guardar',kind:'pri',onClick:function(v){s.name=(v.name||'').trim()||s.name;commit();}}]});
+}
+function clearTeams(){
+  var f=curF();
+  confirmBox('Vaciar equipos','Se quitarán todos los equipos de «'+esc(f.name)+'». Los días y horarios se conservan.','Vaciar',function(){
+    f.days.forEach(function(d){Object.keys(d.slots).forEach(function(k){d.slots[k].forEach(function(s){s.home=null;s.away=null;});});});
+    ui.sel=null;commit();
+  });
+}
+
+function handleAct(el){
+  var a=el.dataset.act;
+  switch(a){
+    case 'selFecha':state.active=el.dataset.f;ui.sel=null;persist();render();window.scrollTo(0,0);break;
+    case 'newFecha':newFecha();break;
+    case 'renameFecha':renameFecha();break;
+    case 'clearTeams':clearTeams();break;
+    case 'addDay':addDay();break;
+    case 'editDay':editDay(el.dataset.day);break;
+    case 'delDay':delDay(el.dataset.day);break;
+    case 'addSlot':addSlot(el.dataset.day,el.dataset.stad);break;
+    case 'editSlot':editSlot(el.dataset.day,el.dataset.stad,el.dataset.slot);break;
+    case 'editStad':editStad(el.dataset.stad);break;
+    case 'editTeam':editTeam(el.dataset.team);break;
+    case 'clearCell':removeFromCell(refOf(el));ui.sel=null;commit();break;
+    case 'cancelSel':ui.sel=null;render();break;
+    case 'togglePool':ui.poolOpen=!ui.poolOpen;render();break;
+    case 'save':if(persist()){toast('Guardado en este iPad');}else{toast('No se pudo guardar en este navegador');}render();break;
+    case 'export':exportPNG();break;
+  }
+}
+
+/* ================= Toque: seleccionar y colocar ================= */
+var suppressUntil=0;
+document.addEventListener('click',function(e){
+  if($('#modal-root').contains(e.target))return;
+  var act=e.target.closest('[data-act]');
+  if(act){if(Date.now()<suppressUntil)return;handleAct(act);return;}
+  if(Date.now()<suppressUntil)return;
+  var chip=e.target.closest('[data-drag="pool"]');
+  if(chip){
+    var id=chip.dataset.team;
+    ui.sel=(ui.sel&&ui.sel.type==='pool'&&ui.sel.teamId===id)?null:{type:'pool',teamId:id};
+    render();return;
+  }
+  var cell=e.target.closest('.cell[data-drop]');
+  if(cell){
+    var ref=refOf(cell);
+    if(ui.sel){
+      if(ui.sel.type==='slot'&&sameRef(ui.sel.ref,ref)){ui.sel=null;render();return;}
+      moveTeam(ui.sel,ref);ui.sel=null;commit();return;
+    }
+    if(cell.classList.contains('filled')){ui.sel={type:'slot',ref:ref};render();}
+  }
+});
+
+/* ================= Arrastrar (dedo, lápiz o mouse) ================= */
+var drag=null;
+function srcFrom(el){
+  if(el.dataset.drag==='pool')return {type:'pool',teamId:el.dataset.team};
+  if(el.dataset.drag==='slot')return {type:'slot',ref:refOf(el)};
+  return null;
+}
+function srcTeam(src){
+  if(src.type==='pool')return teamById(src.teamId);
+  var c=cellObj(src.ref);var id=c&&c.slot[c.side];return id?teamById(id):null;
+}
+document.addEventListener('pointerdown',function(e){
+  if(e.pointerType==='mouse'&&e.button>0)return;
+  if(e.target.closest('button,input'))return;
+  var el=e.target.closest('[data-drag]');if(!el)return;
+  var src=srcFrom(el);if(!src)return;
+  drag={src:src,el:el,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,id:e.pointerId,touch:e.pointerType!=='mouse',active:false,ghost:null,timer:null,over:null,overRemove:false};
+  if(drag.touch){drag.timer=setTimeout(function(){if(drag&&!drag.active)startDrag();},260);}
+});
+document.addEventListener('pointermove',function(e){
+  if(!drag||e.pointerId!==drag.id)return;
+  drag.x=e.clientX;drag.y=e.clientY;
+  if(!drag.active){
+    var dist=Math.hypot(drag.x-drag.sx,drag.y-drag.sy);
+    if(drag.touch){if(dist>10){clearTimeout(drag.timer);drag=null;}}
+    else if(dist>6){startDrag();}
+    return;
+  }
+  moveGhost();updateHover();
+});
+document.addEventListener('pointerup',function(e){if(drag&&e.pointerId===drag.id)endDrag(true);});
+document.addEventListener('pointercancel',function(e){if(drag&&e.pointerId===drag.id)endDrag(false);});
+document.addEventListener('touchmove',function(e){if(drag&&drag.active&&e.cancelable)e.preventDefault();},{passive:false});
+document.addEventListener('contextmenu',function(e){if(e.target.closest('[data-drag]'))e.preventDefault();});
+
+function startDrag(){
+  var t=srcTeam(drag.src);if(!t){clearTimeout(drag.timer);drag=null;return;}
+  drag.active=true;
+  var g=document.createElement('div');g.className='ghost';g.textContent=t.name;g.style.setProperty('--g',GCOL[t.group]);
+  document.body.appendChild(g);drag.ghost=g;
+  document.body.classList.add('dragging');drag.el.classList.add('lifted');
+  moveGhost();updateHover();
+  requestAnimationFrame(autoScroll);
+}
+function moveGhost(){if(drag&&drag.ghost)drag.ghost.style.transform='translate('+(drag.x-40)+'px,'+(drag.y-(drag.touch?78:26))+'px)';}
+function updateHover(){
+  if(!drag)return;
+  var el=document.elementFromPoint(drag.x,drag.y);
+  var cell=el&&el.closest('.cell[data-drop]');
+  var zone=(!cell&&el&&drag.src.type==='slot')?el.closest('[data-poolzone]'):null;
+  if(drag.over&&drag.over!==cell)drag.over.classList.remove('over');
+  if(cell&&cell!==drag.over)cell.classList.add('over');
+  drag.over=cell||null;
+  var pz=document.querySelector('.pool');
+  if(pz)pz.classList.toggle('over-remove',!!zone);
+  drag.overRemove=!!zone;
+}
+function autoScroll(){
+  if(!drag||!drag.active)return;
+  var hb=$('.top').getBoundingClientRect().bottom,vh=window.innerHeight,y=drag.y,dy=0;
+  if(y>vh-100)dy=Math.min(26,(y-(vh-100))/3+4);
+  else if(y>hb&&y<hb+28&&window.scrollY>0)dy=-Math.min(16,((hb+28)-y)/3+3);
+  if(dy){window.scrollBy(0,dy);updateHover();}
+  requestAnimationFrame(autoScroll);
+}
+function endDrag(drop){
+  var d=drag;drag=null;if(!d)return;
+  clearTimeout(d.timer);
+  if(!d.active)return;
+  suppressUntil=Date.now()+450;
+  if(d.ghost)d.ghost.remove();
+  document.body.classList.remove('dragging');
+  if(d.el)d.el.classList.remove('lifted');
+  if(d.over)d.over.classList.remove('over');
+  var pz=document.querySelector('.pool');if(pz)pz.classList.remove('over-remove');
+  if(!drop)return;
+  var changed=false;
+  if(d.over){changed=moveTeam(d.src,refOf(d.over));}
+  else if(d.overRemove&&d.src.type==='slot'){removeFromCell(d.src.ref);changed=true;}
+  if(changed){ui.sel=null;commit();}
+}
+
+/* ================= Exportar PNG ================= */
+var dlPromise=null;
+function getDL(){
+  if(!dlPromise){
+    try{dlPromise=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);}
+    catch(e){dlPromise=Promise.resolve(null);}
+  }
+  return dlPromise.catch(function(){return null;});
+}
+getDL();
+
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+var FD="'Saira','Arial Black',Impact,sans-serif",FB="'Barlow','Helvetica Neue',Arial,sans-serif";
+function fitText(c,text,maxW,size,weight,fam,style){
+  var s=size;c.font=(style||'')+' '+weight+' '+s+'px '+fam;
+  while(c.measureText(text).width>maxW&&s>20){s-=2;c.font=(style||'')+' '+weight+' '+s+'px '+fam;}
+}
+function drawPoster(f){
+  var S=state.stadiums,rows=[];
+  f.days.forEach(function(d){
+    rows.push({k:'day',d:d});
+    var times=[];S.forEach(function(s){(d.slots[s.id]||[]).forEach(function(x){if(times.indexOf(x.time)<0)times.push(x.time);});});
+    times.sort();
+    times.forEach(function(t){
+      var lists=S.map(function(s){return (d.slots[s.id]||[]).filter(function(x){return x.time===t;});});
+      var n=Math.max.apply(null,lists.map(function(l){return l.length;}));
+      for(var i=0;i<n;i++)rows.push({k:'row',t:t,c:lists.map(function(l){return l[i]||null;})});
+    });
+  });
+  var W=2400,M=110,PW=W-2*M,BW=PW/2,RH=76,TOP=340,PADT=64,SH=100,PADB=56;
+  var PH=PADT+SH+Math.max(rows.length,1)*RH+PADB,H=TOP+PH+130;
+  var cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  var c=cv.getContext('2d');
+  var bg=c.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#070b2e');bg.addColorStop(.55,'#131060');bg.addColorStop(1,'#1c0f55');
+  c.fillStyle=bg;c.fillRect(0,0,W,H);
+  c.strokeStyle='rgba(120,140,255,.09)';c.lineWidth=2;
+  for(var gx=0;gx<W;gx+=80){c.beginPath();c.moveTo(gx,0);c.lineTo(gx,H);c.stroke();}
+  for(var gy=0;gy<H;gy+=80){c.beginPath();c.moveTo(0,gy);c.lineTo(W,gy);c.stroke();}
+  var rg=c.createRadialGradient(W/2,TOP+PH/2,100,W/2,TOP+PH/2,W*.6);rg.addColorStop(0,'rgba(56,120,255,.20)');rg.addColorStop(1,'rgba(56,120,255,0)');
+  c.fillStyle=rg;c.fillRect(0,0,W,H);
+  c.textAlign='center';c.textBaseline='middle';
+  fitText(c,'KEEPER CUP 3',1200,58,800,FD,'italic');c.fillStyle='#38d9ff';c.fillText('KEEPER CUP 3',W/2,112);
+  var title='HORARIOS '+f.name.toUpperCase();
+  fitText(c,title,2100,150,800,FD,'italic');
+  c.shadowColor='rgba(56,140,255,.8)';c.shadowBlur=30;c.fillStyle='#ffffff';c.fillText(title,W/2,240);c.shadowBlur=0;
+  rr(c,M,TOP,PW,PH,46);c.fillStyle='rgba(18,28,92,.62)';c.fill();
+  c.shadowColor='#38d9ff';c.shadowBlur=32;c.strokeStyle='#38d9ff';c.lineWidth=6;c.stroke();c.shadowBlur=0;
+  var ORG='#ff9f4a',y0=TOP+PADT+SH;
+  c.strokeStyle='rgba(56,217,255,.28)';c.lineWidth=3;
+  c.beginPath();c.moveTo(M+BW,TOP+PADT);c.lineTo(M+BW,TOP+PH-PADB/2);c.stroke();
+  S.slice(0,2).forEach(function(s,b){
+    var x0=M+b*BW;c.textAlign='left';
+    fitText(c,s.name.toUpperCase(),BW-340,50,700,FB);c.fillStyle=ORG;c.fillText(s.name.toUpperCase(),x0+300,TOP+PADT+SH/2);
+  });
+  if(!rows.length){c.textAlign='center';c.font='700 44px '+FB;c.fillStyle='#9aa6e0';c.fillText('Sin partidos programados',W/2,y0+RH/2);}
+  rows.forEach(function(r,i){
+    var cy=y0+i*RH+RH/2;
+    if(r.k==='day'){
+      if(i>0){c.strokeStyle='rgba(255,255,255,.10)';c.lineWidth=2;c.beginPath();c.moveTo(M+40,y0+i*RH+4);c.lineTo(M+PW-40,y0+i*RH+4);c.stroke();}
+      [0,1].forEach(function(b){
+        var x0=M+b*BW;c.textAlign='left';c.font='700 46px '+FB;c.fillStyle=ORG;
+        c.fillText(wdOf(r.d.date),x0+60,cy);c.fillText(dateLabel(r.d.date),x0+300,cy);
+      });
+      return;
+    }
+    [0,1].forEach(function(b){
+      var x0=M+b*BW,cell=r.c[b],mid=x0+300+370;
+      c.textAlign='left';c.font='700 46px '+FB;c.fillStyle='#ffffff';c.fillText(fmtT(r.t),x0+60,cy);
+      if(!cell){c.textAlign='center';c.fillStyle='rgba(255,255,255,.35)';c.fillText('-',mid,cy);return;}
+      var h=cell.home?teamById(cell.home):null,a=cell.away?teamById(cell.away):null;
+      c.textAlign='right';fitText(c,h?h.name:'—',330,46,600,FB);c.fillStyle=h?'#ffffff':'rgba(255,255,255,.35)';c.fillText(h?h.name:'—',mid-40,cy);
+      c.textAlign='center';c.font='italic 700 28px '+FB;c.fillStyle='#38d9ff';c.fillText('vs',mid,cy+2);
+      c.textAlign='left';fitText(c,a?a.name:'—',330,46,600,FB);c.fillStyle=a?'#ffffff':'rgba(255,255,255,.35)';c.fillText(a?a.name:'—',mid+40,cy);
+    });
+  });
+  return cv;
+}
+function exportPNG(){
+  var f=curF();
+  toast('Generando imagen…');
+  var fonts=[];
+  try{if(document.fonts&&document.fonts.load){fonts=[document.fonts.load('italic 800 60px Saira'),document.fonts.load('700 40px Barlow'),document.fonts.load('600 40px Barlow')];}}catch(e){}
+  Promise.all(fonts).catch(function(){}).then(function(){
+    var cv=drawPoster(f);
+    var url=cv.toDataURL('image/png');
+    var name='KeeperCup3_'+f.name.replace(/[^A-Za-z0-9]+/g,'_')+'.png';
+    cv.toBlob(function(blob){showExport(url,blob,name);},'image/png');
+  });
+}
+function showExport(url,blob,name){
+  var btns=[{label:'Cerrar'}];
+  var file=null;
+  try{file=new File([blob],name,{type:'image/png'});}catch(e){}
+  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+    btns.push({label:'Compartir',onClick:function(){
+      navigator.share({files:[file],title:'Keeper Cup 3'}).catch(function(err){if(err&&err.name!=='AbortError')toast('No se pudo abrir Compartir. Mantén presionada la imagen para guardarla.');});
+      return false;
+    }});
+  }
+  btns.push({label:'Guardar PNG',kind:'pri',onClick:function(){
+    getDL().then(function(dl){
+      if(!dl){toast('Mantén presionada la imagen y elige Guardar en Fotos');return;}
+      dl.save({filename:name,data:blob}).then(function(){toast('Imagen guardada');}).catch(function(err){
+        if(err&&err.code==='declined')return;
+        toast('No se pudo guardar. Mantén presionada la imagen y elige Guardar en Fotos');
+      });
+    });
+    return false;
+  }});
+  modal({title:'Imagen lista',wide:true,noFocus:true,html:'<img class="pv" src="'+url+'" alt="Programación exportada"><p class="note">También puedes mantener presionada la imagen y elegir «Guardar en Fotos» o «Copiar».</p>',buttons:btns});
+}
+
+/* ================= Inicio ================= */
+normalize();
+render();
+})();
+</script>
+</body>
+</html>

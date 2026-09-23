@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rotación Cancha Los Sauces — Keeper Cup 3</title>
+<style>
+  :root{
+    --navy:#101a33;
+    --navy2:#16223f;
+    --gold:#f2b705;
+    --gold-soft:#fde7a8;
+    --ink:#1c2333;
+    --sub:#5b6478;
+    --card:#ffffff;
+    --border:#e4e7ee;
+    --bg:#f4f6fb;
+    --green:#1e9e6a;
+    --green-bg:#e3f7ee;
+    --blue:#2f6fed;
+    --blue-bg:#e9f0fe;
+    --amber:#c8720a;
+    --amber-bg:#fdf0dd;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --navy:#0b1226; --navy2:#121b36; --card:#161f38; --border:#26304d;
+      --bg:#0a0f1e; --ink:#eef1f8; --sub:#9aa5c0;
+      --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409;
+    }
+  }
+  :root[data-theme="dark"]{
+    --navy:#0b1226; --navy2:#121b36; --card:#161f38; --border:#26304d;
+    --bg:#0a0f1e; --ink:#eef1f8; --sub:#9aa5c0;
+    --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .hero{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
+    color:#fff; padding:28px 18px 22px; position:relative; overflow:hidden;
+  }
+  .hero h1{margin:0 0 6px; font-size:1.5rem; letter-spacing:.3px;}
+  .hero p{margin:0; color:#c7cfe6; font-size:.9rem; max-width:640px; line-height:1.45;}
+  .badge-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .badge{
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+    color:#fff; padding:5px 10px; border-radius:20px; font-size:.75rem;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:18px 14px 60px;}
+
+  .note{
+    background:var(--card); border:1px solid var(--border); border-left:4px solid var(--gold);
+    border-radius:10px; padding:12px 14px; font-size:.85rem; color:var(--sub); margin:18px 0 22px; line-height:1.5;
+  }
+  .note b{color:var(--ink);}
+
+  .section-title{
+    font-size:1.05rem; font-weight:700; margin:26px 0 12px; color:var(--ink);
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-title .tag{
+    font-size:.68rem; font-weight:700; background:var(--gold); color:#3a2400;
+    padding:2px 8px; border-radius:6px; letter-spacing:.4px;
+  }
+
+  .week-grid{display:grid; grid-template-columns:1fr; gap:12px;}
+  .week-card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:14px 14px 12px; position:relative; overflow:hidden;
+  }
+  .week-card.played{opacity:.88;}
+  .week-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .week-head .fecha-label{font-weight:700; font-size:.95rem;}
+  .status{
+    font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:20px;
+  }
+  .status.played{background:var(--green-bg); color:var(--green);}
+  .status.upcoming{background:var(--blue-bg); color:var(--blue);}
+
+  .match-row{
+    display:flex; align-items:center; gap:10px; padding:7px 0;
+    border-top:1px dashed var(--border); font-size:.86rem;
+  }
+  .match-row:first-of-type{border-top:none;}
+  .time-chip{
+    flex:0 0 auto; min-width:54px; text-align:center; font-weight:700; font-size:.75rem;
+    color:var(--navy); background:var(--gold-soft); border-radius:7px; padding:3px 6px;
+  }
+  .grp-chip{
+    flex:0 0 auto; width:22px; height:22px; border-radius:6px; display:flex; align-items:center;
+    justify-content:center; font-size:.7rem; font-weight:800; color:#fff;
+  }
+  .g-A{background:#e0562f;} .g-B{background:#2f6fed;} .g-C{background:#1e9e6a;} .g-D{background:#8a4fd6;}
+  .teams{flex:1 1 auto; color:var(--ink);}
+  .teams b{font-weight:600;}
+
+  .counter-wrap{
+    display:grid; grid-template-columns:1fr; gap:10px;
+  }
+  .grp-block{
+    background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 14px;
+  }
+  .grp-block h3{
+    margin:0 0 8px; font-size:.85rem; display:flex; align-items:center; gap:8px;
+  }
+  .grp-dot{width:10px; height:10px; border-radius:3px;}
+  .chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{
+    font-size:.78rem; padding:5px 9px; border-radius:20px; display:flex; align-items:center; gap:6px;
+    border:1px solid var(--border);
+  }
+  .v1{background:var(--green-bg); color:var(--green);}
+  .v2{background:var(--blue-bg); color:var(--blue);}
+  .v3{background:var(--amber-bg); color:var(--amber); font-weight:700;}
+  .chip .n{font-weight:800;}
+
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:.78rem; color:var(--sub); margin:10px 0 4px;}
+  .legend span{display:flex; align-items:center; gap:5px;}
+  .dot{width:9px; height:9px; border-radius:50%;}
+  .d1{background:var(--green);} .d2{background:var(--blue);} .d3{background:var(--amber);}
+
+  footer{text-align:center; color:var(--sub); font-size:.75rem; padding:20px 0 4px;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🏟️ Rotación Cancha Los Sauces</h1>
+  <p>Keeper Cup 3 — Fase de grupos. Regla: 12 partidos en San Miguel y 4 en Los Sauces por fecha (un partido de cada grupo), minimizando repeticiones en las 7 fechas.</p>
+  <div class="badge-row">
+    <div class="badge">32 equipos · 4 grupos de 8</div>
+    <div class="badge">7 fechas · fase de grupos</div>
+    <div class="badge">Fecha 1 ya jugada</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="note">
+    <b>Todos quedan parejos:</b> los 32 equipos terminan con exactamente <b>2 visitas</b> a Sauces al cabo de las 7 fechas, ni uno más. Para lograrlo se dejó de exigir "1 partido por grupo cada fecha": algunas semanas un grupo no manda ningún partido a Sauces y otro grupo manda dos, pero el total semanal siempre son 4 partidos.
+  </div>
+
+  <div class="section-title">📅 Calendario por fecha <span class="tag">Sauces</span></div>
+  <div class="week-grid" id="weeks"></div>
+
+  <div class="section-title" style="margin-top:34px;">📊 Conteo de visitas por equipo <span class="tag">Fechas 1-7</span></div>
+  <div class="legend">
+    <span><span class="dot d2"></span> 2 visitas — todos los equipos</span>
+  </div>
+  <div class="counter-wrap" id="counters"></div>
+
+  <footer>Generado a partir del horario real de la Fecha 1 y los grupos oficiales del sorteo.</footer>
+</div>
+
+<script>
+const DATA = {"weeks": [{"fecha": 1, "partidos": [{"grupo": "A", "equipos": ["Gladiadores AZ", "Alianza Jr."]}, {"grupo": "B", "equipos": ["Sub 21", "Jolines"]}, {"grupo": "B", "equipos": ["Templo Fit", "Libert"]}, {"grupo": "C", "equipos": ["Atl. Madrid", "La Banda"]}, {"grupo": "C", "equipos": ["San Andres", "Real Potosi"]}, {"grupo": "C", "equipos": ["Barcelona", "Somec"]}, {"grupo": "D", "equipos": ["Legacy", "Brigton"]}, {"grupo": "D", "equipos": ["Clowiss", "Randagi"]}]}, {"fecha": 2, "partidos": [{"grupo": "A", "equipos": ["Cordovez", "Alianza Jr."]}, {"grupo": "A", "equipos": ["Huracan", "Gladiadores AZ"]}, {"grupo": "C", "equipos": ["Vaster", "La Banda"]}, {"grupo": "D", "equipos": ["Canteranos", "Universitarios"]}]}, {"fecha": 3, "partidos": [{"grupo": "A", "equipos": ["Barrio Fino", "Corintians"]}, {"grupo": "B", "equipos": ["Mandela", "Jolines"]}, {"grupo": "D", "equipos": ["Universitarios", "Brigton"]}, {"grupo": "D", "equipos": ["America", "Legacy"]}]}, {"fecha": 4, "partidos": [{"grupo": "B", "equipos": ["Mandela", "Libert"]}, {"grupo": "B", "equipos": ["Real Sevilla", "Sub 21"]}, {"grupo": "B", "equipos": ["Pecezuelos", "Leones"]}, {"grupo": "C", "equipos": ["Cormoran", "Real Potosi"]}]}, {"fecha": 5, "partidos": [{"grupo": "A", "equipos": ["Arapaima", "Galacticos"]}, {"grupo": "B", "equipos": ["Real Sevilla", "Pecezuelos"]}, {"grupo": "C", "equipos": ["Somec", "Vaster"]}, {"grupo": "D", "equipos": ["Randagi", "Juventus"]}]}, {"fecha": 6, "partidos": [{"grupo": "A", "equipos": ["Corintians", "Arapaima"]}, {"grupo": "B", "equipos": ["Templo Fit", "Leones"]}, {"grupo": "C", "equipos": ["Cormoran", "Atl. Madrid"]}, {"grupo": "C", "equipos": ["San Andres", "Barcelona"]}]}, {"fecha": 7, "partidos": [{"grupo": "A", "equipos": ["Barrio Fino", "Cordovez"]}, {"grupo": "A", "equipos": ["Huracan", "Galacticos"]}, {"grupo": "D", "equipos": ["Canteranos", "Juventus"]}, {"grupo": "D", "equipos": ["Clowiss", "America"]}]}], "visit_count": {"Barrio Fino": 2, "Cordovez": 2, "Huracan": 2, "Gladiadores AZ": 2, "Alianza Jr.": 2, "Corintians": 2, "Arapaima": 2, "Galacticos": 2, "Mandela": 2, "Leones": 2, "Sub 21": 2, "Templo Fit": 2, "Libert": 2, "Jolines": 2, "Real Sevilla": 2, "Pecezuelos": 2, "Cormoran": 2, "Barcelona": 2, "Atl. Madrid": 2, "San Andres": 2, "Real Potosi": 2, "La Banda": 2, "Somec": 2, "Vaster": 2, "Canteranos": 2, "Juventus": 2, "Clowiss": 2, "Legacy": 2, "Brigton": 2, "Randagi": 2, "Universitarios": 2, "America": 2}, "team_group": {"Barrio Fino": "A", "Cordovez": "A", "Huracan": "A", "Gladiadores AZ": "A", "Alianza Jr.": "A", "Corintians": "A", "Arapaima": "A", "Galacticos": "A", "Mandela": "B", "Leones": "B", "Sub 21": "B", "Templo Fit": "B", "Libert": "B", "Jolines": "B", "Real Sevilla": "B", "Pecezuelos": "B", "Cormoran": "C", "Barcelona": "C", "Atl. Madrid": "C", "San Andres": "C", "Real Potosi": "C", "La Banda": "C", "Somec": "C", "Vaster": "C", "Canteranos": "D", "Juventus": "D", "Clowiss": "D", "Legacy": "D", "Brigton": "D", "Randagi": "D", "Universitarios": "D", "America": "D"}, "groups": {"A": ["Barrio Fino", "Cordovez", "Huracan", "Gladiadores AZ", "Alianza Jr.", "Corintians", "Arapaima", "Galacticos"], "B": ["Mandela", "Leones", "Sub 21", "Templo Fit", "Libert", "Jolines", "Real Sevilla", "Pecezuelos"], "C": ["Cormoran", "Barcelona", "Atl. Madrid", "San Andres", "Real Potosi", "La Banda", "Somec", "Vaster"], "D": ["Canteranos", "Juventus", "Clowiss", "Legacy", "Brigton", "Randagi", "Universitarios", "America"]}};
+
+const groupNames = {A:"Grupo A", B:"Grupo B", C:"Grupo C", D:"Grupo D"};
+const groupOrder = ["A","B","C","D"];
+const times = ["14h00","16h00","18h00","20h00"];
+
+const weeksEl = document.getElementById('weeks');
+DATA.weeks.forEach(week => {
+  const card = document.createElement('div');
+  card.className = 'week-card' + (week.fecha === 1 ? ' played' : '');
+  const isPlayed = week.fecha === 1;
+
+  let rowsHtml = '';
+  if (isPlayed){
+    const labels = ["Vie 19h00","Sáb 14h00","Sáb 16h00","Sáb 18h00","Sáb 20h00","Vie 21h00","Dom 17h00","Dom 19h00"];
+    week.partidos.forEach((p, i) => {
+      const lbl = labels[i] || "-";
+      rowsHtml += `<div class="match-row">
+        <div class="time-chip">${lbl}</div>
+        <div class="grp-chip g-${p.grupo}">${p.grupo}</div>
+        <div class="teams"><b>${p.equipos[0]}</b> vs <b>${p.equipos[1]}</b></div>
+      </div>`;
+    });
+  } else {
+    week.partidos.forEach((p, i) => {
+      rowsHtml += `<div class="match-row">
+        <div class="time-chip">${times[i]}</div>
+        <div class="grp-chip g-${p.grupo}">${p.grupo}</div>
+        <div class="teams"><b>${p.equipos[0]}</b> vs <b>${p.equipos[1]}</b></div>
+      </div>`;
+    });
+  }
+
+  card.innerHTML = `
+    <div class="week-head">
+      <div class="fecha-label">Fecha ${week.fecha}</div>
+      <div class="status ${isPlayed ? 'played' : 'upcoming'}">${isPlayed ? '✓ Jugada' : 'Sábado en Sauces'}</div>
+    </div>
+    ${rowsHtml}
+  `;
+  weeksEl.appendChild(card);
+});
+
+const countersEl = document.getElementById('counters');
+groupOrder.forEach(g => {
+  const block = document.createElement('div');
+  block.className = 'grp-block';
+  const teams = DATA.groups[g];
+  let chips = '';
+  teams.forEach(t => {
+    const n = DATA.visit_count[t];
+    const cls = n >= 3 ? 'v3' : (n === 1 ? 'v1' : 'v2');
+    chips += `<div class="chip ${cls}"><span class="n">${n}×</span> ${t}</div>`;
+  });
+  block.innerHTML = `<h3><span class="grp-dot g-${g}" style="background:var(--gold);"></span>${groupNames[g]}</h3><div class="chips">${chips}</div>`;
+  countersEl.appendChild(block);
+});
+</script>
+
+</body>
+</html>
