@@ -62,6 +62,11 @@
     border-radius:10px; padding:12px 14px; font-size:.85rem; color:var(--sub); margin:18px 0 22px; line-height:1.5;
   }
   .note b{color:var(--ink);}
+  .hint{font-size:.78rem; color:var(--sub); margin:-6px 0 14px;}
+  .empty-msg{
+    background:var(--card); border:1px dashed var(--border); border-radius:12px;
+    padding:16px; font-size:.85rem; color:var(--sub); text-align:center;
+  }
 
   .section-title{
     font-size:1.05rem; font-weight:700; margin:26px 0 12px; color:var(--ink);
@@ -87,10 +92,17 @@
   .status.upcoming{background:var(--blue-bg); color:var(--blue);}
 
   .match-row{
-    display:flex; align-items:center; gap:10px; padding:7px 0;
+    display:flex; align-items:center; gap:10px; padding:9px 0;
     border-top:1px dashed var(--border); font-size:.86rem;
+    cursor:pointer; -webkit-tap-highlight-color:transparent;
   }
   .match-row:first-of-type{border-top:none;}
+  .match-row input.chk{
+    flex:0 0 22px; width:22px; height:22px; accent-color:var(--green); cursor:pointer;
+  }
+  .match-row.done .time-chip{opacity:.45;}
+  .match-row.done .grp-chip{opacity:.45;}
+  .match-row.done .teams{opacity:.5; text-decoration:line-through;}
   .time-chip{
     flex:0 0 auto; min-width:54px; text-align:center; font-weight:700; font-size:.75rem;
     color:var(--navy); background:var(--gold-soft); border-radius:7px; padding:3px 6px;
@@ -150,7 +162,11 @@
   </div>
 
   <div class="section-title">📅 Calendario por fecha <span class="tag">Sauces</span></div>
+  <p class="hint">Toca un partido para marcarlo como jugado ✓ — se guarda en este dispositivo.</p>
   <div class="week-grid" id="weeks"></div>
+
+  <div class="section-title" style="margin-top:34px;">✅ Partidos jugados por club <span class="tag">Los Sauces</span></div>
+  <div class="counter-wrap" id="playedList"></div>
 
   <div class="section-title" style="margin-top:34px;">📊 Conteo de visitas por equipo <span class="tag">Fechas 1-7</span></div>
   <div class="legend">
@@ -162,48 +178,102 @@
 </div>
 
 <script>
-const DATA = {"weeks": [{"fecha": 1, "partidos": [{"grupo": "A", "equipos": ["Gladiadores AZ", "Alianza Jr."]}, {"grupo": "B", "equipos": ["Sub 21", "Jolines"]}, {"grupo": "B", "equipos": ["Templo Fit", "Libert"]}, {"grupo": "C", "equipos": ["Atl. Madrid", "La Banda"]}, {"grupo": "C", "equipos": ["San Andres", "Real Potosi"]}, {"grupo": "C", "equipos": ["Barcelona", "Somec"]}, {"grupo": "D", "equipos": ["Legacy", "Brigton"]}, {"grupo": "D", "equipos": ["Clowiss", "Randagi"]}]}, {"fecha": 2, "partidos": [{"grupo": "A", "equipos": ["Cordovez", "Alianza Jr."]}, {"grupo": "A", "equipos": ["Huracan", "Gladiadores AZ"]}, {"grupo": "C", "equipos": ["Vaster", "La Banda"]}, {"grupo": "D", "equipos": ["Canteranos", "Universitarios"]}]}, {"fecha": 3, "partidos": [{"grupo": "A", "equipos": ["Barrio Fino", "Corintians"]}, {"grupo": "B", "equipos": ["Mandela", "Jolines"]}, {"grupo": "D", "equipos": ["Universitarios", "Brigton"]}, {"grupo": "D", "equipos": ["America", "Legacy"]}]}, {"fecha": 4, "partidos": [{"grupo": "B", "equipos": ["Mandela", "Libert"]}, {"grupo": "B", "equipos": ["Real Sevilla", "Sub 21"]}, {"grupo": "B", "equipos": ["Pecezuelos", "Leones"]}, {"grupo": "C", "equipos": ["Cormoran", "Real Potosi"]}]}, {"fecha": 5, "partidos": [{"grupo": "A", "equipos": ["Arapaima", "Galacticos"]}, {"grupo": "B", "equipos": ["Real Sevilla", "Pecezuelos"]}, {"grupo": "C", "equipos": ["Somec", "Vaster"]}, {"grupo": "D", "equipos": ["Randagi", "Juventus"]}]}, {"fecha": 6, "partidos": [{"grupo": "A", "equipos": ["Corintians", "Arapaima"]}, {"grupo": "B", "equipos": ["Templo Fit", "Leones"]}, {"grupo": "C", "equipos": ["Cormoran", "Atl. Madrid"]}, {"grupo": "C", "equipos": ["San Andres", "Barcelona"]}]}, {"fecha": 7, "partidos": [{"grupo": "A", "equipos": ["Barrio Fino", "Cordovez"]}, {"grupo": "A", "equipos": ["Huracan", "Galacticos"]}, {"grupo": "D", "equipos": ["Canteranos", "Juventus"]}, {"grupo": "D", "equipos": ["Clowiss", "America"]}]}], "visit_count": {"Barrio Fino": 2, "Cordovez": 2, "Huracan": 2, "Gladiadores AZ": 2, "Alianza Jr.": 2, "Corintians": 2, "Arapaima": 2, "Galacticos": 2, "Mandela": 2, "Leones": 2, "Sub 21": 2, "Templo Fit": 2, "Libert": 2, "Jolines": 2, "Real Sevilla": 2, "Pecezuelos": 2, "Cormoran": 2, "Barcelona": 2, "Atl. Madrid": 2, "San Andres": 2, "Real Potosi": 2, "La Banda": 2, "Somec": 2, "Vaster": 2, "Canteranos": 2, "Juventus": 2, "Clowiss": 2, "Legacy": 2, "Brigton": 2, "Randagi": 2, "Universitarios": 2, "America": 2}, "team_group": {"Barrio Fino": "A", "Cordovez": "A", "Huracan": "A", "Gladiadores AZ": "A", "Alianza Jr.": "A", "Corintians": "A", "Arapaima": "A", "Galacticos": "A", "Mandela": "B", "Leones": "B", "Sub 21": "B", "Templo Fit": "B", "Libert": "B", "Jolines": "B", "Real Sevilla": "B", "Pecezuelos": "B", "Cormoran": "C", "Barcelona": "C", "Atl. Madrid": "C", "San Andres": "C", "Real Potosi": "C", "La Banda": "C", "Somec": "C", "Vaster": "C", "Canteranos": "D", "Juventus": "D", "Clowiss": "D", "Legacy": "D", "Brigton": "D", "Randagi": "D", "Universitarios": "D", "America": "D"}, "groups": {"A": ["Barrio Fino", "Cordovez", "Huracan", "Gladiadores AZ", "Alianza Jr.", "Corintians", "Arapaima", "Galacticos"], "B": ["Mandela", "Leones", "Sub 21", "Templo Fit", "Libert", "Jolines", "Real Sevilla", "Pecezuelos"], "C": ["Cormoran", "Barcelona", "Atl. Madrid", "San Andres", "Real Potosi", "La Banda", "Somec", "Vaster"], "D": ["Canteranos", "Juventus", "Clowiss", "Legacy", "Brigton", "Randagi", "Universitarios", "America"]}};
+const DATA = {"weeks": [{"fecha": 1, "partidos": [{"grupo": "A", "equipos": ["Gladiadores AZ", "Alianza Jr."]}, {"grupo": "B", "equipos": ["Sub 21", "Jolines"]}, {"grupo": "B", "equipos": ["Templo Fit", "Libert"]}, {"grupo": "C", "equipos": ["San Francisco", "La Banda"]}, {"grupo": "C", "equipos": ["San Andres", "Real Potosi"]}, {"grupo": "C", "equipos": ["Barcelona", "Somec"]}, {"grupo": "D", "equipos": ["Legacy", "Brigton"]}, {"grupo": "D", "equipos": ["Clowiss", "Randagi"]}]}, {"fecha": 2, "partidos": [{"grupo": "A", "equipos": ["Cordovez", "Alianza Jr."]}, {"grupo": "A", "equipos": ["Huracan", "Gladiadores AZ"]}, {"grupo": "C", "equipos": ["Vaster", "La Banda"]}, {"grupo": "D", "equipos": ["Leipzig", "Universitarios"]}]}, {"fecha": 3, "partidos": [{"grupo": "A", "equipos": ["Barrio Fino", "Corintians"]}, {"grupo": "B", "equipos": ["Mandela", "Jolines"]}, {"grupo": "D", "equipos": ["Universitarios", "Brigton"]}, {"grupo": "D", "equipos": ["America", "Legacy"]}]}, {"fecha": 4, "partidos": [{"grupo": "B", "equipos": ["Mandela", "Libert"]}, {"grupo": "B", "equipos": ["Real Sevilla", "Sub 21"]}, {"grupo": "B", "equipos": ["Pecezuelos", "Leones"]}, {"grupo": "C", "equipos": ["Cormoran", "Real Potosi"]}]}, {"fecha": 5, "partidos": [{"grupo": "A", "equipos": ["Arapaima", "Galacticos"]}, {"grupo": "B", "equipos": ["Real Sevilla", "Pecezuelos"]}, {"grupo": "C", "equipos": ["Somec", "Vaster"]}, {"grupo": "D", "equipos": ["Randagi", "Juventus"]}]}, {"fecha": 6, "partidos": [{"grupo": "A", "equipos": ["Corintians", "Arapaima"]}, {"grupo": "B", "equipos": ["Templo Fit", "Leones"]}, {"grupo": "C", "equipos": ["Cormoran", "San Francisco"]}, {"grupo": "C", "equipos": ["San Andres", "Barcelona"]}]}, {"fecha": 7, "partidos": [{"grupo": "A", "equipos": ["Barrio Fino", "Cordovez"]}, {"grupo": "A", "equipos": ["Huracan", "Galacticos"]}, {"grupo": "D", "equipos": ["Leipzig", "Juventus"]}, {"grupo": "D", "equipos": ["Clowiss", "America"]}]}], "visit_count": {"Barrio Fino": 2, "Cordovez": 2, "Huracan": 2, "Gladiadores AZ": 2, "Alianza Jr.": 2, "Corintians": 2, "Arapaima": 2, "Galacticos": 2, "Mandela": 2, "Leones": 2, "Sub 21": 2, "Templo Fit": 2, "Libert": 2, "Jolines": 2, "Real Sevilla": 2, "Pecezuelos": 2, "Cormoran": 2, "Barcelona": 2, "San Francisco": 2, "San Andres": 2, "Real Potosi": 2, "La Banda": 2, "Somec": 2, "Vaster": 2, "Leipzig": 2, "Juventus": 2, "Clowiss": 2, "Legacy": 2, "Brigton": 2, "Randagi": 2, "Universitarios": 2, "America": 2}, "team_group": {"Barrio Fino": "A", "Cordovez": "A", "Huracan": "A", "Gladiadores AZ": "A", "Alianza Jr.": "A", "Corintians": "A", "Arapaima": "A", "Galacticos": "A", "Mandela": "B", "Leones": "B", "Sub 21": "B", "Templo Fit": "B", "Libert": "B", "Jolines": "B", "Real Sevilla": "B", "Pecezuelos": "B", "Cormoran": "C", "Barcelona": "C", "San Francisco": "C", "San Andres": "C", "Real Potosi": "C", "La Banda": "C", "Somec": "C", "Vaster": "C", "Leipzig": "D", "Juventus": "D", "Clowiss": "D", "Legacy": "D", "Brigton": "D", "Randagi": "D", "Universitarios": "D", "America": "D"}, "groups": {"A": ["Barrio Fino", "Cordovez", "Huracan", "Gladiadores AZ", "Alianza Jr.", "Corintians", "Arapaima", "Galacticos"], "B": ["Mandela", "Leones", "Sub 21", "Templo Fit", "Libert", "Jolines", "Real Sevilla", "Pecezuelos"], "C": ["Cormoran", "Barcelona", "San Francisco", "San Andres", "Real Potosi", "La Banda", "Somec", "Vaster"], "D": ["Leipzig", "Juventus", "Clowiss", "Legacy", "Brigton", "Randagi", "Universitarios", "America"]}};
 
 const groupNames = {A:"Grupo A", B:"Grupo B", C:"Grupo C", D:"Grupo D"};
 const groupOrder = ["A","B","C","D"];
 const times = ["14h00","16h00","18h00","20h00"];
 
-const weeksEl = document.getElementById('weeks');
-DATA.weeks.forEach(week => {
-  const card = document.createElement('div');
-  card.className = 'week-card' + (week.fecha === 1 ? ' played' : '');
-  const isPlayed = week.fecha === 1;
+/* ---- Estado de partidos marcados como jugados (persistente en este dispositivo) ---- */
+const CHECK_KEY = 'kc3_sauces_checked_v1';
+function loadChecked(){
+  try{ const s = localStorage.getItem(CHECK_KEY); return s ? JSON.parse(s) : {}; }
+  catch(e){ return {}; }
+}
+function saveChecked(){
+  try{ localStorage.setItem(CHECK_KEY, JSON.stringify(checked)); }catch(e){}
+}
+let checked = loadChecked();
+function matchKey(fecha, idx){ return 'f' + fecha + '-' + idx; }
 
-  let rowsHtml = '';
-  if (isPlayed){
-    const labels = ["Vie 19h00","Sáb 14h00","Sáb 16h00","Sáb 18h00","Sáb 20h00","Vie 21h00","Dom 17h00","Dom 19h00"];
+const weeksEl = document.getElementById('weeks');
+function renderWeeks(){
+  weeksEl.innerHTML = '';
+  DATA.weeks.forEach(week => {
+    const card = document.createElement('div');
+    card.className = 'week-card' + (week.fecha === 1 ? ' played' : '');
+    const isPlayed = week.fecha === 1;
+    const labels = isPlayed ? ["Vie 19h00","Sáb 14h00","Sáb 16h00","Sáb 18h00","Sáb 20h00","Vie 21h00","Dom 17h00","Dom 19h00"] : times;
+
+    let rowsHtml = '';
     week.partidos.forEach((p, i) => {
+      const key = matchKey(week.fecha, i);
+      const done = !!checked[key];
       const lbl = labels[i] || "-";
-      rowsHtml += `<div class="match-row">
+      rowsHtml += `<label class="match-row${done ? ' done' : ''}">
+        <input type="checkbox" class="chk" data-fecha="${week.fecha}" data-idx="${i}" ${done ? 'checked' : ''} aria-label="Marcar partido jugado">
         <div class="time-chip">${lbl}</div>
         <div class="grp-chip g-${p.grupo}">${p.grupo}</div>
         <div class="teams"><b>${p.equipos[0]}</b> vs <b>${p.equipos[1]}</b></div>
-      </div>`;
+      </label>`;
     });
-  } else {
-    week.partidos.forEach((p, i) => {
-      rowsHtml += `<div class="match-row">
-        <div class="time-chip">${times[i]}</div>
-        <div class="grp-chip g-${p.grupo}">${p.grupo}</div>
-        <div class="teams"><b>${p.equipos[0]}</b> vs <b>${p.equipos[1]}</b></div>
-      </div>`;
-    });
-  }
 
-  card.innerHTML = `
-    <div class="week-head">
-      <div class="fecha-label">Fecha ${week.fecha}</div>
-      <div class="status ${isPlayed ? 'played' : 'upcoming'}">${isPlayed ? '✓ Jugada' : 'Sábado en Sauces'}</div>
-    </div>
-    ${rowsHtml}
-  `;
-  weeksEl.appendChild(card);
+    card.innerHTML = `
+      <div class="week-head">
+        <div class="fecha-label">Fecha ${week.fecha}</div>
+        <div class="status ${isPlayed ? 'played' : 'upcoming'}">${isPlayed ? '✓ Jugada' : 'Sábado en Sauces'}</div>
+      </div>
+      ${rowsHtml}
+    `;
+    weeksEl.appendChild(card);
+  });
+}
+renderWeeks();
+
+weeksEl.addEventListener('change', e => {
+  const cb = e.target.closest('input.chk');
+  if(!cb) return;
+  const key = matchKey(cb.dataset.fecha, cb.dataset.idx);
+  if(cb.checked) checked[key] = true; else delete checked[key];
+  saveChecked();
+  cb.closest('.match-row').classList.toggle('done', cb.checked);
+  renderPlayed();
 });
+
+/* ---- Listado de clubes con partidos jugados ---- */
+const playedEl = document.getElementById('playedList');
+function renderPlayed(){
+  const byClub = {};
+  groupOrder.forEach(g => DATA.groups[g].forEach(t => byClub[t] = []));
+  DATA.weeks.forEach(week => {
+    week.partidos.forEach((p, i) => {
+      if(!checked[matchKey(week.fecha, i)]) return;
+      const [a, b] = p.equipos;
+      if(byClub[a]) byClub[a].push({fecha: week.fecha, rival: b});
+      if(byClub[b]) byClub[b].push({fecha: week.fecha, rival: a});
+    });
+  });
+  const anyPlayed = Object.values(byClub).some(arr => arr.length);
+  if(!anyPlayed){
+    playedEl.innerHTML = '<div class="empty-msg">Aún no marcaste partidos como jugados. Toca el check junto a cada partido del calendario para que aparezcan aquí.</div>';
+    return;
+  }
+  let html = '';
+  groupOrder.forEach(g => {
+    const teams = DATA.groups[g].filter(t => byClub[t].length);
+    if(!teams.length) return;
+    html += `<div class="grp-block"><h3><span class="grp-dot g-${g}" style="background:var(--gold);"></span>${groupNames[g]}</h3>`;
+    teams.forEach(t => {
+      const matches = byClub[t];
+      html += `<div style="margin-bottom:10px;"><b>${t}</b> <span style="color:var(--sub);font-size:.78rem;">— ${matches.length} en Los Sauces</span>
+        <div class="chips" style="margin-top:5px;">${matches.map(m => `<div class="chip v2">Fecha ${m.fecha} vs ${m.rival}</div>`).join('')}</div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  playedEl.innerHTML = html;
+}
+renderPlayed();
 
 const countersEl = document.getElementById('counters');
 groupOrder.forEach(g => {
