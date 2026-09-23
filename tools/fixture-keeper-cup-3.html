@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fixture — Keeper Cup 3</title>
+<style>
+  :root{
+    --navy:#101a33; --navy2:#16223f; --gold:#f2b705; --gold-soft:#fde7a8;
+    --ink:#1c2333; --sub:#5b6478; --card:#ffffff; --border:#e4e7ee; --bg:#f4f6fb;
+    --green:#1e9e6a; --green-bg:#e3f7ee; --blue:#2f6fed; --blue-bg:#e9f0fe;
+    --amber:#c8720a; --amber-bg:#fdf0dd;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --navy:#0b1226; --navy2:#121b36; --card:#161f38; --border:#26304d;
+      --bg:#0a0f1e; --ink:#eef1f8; --sub:#9aa5c0;
+      --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409;
+    }
+  }
+  :root[data-theme="dark"]{
+    --navy:#0b1226; --navy2:#121b36; --card:#161f38; --border:#26304d;
+    --bg:#0a0f1e; --ink:#eef1f8; --sub:#9aa5c0;
+    --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .hero{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
+    color:#fff; padding:28px 18px 22px;
+  }
+  .hero h1{margin:0 0 6px; font-size:1.5rem; letter-spacing:.3px;}
+  .hero p{margin:0; color:#c7cfe6; font-size:.9rem; max-width:640px; line-height:1.45;}
+  .badge-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .badge{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; padding:5px 10px; border-radius:20px; font-size:.75rem;}
+  .wrap{max-width:960px; margin:0 auto; padding:18px 14px 60px;}
+
+  .note{background:var(--card); border:1px solid var(--border); border-left:4px solid var(--gold); border-radius:10px; padding:12px 14px; font-size:.85rem; color:var(--sub); margin:18px 0 22px; line-height:1.5;}
+  .note b{color:var(--ink);}
+
+  .tabbar{display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:2px 0 4px; margin-bottom:16px;}
+  .tabbar::-webkit-scrollbar{display:none;}
+  .tabbtn{flex:0 0 auto; height:40px; padding:0 16px; border-radius:20px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-weight:700; font-size:.85rem;}
+  .tabbtn.on{background:var(--gold); color:#3a2400; border-color:transparent;}
+
+  .section-title{font-size:1.05rem; font-weight:700; margin:26px 0 12px; color:var(--ink); display:flex; align-items:center; gap:8px;}
+  .section-title .tag{font-size:.68rem; font-weight:700; background:var(--gold); color:#3a2400; padding:2px 8px; border-radius:6px; letter-spacing:.4px;}
+
+  .fecha-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:16px;}
+  .fecha-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+  .fecha-head .t{font-weight:700; font-size:1rem;}
+  .fecha-head .status{font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:20px;}
+  .status.played{background:var(--green-bg); color:var(--green);}
+  .status.pending{background:var(--blue-bg); color:var(--blue);}
+  .fecha-sub{font-size:.78rem; color:var(--sub); margin:0 0 10px;}
+
+  .grp-label{display:flex; align-items:center; gap:6px; font-size:.75rem; font-weight:700; color:var(--sub); margin:12px 0 6px;}
+  .grp-label:first-of-type{margin-top:0;}
+  .grp-dot{width:9px; height:9px; border-radius:50%;}
+  .g-A{background:#e0562f;} .g-B{background:#2f6fed;} .g-C{background:#1e9e6a;} .g-D{background:#8a4fd6;}
+
+  .match-row{display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px dashed var(--border); font-size:.85rem;}
+  .match-row:first-of-type{border-top:none;}
+  .match-row.done{background:linear-gradient(90deg, var(--green-bg), transparent 90%); border-radius:8px;}
+  .teams{flex:1 1 auto; min-width:0;}
+  .teams .t1,.teams .t2{display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .teams .vs{font-size:.68rem; color:var(--sub); font-weight:400;}
+  .score{display:flex; align-items:center; gap:4px; flex:0 0 auto;}
+  .score input{
+    width:34px; height:34px; text-align:center; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--ink); font-size:1rem; font-weight:700; padding:0;
+  }
+  .score input:focus{outline:2px solid var(--gold); outline-offset:1px;}
+  .score .dash{color:var(--sub); font-weight:700;}
+
+  .counter-wrap{display:grid; grid-template-columns:1fr; gap:10px;}
+  .grp-block{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 14px; overflow-x:auto;}
+  .grp-block h3{margin:0 0 10px; font-size:.85rem; display:flex; align-items:center; gap:8px;}
+  table.standings{width:100%; border-collapse:collapse; font-size:.78rem; min-width:420px;}
+  table.standings th, table.standings td{padding:6px 5px; text-align:center; border-bottom:1px solid var(--border);}
+  table.standings th{color:var(--sub); font-weight:700; font-size:.68rem; text-transform:uppercase;}
+  table.standings td.team{text-align:left; font-weight:600; white-space:nowrap;}
+  table.standings td.pts{font-weight:800; color:var(--ink);}
+  table.standings tr:last-child td{border-bottom:none;}
+
+  footer{text-align:center; color:var(--sub); font-size:.75rem; padding:20px 0 4px;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🗓️ Fixture — Keeper Cup 3</h1>
+  <p>Fase de grupos: todos contra todos. 8 equipos por grupo, 7 fechas, cada equipo enfrenta una vez a cada rival de su grupo. La Fecha 1 ya se jugó (horarios reales); las Fechas 2-7 se generaron para completar el todos-contra-todos sin repetir cruces.</p>
+  <div class="badge-row">
+    <div class="badge">4 grupos · 8 equipos c/u</div>
+    <div class="badge">28 partidos por grupo</div>
+    <div class="badge">7 fechas · Fecha 1 jugada</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="note">
+    <b>Cómo usarlo:</b> cada partido tiene dos casillas para el marcador — tócalas para anotar el resultado apenas se juegue (se guarda solo, en este dispositivo). Con este orden de cruces ya puedes ir asignando fecha/hora/estadio real en la herramienta de <b>Programación</b>.
+  </div>
+
+  <div class="section-title">📋 Fechas y cruces</div>
+  <div class="tabbar" id="tabbar"></div>
+  <div id="fechas"></div>
+
+  <div class="section-title" style="margin-top:8px;">🏆 Tabla de posiciones <span class="tag">en vivo</span></div>
+  <div class="counter-wrap" id="standings"></div>
+
+  <footer>Fixture generado con el método de rotación circular (round-robin) a partir de los cruces reales de la Fecha 1.</footer>
+</div>
+
+<script>
+const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Arapaima","Alianza Jr."],["Galacticos","Gladiadores AZ"],["Cordovez","Huracán"]],[["Barrio Fino","Alianza Jr."],["Corintians","Gladiadores AZ"],["Arapaima","Huracán"],["Galacticos","Cordovez"]],[["Barrio Fino","Gladiadores AZ"],["Alianza Jr.","Huracán"],["Corintians","Cordovez"],["Arapaima","Galacticos"]],[["Barrio Fino","Huracán"],["Gladiadores AZ","Cordovez"],["Alianza Jr.","Galacticos"],["Corintians","Arapaima"]],[["Barrio Fino","Cordovez"],["Huracán","Galacticos"],["Gladiadores AZ","Arapaima"],["Alianza Jr.","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Jolines"],["Real Sevilla","Libert"],["Pecezuelos","Templo Fit"],["Leones","Sub 21"]],[["Mandela","Libert"],["Jolines","Templo Fit"],["Real Sevilla","Sub 21"],["Pecezuelos","Leones"]],[["Mandela","Templo Fit"],["Libert","Sub 21"],["Jolines","Leones"],["Real Sevilla","Pecezuelos"]],[["Mandela","Sub 21"],["Templo Fit","Leones"],["Libert","Pecezuelos"],["Jolines","Real Sevilla"]],[["Mandela","Leones"],["Sub 21","Pecezuelos"],["Templo Fit","Real Sevilla"],["Libert","Jolines"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Cormoran","La Banda"],["Somec","Real Potosí"],["Vaster","San Andres"],["Barcelona","San Francisco"]],[["Cormoran","Real Potosí"],["La Banda","San Andres"],["Somec","San Francisco"],["Vaster","Barcelona"]],[["Cormoran","San Andres"],["Real Potosí","San Francisco"],["La Banda","Barcelona"],["Somec","Vaster"]],[["Cormoran","San Francisco"],["San Andres","Barcelona"],["Real Potosí","Vaster"],["La Banda","Somec"]],[["Cormoran","Barcelona"],["San Francisco","Vaster"],["San Andres","Somec"],["Real Potosí","La Banda"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","Xeneise"]],"fechas_2_7":[[["Leipzig","Universitarios"],["America","Randagi"],["Juventus","Xeneise"],["Clowiss","Legacy"]],[["Leipzig","Randagi"],["Universitarios","Xeneise"],["America","Legacy"],["Juventus","Clowiss"]],[["Leipzig","Xeneise"],["Randagi","Legacy"],["Universitarios","Clowiss"],["America","Juventus"]],[["Leipzig","Legacy"],["Xeneise","Clowiss"],["Randagi","Juventus"],["Universitarios","America"]],[["Leipzig","Clowiss"],["Legacy","Juventus"],["Xeneise","America"],["Randagi","Universitarios"]],[["Leipzig","Juventus"],["Clowiss","America"],["Legacy","Universitarios"],["Xeneise","Randagi"]]]}};
+
+const groupNames = {A:"Grupo A", B:"Grupo B", C:"Grupo C", D:"Grupo D"};
+const groupOrder = ["A","B","C","D"];
+
+/* Build the 7 fechas, each with all 4 groups' matches, with a stable match id */
+const fechas = [];
+for(let f=1; f<=7; f++){
+  const games = [];
+  groupOrder.forEach(g=>{
+    const pairs = f===1 ? FIXTURE[g].fecha1 : FIXTURE[g].fechas_2_7[f-2];
+    pairs.forEach((p,i)=>{
+      games.push({grupo:g, home:p[0], away:p[1], id:`f${f}-${g}-${i}`});
+    });
+  });
+  fechas.push({fecha:f, games});
+}
+
+/* ---- Resultados guardados (persistente en este dispositivo) ---- */
+const SCORE_KEY = 'kc3_fixture_scores_v1';
+function loadScores(){ try{ const s=localStorage.getItem(SCORE_KEY); return s?JSON.parse(s):{}; }catch(e){ return {}; } }
+function saveScores(){ try{ localStorage.setItem(SCORE_KEY, JSON.stringify(scores)); }catch(e){} }
+let scores = loadScores();
+
+/* ---- Tabs ---- */
+const tabbar = document.getElementById('tabbar');
+let activeFecha = 1;
+function renderTabs(){
+  tabbar.innerHTML = fechas.map(fc => {
+    const allDone = fc.games.every(g => scores[g.id] && scores[g.id].h !== '' && scores[g.id].a !== '');
+    return `<button class="tabbtn${fc.fecha===activeFecha?' on':''}" data-f="${fc.fecha}">Fecha ${fc.fecha}${allDone?' ✓':''}</button>`;
+  }).join('');
+}
+tabbar.addEventListener('click', e=>{
+  const b = e.target.closest('.tabbtn'); if(!b) return;
+  activeFecha = Number(b.dataset.f);
+  renderTabs(); renderFecha();
+});
+
+/* ---- Fecha view ---- */
+const fechasEl = document.getElementById('fechas');
+function scoreBoxes(m){
+  const s = scores[m.id] || {h:'', a:''};
+  return `<div class="score">
+    <input type="tel" inputmode="numeric" maxlength="2" class="sc" data-id="${m.id}" data-side="h" value="${s.h}" aria-label="Goles ${m.home}">
+    <span class="dash">-</span>
+    <input type="tel" inputmode="numeric" maxlength="2" class="sc" data-id="${m.id}" data-side="a" value="${s.a}" aria-label="Goles ${m.away}">
+  </div>`;
+}
+function renderFecha(){
+  const fc = fechas.find(x=>x.fecha===activeFecha);
+  const isFecha1 = fc.fecha===1;
+  let html = `<div class="fecha-card">
+    <div class="fecha-head">
+      <div class="t">Fecha ${fc.fecha}</div>
+      <div class="status ${isFecha1?'played':'pending'}">${isFecha1?'✓ Jugada':'Por jugar'}</div>
+    </div>
+    <p class="fecha-sub">${isFecha1 ? 'Cruces reales según el horario publicado.' : 'Cruces generados para completar el todos-contra-todos.'}</p>`;
+  groupOrder.forEach(g=>{
+    const games = fc.games.filter(m=>m.grupo===g);
+    html += `<div class="grp-label"><span class="grp-dot g-${g}"></span>${groupNames[g]}</div>`;
+    games.forEach(m=>{
+      const s = scores[m.id];
+      const done = s && s.h !== '' && s.a !== '';
+      html += `<div class="match-row${done?' done':''}">
+        <div class="teams"><span class="t1">${m.home}</span><span class="vs">vs</span><span class="t2">${m.away}</span></div>
+        ${scoreBoxes(m)}
+      </div>`;
+    });
+  });
+  html += '</div>';
+  fechasEl.innerHTML = html;
+}
+fechasEl.addEventListener('input', e=>{
+  const inp = e.target.closest('input.sc'); if(!inp) return;
+  const id = inp.dataset.id, side = inp.dataset.side;
+  inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,2);
+  if(!scores[id]) scores[id] = {h:'', a:''};
+  scores[id][side] = inp.value;
+  saveScores();
+  inp.closest('.match-row').classList.toggle('done', scores[id].h !== '' && scores[id].a !== '');
+  renderTabs();
+  renderStandings();
+});
+
+/* ---- Standings (tabla de posiciones) ---- */
+const standingsEl = document.getElementById('standings');
+function computeStandings(g){
+  const table = {};
+  FIXTURE[g].fecha1.concat(...FIXTURE[g].fechas_2_7).forEach(()=>{}); // noop, roster built below
+  const roster = new Set();
+  [FIXTURE[g].fecha1, ...FIXTURE[g].fechas_2_7].forEach(round=>round.forEach(p=>{roster.add(p[0]); roster.add(p[1]);}));
+  roster.forEach(t=> table[t] = {team:t, pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0});
+
+  fechas.forEach(fc=>{
+    fc.games.filter(m=>m.grupo===g).forEach(m=>{
+      const s = scores[m.id];
+      if(!s || s.h==='' || s.a==='') return;
+      const h = parseInt(s.h,10), a = parseInt(s.a,10);
+      const H = table[m.home], A = table[m.away];
+      H.pj++; A.pj++; H.gf+=h; H.gc+=a; A.gf+=a; A.gc+=h;
+      if(h>a){ H.g++; H.pts+=3; A.p++; }
+      else if(h<a){ A.g++; A.pts+=3; H.p++; }
+      else { H.e++; A.e++; H.pts++; A.pts++; }
+    });
+  });
+  return Object.values(table).sort((x,y)=> y.pts-x.pts || (y.gf-y.gc)-(x.gf-x.gc) || y.gf-x.gf || x.team.localeCompare(y.team));
+}
+function renderStandings(){
+  let html = '';
+  groupOrder.forEach(g=>{
+    const rows = computeStandings(g);
+    html += `<div class="grp-block"><h3><span class="grp-dot g-${g}"></span>${groupNames[g]}</h3>
+      <table class="standings"><thead><tr>
+        <th style="text-align:left">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
+      </tr></thead><tbody>
+        ${rows.map(r=>`<tr><td class="team">${r.team}</td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.gf}</td><td>${r.gc}</td><td>${r.gf-r.gc}</td><td class="pts">${r.pts}</td></tr>`).join('')}
+      </tbody></table>
+    </div>`;
+  });
+  standingsEl.innerHTML = html;
+}
+
+renderTabs();
+renderFecha();
+renderStandings();
+</script>
+
+</body>
+</html>
