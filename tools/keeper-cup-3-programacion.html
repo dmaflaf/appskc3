@@ -647,7 +647,8 @@ function drawPoster(f){
   if(logoImg.complete&&logoImg.naturalWidth){
     c.save();
     rr(c,M,TOP,PW,PH,46);c.clip();
-    var wlh=Math.min(PH*0.62,620),wlw=wlh*logoImg.naturalWidth/logoImg.naturalHeight;
+    var logoAR=logoImg.naturalWidth/logoImg.naturalHeight;
+    var wlh=Math.min(PH*0.94,(PW*0.92)/logoAR),wlw=wlh*logoAR;
     c.globalAlpha=0.10;
     c.drawImage(logoImg,M+PW/2-wlw/2,TOP+PH/2-wlh/2,wlw,wlh);
     c.restore();
