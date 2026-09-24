@@ -673,9 +673,9 @@ function drawPoster(f){
     });
   });
   if(logoImg.complete&&logoImg.naturalWidth){
-    var lh=100,lw=lh*logoImg.naturalWidth/logoImg.naturalHeight;
-    var lx=M+PW-lw,ly=TOP+PH+(130-lh)/2;
-    c.save();c.globalAlpha=0.35;c.drawImage(logoImg,lx,ly,lw,lh);c.restore();
+    var lh=232,lw=lh*logoImg.naturalWidth/logoImg.naturalHeight;
+    var lx=M,ly=16;
+    c.drawImage(logoImg,lx,ly,lw,lh);
   }
   return cv;
 }
