@@ -100,7 +100,9 @@ main{padding:16px 14px 90px;max-width:1500px;margin:0 auto}
 .stad h3{font-size:19px;border-left:6px solid var(--s);padding:2px 0 2px 10px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
 .stad h3 button{background:transparent;border:0;color:var(--mute);width:40px;height:36px;font-size:16px}
 .stad h3 span{flex:1;min-width:0}
-.slot{display:grid;grid-template-columns:82px 1fr;gap:8px;align-items:center;background:var(--panel2);border-radius:12px;padding:8px;margin-bottom:8px}
+.slot{display:grid;grid-template-columns:82px 1fr 36px;gap:8px;align-items:center;background:var(--panel2);border-radius:12px;padding:8px;margin-bottom:8px}
+.delslot{width:36px;height:50px;border:0;background:transparent;color:var(--mute);font-size:24px;line-height:1;border-radius:10px}
+.delslot:active{background:rgba(198,47,64,.12);color:var(--danger)}
 .time{height:50px;border-radius:10px;border:1px solid var(--line);border-top:4px solid var(--s);background:var(--panel);font:italic 800 21px 'Saira','Arial Black',sans-serif}
 .cells{display:grid;grid-template-columns:1fr 24px 1fr;align-items:center;gap:2px;min-width:0}
 .vs{text-align:center;font-size:12px;color:var(--mute);font-weight:700}
@@ -298,7 +300,8 @@ function dayHTML(d){
   var cols=state.stadiums.map(function(s,i){
     var slots=(d.slots[s.id]||[]).map(function(sl){
       return '<div class="slot"><button class="time" data-act="editSlot" data-day="'+d.id+'" data-stad="'+s.id+'" data-slot="'+sl.id+'" aria-label="Editar horario">'+fmtT(sl.time)+'</button>'+
-        '<div class="cells">'+cellHTML(d,s,sl,'home')+'<span class="vs">vs</span>'+cellHTML(d,s,sl,'away')+'</div></div>';
+        '<div class="cells">'+cellHTML(d,s,sl,'home')+'<span class="vs">vs</span>'+cellHTML(d,s,sl,'away')+'</div>'+
+        '<button class="delslot" data-act="delSlot" data-day="'+d.id+'" data-stad="'+s.id+'" data-slot="'+sl.id+'" aria-label="Eliminar horario">×</button></div>';
     }).join('');
     return '<div class="stad" style="--s:var(--s'+(i+1)+')"><h3><span>'+esc(s.name)+'</span><button data-act="editStad" data-stad="'+s.id+'" aria-label="Renombrar estadio">✎</button></h3>'+slots+
       '<button class="addslot" data-act="addSlot" data-day="'+d.id+'" data-stad="'+s.id+'">+ Agregar horario</button></div>';
@@ -451,6 +454,13 @@ function editSlot(dayId,stadId,slotId){
     {label:'Eliminar horario',kind:'danger',onClick:function(){d.slots[stadId]=d.slots[stadId].filter(function(s){return s.id!==slotId;});ui.sel=null;commit();}},
     {label:'Guardar',kind:'pri',onClick:function(v){if(!v.time){toast('Elige una hora');return false;}sl.time=v.time;commit();}}]});
 }
+function delSlot(dayId,stadId,slotId){
+  var f=curF();var d=f.days.find(function(x){return x.id===dayId;});if(!d)return;
+  var list=d.slots[stadId]||[];var sl=list.find(function(s){return s.id===slotId;});if(!sl)return;
+  confirmBox('Eliminar horario','Se eliminará el horario de las '+fmtT(sl.time)+' con los equipos asignados.','Eliminar',function(){
+    d.slots[stadId]=list.filter(function(s){return s.id!==slotId;});ui.sel=null;commit();
+  });
+}
 function editStad(id){
   var s=state.stadiums.find(function(x){return x.id===id;});if(!s)return;
   modal({title:'Nombre del estadio',html:'<label class="fld">Nombre<input type="text" name="name" value="'+esc(s.name)+'" maxlength="40" autocomplete="off"></label>',buttons:[
@@ -476,6 +486,7 @@ function handleAct(el){
     case 'delDay':delDay(el.dataset.day);break;
     case 'addSlot':addSlot(el.dataset.day,el.dataset.stad);break;
     case 'editSlot':editSlot(el.dataset.day,el.dataset.stad,el.dataset.slot);break;
+    case 'delSlot':delSlot(el.dataset.day,el.dataset.stad,el.dataset.slot);break;
     case 'editStad':editStad(el.dataset.stad);break;
     case 'editTeam':editTeam(el.dataset.team);break;
     case 'clearCell':removeFromCell(refOf(el));ui.sel=null;commit();break;
