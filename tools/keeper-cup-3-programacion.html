@@ -684,8 +684,8 @@ function drawPoster(f){
     }
     [0,1].forEach(function(b){
       var x0=M+b*BW,cell=r.c[b],mid=x0+300+370;
+      if(!cell){c.textAlign='center';c.font='700 44px '+FB;c.fillStyle='rgba(255,255,255,.35)';c.fillText('-',x0+BW/2,cy);return;}
       c.textAlign='left';c.font='700 46px '+FB;c.fillStyle='#ffffff';c.fillText(fmtT(r.t),x0+60,cy);
-      if(!cell){c.textAlign='center';c.fillStyle='rgba(255,255,255,.35)';c.fillText('-',mid,cy);return;}
       var h=cell.home?teamById(cell.home):null,a=cell.away?teamById(cell.away):null;
       c.textAlign='right';fitText(c,h?h.name:'—',330,46,600,FB);c.fillStyle=h?'#ffffff':'rgba(255,255,255,.35)';c.fillText(h?h.name:'—',mid-40,cy);
       c.textAlign='center';c.font='italic 700 28px '+FB;c.fillStyle='#38d9ff';c.fillText('vs',mid,cy+2);
