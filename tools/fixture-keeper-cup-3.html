@@ -86,6 +86,8 @@
   .teams{flex:1 1 auto; min-width:0;}
   .teams .t1,.teams .t2{display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .teams .vs{font-size:.68rem; color:var(--sub); font-weight:400;}
+  .match-meta{font-size:.68rem; color:var(--sub); font-weight:600; margin-top:2px;}
+  .match-meta.muted{font-style:italic; font-weight:400; opacity:.75;}
   .score{display:flex; align-items:center; gap:4px; flex:0 0 auto;}
   .score input{
     width:34px; height:34px; text-align:center; border-radius:8px; border:1px solid var(--border);
@@ -125,18 +127,18 @@
 
 <div class="hero">
   <h1>🗓️ Fixture — Keeper Cup 3</h1>
-  <p>Fase de grupos: todos contra todos. 8 equipos por grupo, 7 fechas, cada equipo enfrenta una vez a cada rival de su grupo. La Fecha 1 ya se jugó (horarios reales); las Fechas 2-7 se generaron para completar el todos-contra-todos sin repetir cruces.</p>
+  <p>Fase de grupos: todos contra todos. 8 equipos por grupo, 7 fechas, cada equipo enfrenta una vez a cada rival de su grupo. Las Fechas 1 y 2 ya se jugaron (estadio, día y horario reales); las Fechas 3-7 se generaron para completar el todos-contra-todos sin repetir cruces y se pueden editar.</p>
   <div class="badge-row">
     <div class="badge">4 grupos · 8 equipos c/u</div>
     <div class="badge">28 partidos por grupo</div>
-    <div class="badge">7 fechas · Fecha 1 jugada</div>
+    <div class="badge">7 fechas · Fechas 1 y 2 jugadas</div>
   </div>
 </div>
 
 <div class="wrap">
 
   <div class="note">
-    <b>Cómo usarlo:</b> cada partido tiene dos casillas para el marcador — tócalas para anotar el resultado apenas se juegue (se guarda solo, en este dispositivo). Toca el <b>nombre de un equipo</b> para cambiarle el rival en esa fecha. Con este orden de cruces ya puedes ir asignando fecha/hora/estadio real en la herramienta de <b>Programación</b>.
+    <b>Cómo usarlo:</b> cada partido tiene dos casillas para el marcador — tócalas para anotar el resultado apenas se juegue (se guarda solo, en este dispositivo). En fechas por jugar, toca el <b>nombre de un equipo</b> para cambiarle el rival. Las Fechas 1 y 2 muestran estadio, día y horario reales; con ese dato ya puedes ver en <b>Balance de estadios</b> si hay igualdad entre San Miguel y Los Sauces.
   </div>
 
   <div class="section-title"><span class="ttl">🔍 Historial por equipo</span></div>
@@ -151,6 +153,10 @@
   <div class="tabbar" id="groupbar"></div>
   <div id="fechas"></div>
 
+  <div class="section-title" style="margin-top:8px;"><span class="ttl">⚖️ Balance de estadios</span> <span class="tag">San Miguel vs Sauces</span></div>
+  <p class="fecha-sub" style="margin:-6px 0 12px;">Solo cuenta partidos con estadio ya asignado (Fechas 1 y 2 por ahora).</p>
+  <div class="counter-wrap" id="balance"></div>
+
   <div class="section-title" style="margin-top:8px;"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
   <div class="counter-wrap" id="standings"></div>
 
@@ -161,19 +167,65 @@
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Arapaima","Alianza Jr."],["Galacticos","Gladiadores AZ"],["Cordovez","Huracán"]],[["Barrio Fino","Alianza Jr."],["Corintians","Gladiadores AZ"],["Arapaima","Huracán"],["Galacticos","Cordovez"]],[["Barrio Fino","Gladiadores AZ"],["Alianza Jr.","Huracán"],["Corintians","Cordovez"],["Arapaima","Galacticos"]],[["Barrio Fino","Huracán"],["Gladiadores AZ","Cordovez"],["Alianza Jr.","Galacticos"],["Corintians","Arapaima"]],[["Barrio Fino","Cordovez"],["Huracán","Galacticos"],["Gladiadores AZ","Arapaima"],["Alianza Jr.","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Jolines"],["Real Sevilla","Libert"],["Pecezuelos","Templo Fit"],["Leones","Sub 21"]],[["Mandela","Libert"],["Jolines","Templo Fit"],["Real Sevilla","Sub 21"],["Pecezuelos","Leones"]],[["Mandela","Templo Fit"],["Libert","Sub 21"],["Jolines","Leones"],["Real Sevilla","Pecezuelos"]],[["Mandela","Sub 21"],["Templo Fit","Leones"],["Libert","Pecezuelos"],["Jolines","Real Sevilla"]],[["Mandela","Leones"],["Sub 21","Pecezuelos"],["Templo Fit","Real Sevilla"],["Libert","Jolines"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Cormoran","La Banda"],["Somec","Real Potosí"],["Vaster","San Andres"],["Barcelona","San Francisco"]],[["Cormoran","Real Potosí"],["La Banda","San Andres"],["Somec","San Francisco"],["Vaster","Barcelona"]],[["Cormoran","San Andres"],["Real Potosí","San Francisco"],["La Banda","Barcelona"],["Somec","Vaster"]],[["Cormoran","San Francisco"],["San Andres","Barcelona"],["Real Potosí","Vaster"],["La Banda","Somec"]],[["Cormoran","Barcelona"],["San Francisco","Vaster"],["San Andres","Somec"],["Real Potosí","La Banda"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","Xeneise"]],"fechas_2_7":[[["Leipzig","Universitarios"],["America","Randagi"],["Juventus","Xeneise"],["Clowiss","Legacy"]],[["Leipzig","Randagi"],["Universitarios","Xeneise"],["America","Legacy"],["Juventus","Clowiss"]],[["Leipzig","Xeneise"],["Randagi","Legacy"],["Universitarios","Clowiss"],["America","Juventus"]],[["Leipzig","Legacy"],["Xeneise","Clowiss"],["Randagi","Juventus"],["Universitarios","America"]],[["Leipzig","Clowiss"],["Legacy","Juventus"],["Xeneise","America"],["Randagi","Universitarios"]],[["Leipzig","Juventus"],["Clowiss","America"],["Legacy","Universitarios"],["Xeneise","Randagi"]]]}};
+const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Arapaima","Alianza Jr."],["Galacticos","Gladiadores AZ"],["Cordovez","Huracán"]],[["Barrio Fino","Alianza Jr."],["Corintians","Gladiadores AZ"],["Arapaima","Huracán"],["Galacticos","Cordovez"]],[["Barrio Fino","Gladiadores AZ"],["Alianza Jr.","Huracán"],["Corintians","Cordovez"],["Arapaima","Galacticos"]],[["Barrio Fino","Huracán"],["Gladiadores AZ","Cordovez"],["Alianza Jr.","Galacticos"],["Corintians","Arapaima"]],[["Barrio Fino","Cordovez"],["Huracán","Galacticos"],["Gladiadores AZ","Arapaima"],["Alianza Jr.","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Jolines"],["Real Sevilla","Libert"],["Pecezuelos","Templo Fit"],["Leones","Sub 21"]],[["Mandela","Libert"],["Jolines","Templo Fit"],["Real Sevilla","Sub 21"],["Pecezuelos","Leones"]],[["Mandela","Templo Fit"],["Libert","Sub 21"],["Jolines","Leones"],["Real Sevilla","Pecezuelos"]],[["Mandela","Sub 21"],["Templo Fit","Leones"],["Libert","Pecezuelos"],["Jolines","Real Sevilla"]],[["Mandela","Leones"],["Sub 21","Pecezuelos"],["Templo Fit","Real Sevilla"],["Libert","Jolines"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Cormoran","La Banda"],["Somec","Real Potosí"],["Vaster","San Andres"],["Barcelona","San Francisco"]],[["Cormoran","Real Potosí"],["La Banda","San Andres"],["Somec","San Francisco"],["Vaster","Barcelona"]],[["Cormoran","San Andres"],["Real Potosí","San Francisco"],["La Banda","Barcelona"],["Somec","Vaster"]],[["Cormoran","San Francisco"],["San Andres","Barcelona"],["Real Potosí","Vaster"],["La Banda","Somec"]],[["Cormoran","Barcelona"],["San Francisco","Vaster"],["San Andres","Somec"],["Real Potosí","La Banda"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","Xeneise"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","Xeneise"],["America","Universitarios"]],[["Xeneise","Leipzig"],["Clowiss","Universitarios"],["America","Juventus"],["Randagi","Legacy"]],[["Legacy","Juventus"],["Universitarios","Leipzig"],["Clowiss","America"],["Xeneise","Randagi"]],[["Randagi","America"],["Legacy","Leipzig"],["Xeneise","Universitarios"],["Clowiss","Juventus"]],[["Xeneise","America"],["Clowiss","Leipzig"],["Randagi","Juventus"],["Universitarios","Legacy"]],[["Universitarios","Randagi"],["America","Legacy"],["Juventus","Leipzig"],["Clowiss","Xeneise"]]]}};
+
+const REAL_INFO = [
+  {fecha:1, home:"Cormoran", away:"Vaster", estadio:"San Miguel", dia:"Viernes", fechaCal:"18 de septiembre", hora:"19h00"},
+  {fecha:1, home:"Mandela", away:"Pecezuelos", estadio:"San Miguel", dia:"Viernes", fechaCal:"18 de septiembre", hora:"21h00"},
+  {fecha:1, home:"Barrio Fino", away:"Galacticos", estadio:"San Miguel", dia:"Sábado", fechaCal:"19 de septiembre", hora:"14h00"},
+  {fecha:1, home:"Leipzig", away:"America", estadio:"San Miguel", dia:"Sábado", fechaCal:"19 de septiembre", hora:"16h00"},
+  {fecha:1, home:"Juventus", away:"Universitarios", estadio:"San Miguel", dia:"Sábado", fechaCal:"19 de septiembre", hora:"18h00"},
+  {fecha:1, home:"Cordovez", away:"Arapaima", estadio:"San Miguel", dia:"Sábado", fechaCal:"19 de septiembre", hora:"20h00"},
+  {fecha:1, home:"Leones", away:"Real Sevilla", estadio:"San Miguel", dia:"Domingo", fechaCal:"20 de septiembre", hora:"09h00"},
+  {fecha:1, home:"Huracán", away:"Corintians", estadio:"San Miguel", dia:"Domingo", fechaCal:"20 de septiembre", hora:"15h00"},
+  {fecha:1, home:"Barcelona", away:"Somec", estadio:"San Miguel", dia:"Domingo", fechaCal:"20 de septiembre", hora:"17h00"},
+  {fecha:1, home:"Clowiss", away:"Randagi", estadio:"San Miguel", dia:"Domingo", fechaCal:"20 de septiembre", hora:"19h00"},
+  {fecha:1, home:"Sub 21", away:"Jolines", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"14h00"},
+  {fecha:1, home:"Gladiadores AZ", away:"Alianza Jr.", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"16h00"},
+  {fecha:1, home:"San Francisco", away:"La Banda", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"18h00"},
+  {fecha:1, home:"San Andres", away:"Real Potosí", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"20h00"},
+  {fecha:1, home:"Templo Fit", away:"Libert", estadio:"Los Sauces", dia:"Domingo", fechaCal:"20 de septiembre", hora:"17h00"},
+  {fecha:1, home:"Legacy", away:"Xeneise", estadio:"Los Sauces", dia:"Domingo", fechaCal:"20 de septiembre", hora:"19h00"},
+  {fecha:2, home:"Legacy", away:"Clowiss", estadio:"San Miguel", dia:"Viernes", fechaCal:"25 de septiembre", hora:"19h00"},
+  {fecha:2, home:"Vaster", away:"La Banda", estadio:"San Miguel", dia:"Viernes", fechaCal:"25 de septiembre", hora:"21h00"},
+  {fecha:2, home:"Arapaima", away:"Barrio Fino", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"11h00"},
+  {fecha:2, home:"Pecezuelos", away:"Jolines", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"16h00"},
+  {fecha:2, home:"Randagi", away:"Leipzig", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"18h00"},
+  {fecha:2, home:"Huracán", away:"Gladiadores AZ", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"20h00"},
+  {fecha:2, home:"Leones", away:"Libert", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"09h00"},
+  {fecha:2, home:"Cordovez", away:"Alianza Jr.", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"11h00"},
+  {fecha:2, home:"Juventus", away:"Xeneise", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"15h00"},
+  {fecha:2, home:"Real Potosí", away:"Barcelona", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"17h00"},
+  {fecha:2, home:"Templo Fit", away:"Sub 21", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"19h00"},
+  {fecha:2, home:"San Andres", away:"San Francisco", estadio:"Los Sauces", dia:"Viernes", fechaCal:"25 de septiembre", hora:"19h00"},
+  {fecha:2, home:"Mandela", away:"Real Sevilla", estadio:"Los Sauces", dia:"Viernes", fechaCal:"25 de septiembre", hora:"21h00"},
+  {fecha:2, home:"America", away:"Universitarios", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"15h00"},
+  {fecha:2, home:"Cormoran", away:"Somec", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"17h00"},
+  {fecha:2, home:"Corintians", away:"Galacticos", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"19h00"}
+];
+const PLAYED_FECHAS = new Set([1,2]);
 
 const groupNames = {A:"Grupo A", B:"Grupo B", C:"Grupo C", D:"Grupo D"};
 const groupOrder = ["A","B","C","D"];
 function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 
-/* Baseline: 7 fechas x 4 grupos, generado con round-robin desde la Fecha 1 real */
+/* Busca la info real (estadio/día/fecha/hora) de un cruce, sin importar el orden local/visitante */
+function findRealInfo(fecha, home, away){
+  return REAL_INFO.find(r => r.fecha===fecha && ((r.home===home && r.away===away) || (r.home===away && r.away===home))) || null;
+}
+
+/* Baseline: 7 fechas x 4 grupos. Fechas 1-2 son historia real (fija); 3-7 son round-robin generado. */
 function buildBaseline(){
   const arr = [];
   for(let f=1; f<=7; f++){
     groupOrder.forEach(g=>{
       const pairs = f===1 ? FIXTURE[g].fecha1 : FIXTURE[g].fechas_2_7[f-2];
-      pairs.forEach((p,i)=>{ arr.push({id:`f${f}-${g}-${i}`, fecha:f, grupo:g, home:p[0], away:p[1]}); });
+      pairs.forEach((p,i)=>{
+        const m = {id:`f${f}-${g}-${i}`, fecha:f, grupo:g, home:p[0], away:p[1]};
+        const info = PLAYED_FECHAS.has(f) ? findRealInfo(f, p[0], p[1]) : null;
+        if(info){ m.estadio=info.estadio; m.dia=info.dia; m.fechaCal=info.fechaCal; m.hora=info.hora; }
+        arr.push(m);
+      });
     });
   }
   return arr;
@@ -232,6 +284,7 @@ function toast(msg){
 const modalRoot = document.getElementById('modal-root');
 function closeModal(){ modalRoot.innerHTML = ''; }
 function openSwapModal(fecha, grupo, team){
+  if(PLAYED_FECHAS.has(fecha)) return; // fechas ya jugadas son historia, no se editan
   const current = state.matches.find(m=>m.fecha===fecha && m.grupo===grupo && (m.home===team||m.away===team));
   if(!current) return;
   const currentRival = current.home===team ? current.away : current.home;
@@ -319,14 +372,14 @@ function scoreBoxes(m){
 }
 function renderFecha(){
   const games = gamesInFecha(activeFecha);
-  const isFecha1 = activeFecha===1;
+  const isPlayed = PLAYED_FECHAS.has(activeFecha);
   const groupsToShow = activeGroupFilter ? [activeGroupFilter] : groupOrder;
   let html = `<div class="fecha-card">
     <div class="fecha-head">
       <div class="t">Fecha ${activeFecha}</div>
-      <div class="status ${isFecha1?'played':'pending'}">${isFecha1?'✓ Jugada':'Por jugar'}</div>
+      <div class="status ${isPlayed?'played':'pending'}">${isPlayed?'✓ Jugada':'Por jugar'}</div>
     </div>
-    <p class="fecha-sub">${isFecha1 ? 'Cruces reales según el horario publicado.' : 'Toca el nombre de un equipo para cambiarle el rival en esta fecha.'}</p>`;
+    <p class="fecha-sub">${isPlayed ? 'Cruces reales según el horario publicado. El orden de rivales ya no se puede editar.' : 'Toca el nombre de un equipo para cambiarle el rival en esta fecha.'}</p>`;
   groupsToShow.forEach(g=>{
     const gGames = games.filter(m=>m.grupo===g);
     if(!gGames.length) return;
@@ -334,11 +387,19 @@ function renderFecha(){
     gGames.forEach(m=>{
       const s = state.scores[m.id];
       const done = s && s.h !== '' && s.a !== '';
+      const meta = m.estadio ? `<div class="match-meta">🏟️ ${m.estadio} · ${m.dia} ${m.fechaCal} · ${m.hora}</div>` : (isPlayed ? '' : '<div class="match-meta muted">Sin estadio/horario asignado aún</div>');
+      const home = isPlayed
+        ? `<span class="t1">${m.home}</span>`
+        : `<button class="teamname-btn t1" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.home)}">${m.home}</button>`;
+      const away = isPlayed
+        ? `<span class="t2">${m.away}</span>`
+        : `<button class="teamname-btn t2" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.away)}">${m.away}</button>`;
       html += `<div class="match-row${done?' done':''}">
         <div class="teams">
-          <button class="teamname-btn t1" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.home)}">${m.home}</button>
+          ${home}
           <span class="vs">vs</span>
-          <button class="teamname-btn t2" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.away)}">${m.away}</button>
+          ${away}
+          ${meta}
         </div>
         ${scoreBoxes(m)}
       </div>`;
@@ -378,7 +439,12 @@ function renderTeamHistory(){
   if(!team){ teamHistoryEl.innerHTML = ''; return; }
   const g = teamGroup[team];
   const rows = state.matches.filter(m=>m.grupo===g && (m.home===team||m.away===team)).sort((a,b)=>a.fecha-b.fecha);
-  let html = `<div class="hist-card"><h3 style="margin:0 0 10px;font-size:.9rem;display:flex;align-items:center;gap:8px;"><span class="grp-dot g-${g}"></span>${team} · ${groupNames[g]}</h3>`;
+  const smCount = rows.filter(m=>m.estadio==='San Miguel').length;
+  const saucesCount = rows.filter(m=>m.estadio==='Los Sauces').length;
+  let html = `<div class="hist-card"><h3 style="margin:0 0 4px;font-size:.9rem;display:flex;align-items:center;gap:8px;"><span class="grp-dot g-${g}"></span>${team} · ${groupNames[g]}</h3>`;
+  if(smCount||saucesCount){
+    html += `<p class="fecha-sub" style="margin:0 0 10px;">🏟️ San Miguel: <b>${smCount}</b> · Los Sauces: <b>${saucesCount}</b></p>`;
+  }
   rows.forEach(m=>{
     const rival = m.home===team ? m.away : m.home;
     const s = state.scores[m.id];
@@ -388,7 +454,8 @@ function renderTeamHistory(){
       const tag = Number(mine)>Number(theirs) ? ' G' : Number(mine)<Number(theirs) ? ' P' : ' E';
       res = `${mine}-${theirs}${tag}`;
     }
-    html += `<div class="hist-row"><span class="f">Fecha ${m.fecha}</span><span class="riv">vs ${rival}</span><span class="res">${res}</span></div>`;
+    const where = m.estadio ? ` · ${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora||''}` : '';
+    html += `<div class="hist-row"><span class="f">Fecha ${m.fecha}</span><span class="riv">vs ${rival}${where}</span><span class="res">${res}</span></div>`;
   });
   html += '</div>';
   teamHistoryEl.innerHTML = html;
@@ -426,10 +493,37 @@ function renderStandings(){
   standingsEl.innerHTML = html;
 }
 
+/* ---- Balance de estadios (San Miguel vs Los Sauces) ---- */
+const balanceEl = document.getElementById('balance');
+function computeBalance(g){
+  const table = {};
+  roster[g].forEach(t=> table[t] = {team:t, sm:0, sauces:0});
+  state.matches.filter(m=>m.grupo===g && m.estadio).forEach(m=>{
+    const key = m.estadio==='San Miguel' ? 'sm' : 'sauces';
+    table[m.home][key]++; table[m.away][key]++;
+  });
+  return Object.values(table).sort((a,b)=> (b.sm+b.sauces)-(a.sm+a.sauces) || a.team.localeCompare(b.team));
+}
+function renderBalance(){
+  let html = '';
+  groupOrder.forEach(g=>{
+    const rows = computeBalance(g);
+    html += `<div class="grp-block"><h3><span class="grp-dot g-${g}"></span>${groupNames[g]}</h3>
+      <table class="standings"><thead><tr>
+        <th style="text-align:left">Equipo</th><th>San Miguel</th><th>Los Sauces</th><th>Total</th>
+      </tr></thead><tbody>
+        ${rows.map(r=>`<tr><td class="team">${r.team}</td><td>${r.sm}</td><td>${r.sauces}</td><td class="pts">${r.sm+r.sauces}</td></tr>`).join('')}
+      </tbody></table>
+    </div>`;
+  });
+  balanceEl.innerHTML = html;
+}
+
 populateTeamPicker();
 renderTabs();
 renderGroupbar();
 renderFecha();
+renderBalance();
 renderStandings();
 </script>
 
