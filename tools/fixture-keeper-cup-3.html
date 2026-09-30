@@ -46,13 +46,26 @@
   .note{background:var(--card); border:1px solid var(--border); border-left:4px solid var(--gold); border-radius:10px; padding:12px 14px; font-size:.85rem; color:var(--sub); margin:18px 0 22px; line-height:1.5;}
   .note b{color:var(--ink);}
 
-  .tabbar{display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:2px 0 4px; margin-bottom:16px;}
+  .tabbar{display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:2px 0 4px; margin-bottom:10px;}
   .tabbar::-webkit-scrollbar{display:none;}
-  .tabbtn{flex:0 0 auto; height:40px; padding:0 16px; border-radius:20px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-weight:700; font-size:.85rem;}
+  .tabbtn{flex:0 0 auto; height:40px; padding:0 16px; border-radius:20px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-weight:700; font-size:.85rem; display:flex; align-items:center; gap:6px;}
   .tabbtn.on{background:var(--gold); color:#3a2400; border-color:transparent;}
+  #groupbar{margin-bottom:16px;}
 
-  .section-title{font-size:1.05rem; font-weight:700; margin:26px 0 12px; color:var(--ink); display:flex; align-items:center; gap:8px;}
+  .section-title{font-size:1.05rem; font-weight:700; margin:26px 0 12px; color:var(--ink); display:flex; align-items:center; gap:8px; justify-content:space-between;}
+  .section-title .ttl{display:flex; align-items:center; gap:8px;}
   .section-title .tag{font-size:.68rem; font-weight:700; background:var(--gold); color:#3a2400; padding:2px 8px; border-radius:6px; letter-spacing:.4px;}
+  .reset-btn{font-size:.72rem; font-weight:700; color:var(--sub); background:transparent; border:1px solid var(--border); border-radius:20px; padding:6px 12px;}
+  .reset-btn:active{color:var(--amber); border-color:var(--amber);}
+
+  .teamsel{width:100%; height:48px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-size:.9rem; padding:0 12px; margin-bottom:14px;}
+  .hist-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:20px;}
+  .hist-row{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px dashed var(--border); font-size:.85rem;}
+  .hist-row:first-of-type{border-top:none;}
+  .hist-row .f{flex:0 0 66px; font-weight:700; color:var(--sub); font-size:.78rem;}
+  .hist-row .riv{flex:1 1 auto; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .hist-row .res{font-weight:700; color:var(--ink); font-size:.8rem; flex:0 0 auto;}
+  .hist-empty{color:var(--sub); font-size:.85rem; padding:4px 0 0;}
 
   .fecha-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:16px;}
   .fecha-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
@@ -92,6 +105,20 @@
   table.standings tr:last-child td{border-bottom:none;}
 
   footer{text-align:center; color:var(--sub); font-size:.75rem; padding:20px 0 4px;}
+
+  .teamname-btn{display:block; width:100%; text-align:left; background:none; border:0; padding:0; margin:0; font:inherit; color:inherit; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px; text-decoration-color:var(--border);}
+  .teamname-btn:active{text-decoration-color:var(--gold);}
+
+  .scrim{position:fixed; inset:0; z-index:200; background:rgba(10,14,40,.55); display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto;}
+  .sheet{width:min(420px,100%); max-height:100%; overflow:auto; background:var(--card); color:var(--ink); border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.4);}
+  .sheet h3{margin:0 0 4px; font-size:1.05rem;}
+  .sheet .sub{font-size:.78rem; color:var(--sub); margin:0 0 14px; line-height:1.4;}
+  .rival-opt{display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:12px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--ink); margin-bottom:8px; font-weight:600; font-size:.88rem; text-align:left;}
+  .rival-opt .warn{font-size:.66rem; color:var(--amber); font-weight:700; flex:0 0 auto;}
+  .close-btn{margin-top:4px; width:100%; height:46px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink); font-weight:700;}
+
+  #toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,20px); z-index:300; background:var(--ink); color:var(--bg); padding:12px 18px; border-radius:12px; font-weight:700; font-size:.85rem; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; max-width:90vw; text-align:center;}
+  #toast.on{opacity:1; transform:translate(-50%,0);}
 </style>
 </head>
 <body>
@@ -109,51 +136,152 @@
 <div class="wrap">
 
   <div class="note">
-    <b>Cómo usarlo:</b> cada partido tiene dos casillas para el marcador — tócalas para anotar el resultado apenas se juegue (se guarda solo, en este dispositivo). Con este orden de cruces ya puedes ir asignando fecha/hora/estadio real en la herramienta de <b>Programación</b>.
+    <b>Cómo usarlo:</b> cada partido tiene dos casillas para el marcador — tócalas para anotar el resultado apenas se juegue (se guarda solo, en este dispositivo). Toca el <b>nombre de un equipo</b> para cambiarle el rival en esa fecha. Con este orden de cruces ya puedes ir asignando fecha/hora/estadio real en la herramienta de <b>Programación</b>.
   </div>
 
-  <div class="section-title">📋 Fechas y cruces</div>
+  <div class="section-title"><span class="ttl">🔍 Historial por equipo</span></div>
+  <select id="teamPicker" class="teamsel"></select>
+  <div id="teamHistory"></div>
+
+  <div class="section-title">
+    <span class="ttl">📋 Fechas y cruces</span>
+    <button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button>
+  </div>
   <div class="tabbar" id="tabbar"></div>
+  <div class="tabbar" id="groupbar"></div>
   <div id="fechas"></div>
 
-  <div class="section-title" style="margin-top:8px;">🏆 Tabla de posiciones <span class="tag">en vivo</span></div>
+  <div class="section-title" style="margin-top:8px;"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
   <div class="counter-wrap" id="standings"></div>
 
-  <footer>Fixture generado con el método de rotación circular (round-robin) a partir de los cruces reales de la Fecha 1.</footer>
+  <footer>Fixture generado con el método de rotación circular (round-robin) a partir de los cruces reales de la Fecha 1. Puedes cambiar rivales manualmente en cualquier fecha.</footer>
 </div>
+
+<div id="modal-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Arapaima","Alianza Jr."],["Galacticos","Gladiadores AZ"],["Cordovez","Huracán"]],[["Barrio Fino","Alianza Jr."],["Corintians","Gladiadores AZ"],["Arapaima","Huracán"],["Galacticos","Cordovez"]],[["Barrio Fino","Gladiadores AZ"],["Alianza Jr.","Huracán"],["Corintians","Cordovez"],["Arapaima","Galacticos"]],[["Barrio Fino","Huracán"],["Gladiadores AZ","Cordovez"],["Alianza Jr.","Galacticos"],["Corintians","Arapaima"]],[["Barrio Fino","Cordovez"],["Huracán","Galacticos"],["Gladiadores AZ","Arapaima"],["Alianza Jr.","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Jolines"],["Real Sevilla","Libert"],["Pecezuelos","Templo Fit"],["Leones","Sub 21"]],[["Mandela","Libert"],["Jolines","Templo Fit"],["Real Sevilla","Sub 21"],["Pecezuelos","Leones"]],[["Mandela","Templo Fit"],["Libert","Sub 21"],["Jolines","Leones"],["Real Sevilla","Pecezuelos"]],[["Mandela","Sub 21"],["Templo Fit","Leones"],["Libert","Pecezuelos"],["Jolines","Real Sevilla"]],[["Mandela","Leones"],["Sub 21","Pecezuelos"],["Templo Fit","Real Sevilla"],["Libert","Jolines"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Cormoran","La Banda"],["Somec","Real Potosí"],["Vaster","San Andres"],["Barcelona","San Francisco"]],[["Cormoran","Real Potosí"],["La Banda","San Andres"],["Somec","San Francisco"],["Vaster","Barcelona"]],[["Cormoran","San Andres"],["Real Potosí","San Francisco"],["La Banda","Barcelona"],["Somec","Vaster"]],[["Cormoran","San Francisco"],["San Andres","Barcelona"],["Real Potosí","Vaster"],["La Banda","Somec"]],[["Cormoran","Barcelona"],["San Francisco","Vaster"],["San Andres","Somec"],["Real Potosí","La Banda"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","Xeneise"]],"fechas_2_7":[[["Leipzig","Universitarios"],["America","Randagi"],["Juventus","Xeneise"],["Clowiss","Legacy"]],[["Leipzig","Randagi"],["Universitarios","Xeneise"],["America","Legacy"],["Juventus","Clowiss"]],[["Leipzig","Xeneise"],["Randagi","Legacy"],["Universitarios","Clowiss"],["America","Juventus"]],[["Leipzig","Legacy"],["Xeneise","Clowiss"],["Randagi","Juventus"],["Universitarios","America"]],[["Leipzig","Clowiss"],["Legacy","Juventus"],["Xeneise","America"],["Randagi","Universitarios"]],[["Leipzig","Juventus"],["Clowiss","America"],["Legacy","Universitarios"],["Xeneise","Randagi"]]]}};
 
 const groupNames = {A:"Grupo A", B:"Grupo B", C:"Grupo C", D:"Grupo D"};
 const groupOrder = ["A","B","C","D"];
+function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 
-/* Build the 7 fechas, each with all 4 groups' matches, with a stable match id */
-const fechas = [];
-for(let f=1; f<=7; f++){
-  const games = [];
-  groupOrder.forEach(g=>{
-    const pairs = f===1 ? FIXTURE[g].fecha1 : FIXTURE[g].fechas_2_7[f-2];
-    pairs.forEach((p,i)=>{
-      games.push({grupo:g, home:p[0], away:p[1], id:`f${f}-${g}-${i}`});
+/* Baseline: 7 fechas x 4 grupos, generado con round-robin desde la Fecha 1 real */
+function buildBaseline(){
+  const arr = [];
+  for(let f=1; f<=7; f++){
+    groupOrder.forEach(g=>{
+      const pairs = f===1 ? FIXTURE[g].fecha1 : FIXTURE[g].fechas_2_7[f-2];
+      pairs.forEach((p,i)=>{ arr.push({id:`f${f}-${g}-${i}`, fecha:f, grupo:g, home:p[0], away:p[1]}); });
     });
-  });
-  fechas.push({fecha:f, games});
+  }
+  return arr;
 }
 
-/* ---- Resultados guardados (persistente en este dispositivo) ---- */
-const SCORE_KEY = 'kc3_fixture_scores_v1';
-function loadScores(){ try{ const s=localStorage.getItem(SCORE_KEY); return s?JSON.parse(s):{}; }catch(e){ return {}; } }
-function saveScores(){ try{ localStorage.setItem(SCORE_KEY, JSON.stringify(scores)); }catch(e){} }
-let scores = loadScores();
+const roster = {};
+groupOrder.forEach(g=>{
+  const set = new Set();
+  buildBaseline().filter(m=>m.grupo===g).forEach(m=>{ set.add(m.home); set.add(m.away); });
+  roster[g] = Array.from(set).sort((a,b)=>a.localeCompare(b));
+});
+const teamGroup = {};
+groupOrder.forEach(g=> roster[g].forEach(t=> teamGroup[t]=g));
 
-/* ---- Tabs ---- */
+/* ---- Estado persistente: cruces (editables) + resultados ---- */
+const STATE_KEY = 'kc3_fixture_state_v2';
+const OLD_SCORE_KEY = 'kc3_fixture_scores_v1';
+function loadState(){
+  try{
+    const s = localStorage.getItem(STATE_KEY);
+    if(s){ const o = JSON.parse(s); if(o && Array.isArray(o.matches) && o.scores) return o; }
+  }catch(e){}
+  let scores = {};
+  try{ const os = localStorage.getItem(OLD_SCORE_KEY); if(os) scores = JSON.parse(os) || {}; }catch(e){}
+  return { matches: buildBaseline(), scores };
+}
+function saveState(){ try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){} }
+let state = loadState();
+
+function gamesInFecha(f){ return state.matches.filter(m=>m.fecha===f); }
+function alreadyPlayed(teamA, teamB, excludeFecha){
+  return state.matches.some(m => m.fecha!==excludeFecha && ((m.home===teamA&&m.away===teamB)||(m.home===teamB&&m.away===teamA)));
+}
+function swapRival(fecha, grupo, teamA, teamB){
+  const games = state.matches.filter(m=>m.fecha===fecha && m.grupo===grupo);
+  const mA = games.find(m=>m.home===teamA || m.away===teamA);
+  const mB = games.find(m=>m.home===teamB || m.away===teamB);
+  if(!mA || !mB || mA.id===mB.id) return false;
+  const partnerA = mA.home===teamA ? mA.away : mA.home;
+  const partnerB = mB.home===teamB ? mB.away : mB.home;
+  if(mA.home===teamA) mA.away = teamB; else mA.home = teamB;
+  mB.home = partnerA; mB.away = partnerB;
+  saveState();
+  return true;
+}
+
+/* ---- Toast ---- */
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('on'), 2400);
+}
+
+/* ---- Modal: cambiar rival ---- */
+const modalRoot = document.getElementById('modal-root');
+function closeModal(){ modalRoot.innerHTML = ''; }
+function openSwapModal(fecha, grupo, team){
+  const current = state.matches.find(m=>m.fecha===fecha && m.grupo===grupo && (m.home===team||m.away===team));
+  if(!current) return;
+  const currentRival = current.home===team ? current.away : current.home;
+  const candidates = roster[grupo].filter(t=>t!==team);
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
+    <h3>Cambiar rival de ${team}</h3>
+    <p class="sub">Fecha ${fecha} · ${groupNames[grupo]} · Rival actual: <b>${currentRival}</b></p>
+    <div id="rivalList"></div>
+    <button class="close-btn" id="closeModalBtn">Cancelar</button>
+  </div></div>`;
+  const list = modalRoot.querySelector('#rivalList');
+  list.innerHTML = candidates.map(c=>{
+    const isCurrent = c===currentRival;
+    const warn = (!isCurrent && alreadyPlayed(team,c,fecha)) ? '<span class="warn">Ya se enfrentaron</span>' : '';
+    return `<button class="rival-opt" data-rival="${escAttr(c)}"${isCurrent?' disabled style="opacity:.45"':''}>
+      <span>${c}${isCurrent?' (actual)':''}</span>${warn}
+    </button>`;
+  }).join('');
+  list.querySelectorAll('.rival-opt').forEach(btn=>{
+    if(btn.disabled) return;
+    btn.addEventListener('click', ()=>{
+      const rival = btn.dataset.rival;
+      swapRival(fecha, grupo, team, rival);
+      closeModal();
+      renderTabs(); renderFecha(); renderStandings(); renderTeamHistory();
+      toast(`${team} ahora juega con ${rival} en la Fecha ${fecha}`);
+    });
+  });
+  modalRoot.querySelector('#closeModalBtn').addEventListener('click', closeModal);
+  modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ---- Restablecer ---- */
+document.getElementById('resetFixtureBtn').addEventListener('click', ()=>{
+  if(!confirm('¿Restablecer los cruces al fixture generado automáticamente? Los resultados ya cargados se mantienen.')) return;
+  state.matches = buildBaseline();
+  saveState();
+  renderTabs(); renderFecha(); renderStandings(); renderTeamHistory();
+  toast('Fixture restablecido');
+});
+
+/* ---- Tabs de fecha ---- */
 const tabbar = document.getElementById('tabbar');
 let activeFecha = 1;
 function renderTabs(){
-  tabbar.innerHTML = fechas.map(fc => {
-    const allDone = fc.games.every(g => scores[g.id] && scores[g.id].h !== '' && scores[g.id].a !== '');
-    return `<button class="tabbtn${fc.fecha===activeFecha?' on':''}" data-f="${fc.fecha}">Fecha ${fc.fecha}${allDone?' ✓':''}</button>`;
+  tabbar.innerHTML = [1,2,3,4,5,6,7].map(f=>{
+    const games = gamesInFecha(f);
+    const allDone = games.every(g => state.scores[g.id] && state.scores[g.id].h !== '' && state.scores[g.id].a !== '');
+    return `<button class="tabbtn${f===activeFecha?' on':''}" data-f="${f}">Fecha ${f}${allDone?' ✓':''}</button>`;
   }).join('');
 }
 tabbar.addEventListener('click', e=>{
@@ -162,10 +290,27 @@ tabbar.addEventListener('click', e=>{
   renderTabs(); renderFecha();
 });
 
+/* ---- Filtro de grupo ---- */
+const groupbar = document.getElementById('groupbar');
+let activeGroupFilter = '';
+function renderGroupbar(){
+  const chips = [{g:'',label:'Todos'}].concat(groupOrder.map(g=>({g,label:'Grupo '+g})));
+  groupbar.innerHTML = chips.map(c=>{
+    const on = activeGroupFilter===c.g;
+    const dot = c.g ? `<span class="grp-dot g-${c.g}"></span>` : '';
+    return `<button class="tabbtn${on?' on':''}" data-g="${c.g}">${dot}${c.label}</button>`;
+  }).join('');
+}
+groupbar.addEventListener('click', e=>{
+  const b = e.target.closest('.tabbtn'); if(!b) return;
+  activeGroupFilter = b.dataset.g;
+  renderGroupbar(); renderFecha();
+});
+
 /* ---- Fecha view ---- */
 const fechasEl = document.getElementById('fechas');
 function scoreBoxes(m){
-  const s = scores[m.id] || {h:'', a:''};
+  const s = state.scores[m.id] || {h:'', a:''};
   return `<div class="score">
     <input type="tel" inputmode="numeric" maxlength="2" class="sc" data-id="${m.id}" data-side="h" value="${s.h}" aria-label="Goles ${m.home}">
     <span class="dash">-</span>
@@ -173,22 +318,28 @@ function scoreBoxes(m){
   </div>`;
 }
 function renderFecha(){
-  const fc = fechas.find(x=>x.fecha===activeFecha);
-  const isFecha1 = fc.fecha===1;
+  const games = gamesInFecha(activeFecha);
+  const isFecha1 = activeFecha===1;
+  const groupsToShow = activeGroupFilter ? [activeGroupFilter] : groupOrder;
   let html = `<div class="fecha-card">
     <div class="fecha-head">
-      <div class="t">Fecha ${fc.fecha}</div>
+      <div class="t">Fecha ${activeFecha}</div>
       <div class="status ${isFecha1?'played':'pending'}">${isFecha1?'✓ Jugada':'Por jugar'}</div>
     </div>
-    <p class="fecha-sub">${isFecha1 ? 'Cruces reales según el horario publicado.' : 'Cruces generados para completar el todos-contra-todos.'}</p>`;
-  groupOrder.forEach(g=>{
-    const games = fc.games.filter(m=>m.grupo===g);
+    <p class="fecha-sub">${isFecha1 ? 'Cruces reales según el horario publicado.' : 'Toca el nombre de un equipo para cambiarle el rival en esta fecha.'}</p>`;
+  groupsToShow.forEach(g=>{
+    const gGames = games.filter(m=>m.grupo===g);
+    if(!gGames.length) return;
     html += `<div class="grp-label"><span class="grp-dot g-${g}"></span>${groupNames[g]}</div>`;
-    games.forEach(m=>{
-      const s = scores[m.id];
+    gGames.forEach(m=>{
+      const s = state.scores[m.id];
       const done = s && s.h !== '' && s.a !== '';
       html += `<div class="match-row${done?' done':''}">
-        <div class="teams"><span class="t1">${m.home}</span><span class="vs">vs</span><span class="t2">${m.away}</span></div>
+        <div class="teams">
+          <button class="teamname-btn t1" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.home)}">${m.home}</button>
+          <span class="vs">vs</span>
+          <button class="teamname-btn t2" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.away)}">${m.away}</button>
+        </div>
         ${scoreBoxes(m)}
       </div>`;
     });
@@ -196,38 +347,67 @@ function renderFecha(){
   html += '</div>';
   fechasEl.innerHTML = html;
 }
+fechasEl.addEventListener('click', e=>{
+  const btn = e.target.closest('.teamname-btn'); if(!btn) return;
+  openSwapModal(Number(btn.dataset.fecha), btn.dataset.grupo, btn.dataset.team);
+});
 fechasEl.addEventListener('input', e=>{
   const inp = e.target.closest('input.sc'); if(!inp) return;
   const id = inp.dataset.id, side = inp.dataset.side;
   inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,2);
-  if(!scores[id]) scores[id] = {h:'', a:''};
-  scores[id][side] = inp.value;
-  saveScores();
-  inp.closest('.match-row').classList.toggle('done', scores[id].h !== '' && scores[id].a !== '');
+  if(!state.scores[id]) state.scores[id] = {h:'', a:''};
+  state.scores[id][side] = inp.value;
+  saveState();
+  inp.closest('.match-row').classList.toggle('done', state.scores[id].h !== '' && state.scores[id].a !== '');
   renderTabs();
   renderStandings();
+  renderTeamHistory();
 });
+
+/* ---- Historial por equipo ---- */
+const teamPicker = document.getElementById('teamPicker');
+function populateTeamPicker(){
+  teamPicker.innerHTML = '<option value="">Selecciona un equipo…</option>' + groupOrder.map(g=>
+    `<optgroup label="${groupNames[g]}">${roster[g].map(t=>`<option value="${escAttr(t)}">${t}</option>`).join('')}</optgroup>`
+  ).join('');
+}
+teamPicker.addEventListener('change', renderTeamHistory);
+const teamHistoryEl = document.getElementById('teamHistory');
+function renderTeamHistory(){
+  const team = teamPicker.value;
+  if(!team){ teamHistoryEl.innerHTML = ''; return; }
+  const g = teamGroup[team];
+  const rows = state.matches.filter(m=>m.grupo===g && (m.home===team||m.away===team)).sort((a,b)=>a.fecha-b.fecha);
+  let html = `<div class="hist-card"><h3 style="margin:0 0 10px;font-size:.9rem;display:flex;align-items:center;gap:8px;"><span class="grp-dot g-${g}"></span>${team} · ${groupNames[g]}</h3>`;
+  rows.forEach(m=>{
+    const rival = m.home===team ? m.away : m.home;
+    const s = state.scores[m.id];
+    let res = 'Sin jugar';
+    if(s && s.h!=='' && s.a!==''){
+      const mine = m.home===team ? s.h : s.a, theirs = m.home===team ? s.a : s.h;
+      const tag = Number(mine)>Number(theirs) ? ' G' : Number(mine)<Number(theirs) ? ' P' : ' E';
+      res = `${mine}-${theirs}${tag}`;
+    }
+    html += `<div class="hist-row"><span class="f">Fecha ${m.fecha}</span><span class="riv">vs ${rival}</span><span class="res">${res}</span></div>`;
+  });
+  html += '</div>';
+  teamHistoryEl.innerHTML = html;
+}
 
 /* ---- Standings (tabla de posiciones) ---- */
 const standingsEl = document.getElementById('standings');
 function computeStandings(g){
   const table = {};
-  FIXTURE[g].fecha1.concat(...FIXTURE[g].fechas_2_7).forEach(()=>{}); // noop, roster built below
-  const roster = new Set();
-  [FIXTURE[g].fecha1, ...FIXTURE[g].fechas_2_7].forEach(round=>round.forEach(p=>{roster.add(p[0]); roster.add(p[1]);}));
-  roster.forEach(t=> table[t] = {team:t, pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0});
-
-  fechas.forEach(fc=>{
-    fc.games.filter(m=>m.grupo===g).forEach(m=>{
-      const s = scores[m.id];
-      if(!s || s.h==='' || s.a==='') return;
-      const h = parseInt(s.h,10), a = parseInt(s.a,10);
-      const H = table[m.home], A = table[m.away];
-      H.pj++; A.pj++; H.gf+=h; H.gc+=a; A.gf+=a; A.gc+=h;
-      if(h>a){ H.g++; H.pts+=3; A.p++; }
-      else if(h<a){ A.g++; A.pts+=3; H.p++; }
-      else { H.e++; A.e++; H.pts++; A.pts++; }
-    });
+  roster[g].forEach(t=> table[t] = {team:t, pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0});
+  state.matches.filter(m=>m.grupo===g).forEach(m=>{
+    const s = state.scores[m.id];
+    if(!s || s.h==='' || s.a==='') return;
+    const h = parseInt(s.h,10), a = parseInt(s.a,10);
+    const H = table[m.home], A = table[m.away];
+    H.pj++; A.pj++; H.gf+=h; H.gc+=a; A.gf+=a; A.gc+=h;
+    if(h>a){ H.g++; H.pts+=3; A.p++; }
+    else if(h<a){ A.g++; A.pts+=3; H.p++; }
+    else { H.e++; A.e++; H.pts++; A.pts++; }
   });
   return Object.values(table).sort((x,y)=> y.pts-x.pts || (y.gf-y.gc)-(x.gf-x.gc) || y.gf-x.gf || x.team.localeCompare(y.team));
 }
@@ -246,7 +426,9 @@ function renderStandings(){
   standingsEl.innerHTML = html;
 }
 
+populateTeamPicker();
 renderTabs();
+renderGroupbar();
 renderFecha();
 renderStandings();
 </script>
