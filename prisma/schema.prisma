@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  city          String
+  logo          String?  @db.Text // Base64 encoded image
+  codigoEquipo  String   @unique @default(cuid())
+
+  // Director info
+  directorName  String
+  directorCedula String
+
+  // Assistant info
+  assistantName String?
+  assistantPhone String?
+  assistantEmail String?
+
+  // Files
+  nominaFile    String?  @db.Text // Base64 or URL
+  nominaNombre  String?
+
+  // Relations
+  players       Player[]
+
+  // Metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Player {
+  id            String   @id @default(cuid())
+  firstName     String
+  lastName      String
+  cedula        String?
+  number        Int?
+  position      String?
+  birthDate     String?
+  photo         String?  @db.Text // Base64 encoded image
+
+  team          Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId        String
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([teamId, cedula])
+  @@index([teamId])
+}
+
+model Credential {
+  id            String   @id @default(cuid())
+  playerName    String
+  playerNumber  Int
+  cedula        String
+  teamName      String
+  tournament    String
+  photo         String?  @db.Text
+
+  createdAt     DateTime @default(now())
+
+  @@index([teamName])
+}

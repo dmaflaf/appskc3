@@ -1,5 +1,5 @@
-import CredentialGenerator from './components/CredentialGenerator'
+import Dashboard from './components/Dashboard'
 
 export default function Home() {
-  return <CredentialGenerator />
+  return <Dashboard />
 }
