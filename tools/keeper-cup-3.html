@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Keeper Cup 3 — Torneo</title>
+<title>Keeper Cup 3</title>
 <style>
   :root{
     --navy:#101a33; --navy2:#16223f; --gold:#f2b705; --gold-soft:#fde7a8;
@@ -159,6 +159,7 @@
     <div class="badge">4 grupos · 8 equipos c/u</div>
     <div class="badge">28 partidos por grupo</div>
     <div class="badge">7 fechas · Fechas 1 a 3 jugadas</div>
+    <div class="badge" id="cloudBadge">💾 Solo en este dispositivo</div>
   </div>
 </div>
 
@@ -338,7 +339,63 @@ function loadState(){
   }catch(e){}
   return { matches, scores };
 }
-function saveState(){ try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){} }
+/* Nube: un documento por partido, para que dos dispositivos no se pisen los cambios.
+   Solo existe cuando la página corre como Artifact de Claude con db; si no, queda en este dispositivo. */
+const cloud = {col:null, synced:new Map(), busy:false, dirty:false, readOnly:false, seeded:false, t:0, pendingRender:false};
+const CLOUD_LABEL = {local:'💾 Solo en este dispositivo', connecting:'☁️ Conectando…', saving:'☁️ Guardando…', ok:'☁️ Guardado en la nube', readonly:'👁️ Solo lectura (sin permiso para editar)', error:'⚠️ Sin conexión, reintentando'};
+function setCloudStatus(st){ const b = document.getElementById('cloudBadge'); if(b) b.textContent = CLOUD_LABEL[st] || CLOUD_LABEL.local; }
+function docOf(m){
+  const sc = state.scores[m.id] || {};
+  const d = {id:m.id, fecha:m.fecha, grupo:m.grupo, home:m.home, away:m.away, h:sc.h ?? '', a:sc.a ?? ''};
+  ['estadio','dia','fechaCal','hora'].forEach(k=>{ if(m[k]) d[k] = m[k]; });
+  return d;
+}
+async function flushCloud(){
+  cloud.t = 0;
+  if(!cloud.col || cloud.readOnly) return;
+  if(cloud.busy){ cloud.dirty = true; return; }
+  cloud.busy = true;
+  try{
+    do{
+      cloud.dirty = false;
+      const todo = state.matches.map(docOf).filter(d=>cloud.synced.get(d.id) !== JSON.stringify(d));
+      if(todo.length) setCloudStatus('saving');
+      for(const d of todo){ await cloud.col.doc(d.id).set(d); cloud.synced.set(d.id, JSON.stringify(d)); }
+    }while(cloud.dirty);
+    setCloudStatus('ok');
+  }catch(e){
+    if(e && e.code === 'invalid_argument'){ cloud.readOnly = true; setCloudStatus('readonly'); }
+    else { setCloudStatus('error'); setTimeout(flushCloud, 8000); }
+  }finally{ cloud.busy = false; }
+}
+function saveState(){
+  try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){}
+  if(cloud.col && !cloud.readOnly){ clearTimeout(cloud.t); cloud.t = setTimeout(flushCloud, 400); }
+}
+function applyRemote(snap){
+  if(snap.metadata.hasPendingWrites) return;
+  const docs = snap.docs.map(d=>d.data()).filter(d=>d && d.id);
+  if(!docs.length){
+    if(!snap.metadata.fromCache && !cloud.seeded){ cloud.seeded = true; cloud.synced.clear(); flushCloud(); }
+    return;
+  }
+  if(cloud.busy || cloud.t) return; // hay cambios locales en camino; el eco del servidor ya los trae mezclados
+  const matches = [], scores = {};
+  docs.forEach(d=>{
+    const m = {id:d.id, fecha:d.fecha, grupo:d.grupo, home:d.home, away:d.away};
+    ['estadio','dia','fechaCal','hora'].forEach(k=>{ if(d[k]) m[k] = d[k]; });
+    matches.push(m);
+    if((d.h ?? '') !== '' || (d.a ?? '') !== '') scores[d.id] = {h:d.h ?? '', a:d.a ?? ''};
+  });
+  const idx = id => Number(id.split('-')[2]);
+  matches.sort((x,y)=> x.fecha-y.fecha || x.grupo.localeCompare(y.grupo) || idx(x.id)-idx(y.id));
+  state.matches = matches; state.scores = scores;
+  try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){}
+  cloud.synced = new Map(matches.map(m=>[m.id, JSON.stringify(docOf(m))]));
+  setCloudStatus('ok');
+  const ae = document.activeElement;
+  if(ae && ae.classList && ae.classList.contains('sc')) cloud.pendingRender = true; else renderAll();
+}
 let state = loadState();
 
 function gamesInFecha(f){ return state.matches.filter(m=>m.fecha===f); }
@@ -837,6 +894,20 @@ populateTeamPicker();
 renderGroupbar();
 renderAll();
 showView(activeView);
+
+document.addEventListener('focusout', e=>{
+  if(cloud.pendingRender && e.target.classList && e.target.classList.contains('sc')){ cloud.pendingRender = false; setTimeout(renderAll, 0); }
+});
+(async function initCloud(){
+  try{
+    if(!window.claude || typeof window.claude.use !== 'function') return;
+    const db = await window.claude.use('db');
+    if(!db) return;
+    cloud.col = db.collection('matches');
+    setCloudStatus('connecting');
+    cloud.col.onSnapshot(applyRemote, e=>{ setCloudStatus(e && e.code === 'revoked' ? 'local' : 'error'); });
+  }catch(e){ setCloudStatus('local'); }
+})();
 </script>
 
 </body>
