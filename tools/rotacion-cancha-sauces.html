@@ -152,11 +152,11 @@
   html{-webkit-text-size-adjust:100%;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","Segoe UI",Roboto,Arial,sans-serif;
-    letter-spacing:-.011em; line-height:1.47; text-rendering:optimizeLegibility;
+    letter-spacing:0; line-height:1.5; text-rendering:optimizeLegibility;
   }
-  h1,h2,h3,.section-title,.fecha-head .t{letter-spacing:-.022em;}
+  h1,h2,h3,.section-title,.fecha-head .t{letter-spacing:-.02em; line-height:1.15;}
   .hero{padding:calc(36px + env(safe-area-inset-top,0px)) 20px 28px;}
-  .hero h1{font-size:clamp(1.75rem,5vw,2.4rem); font-weight:700; letter-spacing:-.03em;}
+  .hero h1{font-size:clamp(1.75rem,5vw,2.4rem); font-weight:700; letter-spacing:-.02em; line-height:1.1; font-optical-sizing:auto;}
   .hero p{font-size:1rem; line-height:1.5;}
   .badge{
     background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.2);
@@ -169,7 +169,7 @@
   .section-title{font-size:1.35rem; font-weight:700; margin-top:34px;}
   .section-title .tag{border-radius:980px; font-weight:600; letter-spacing:0; padding:3px 10px;}
   /* Controles: objetivo táctil >= 44pt y cápsulas segmentadas */
-  .tabbtn{height:44px; border-radius:980px; font-weight:600; transition:background .2s var(--ease),transform .15s var(--ease);}
+  .tabbtn{height:44px; border-radius:980px; font-weight:600;}
   .tabbtn.on{box-shadow:0 2px 8px rgba(242,183,5,.35);}
   .reset-btn{min-height:44px; padding:0 16px; border-radius:980px; font-weight:600;}
   .teamsel{height:50px; border-radius:var(--r-ctl); font-size:1rem;}
@@ -185,10 +185,23 @@
   #toast{border-radius:980px; -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);}
   button,a,select,input{-webkit-tap-highlight-color:transparent;}
   button:active{transform:scale(.97);}
-  button{transition:transform .15s var(--ease),background-color .2s var(--ease),opacity .2s var(--ease);}
+  button{transition:transform 100ms ease-out,background-color .2s var(--ease),opacity .2s var(--ease);}
   :focus-visible{outline:3px solid color-mix(in srgb,var(--sys-blue) 60%,transparent); outline-offset:2px;}
   @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--shadow-1:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);}}
-  @media (prefers-reduced-motion: reduce){*{transition:none!important; animation:none!important;}}
+  /* Materializar: el scrim se atenúa y la hoja llega con blur + escala (no solo opacidad) */
+  @keyframes scrim-in{from{opacity:0}to{opacity:1}}
+  @keyframes sheet-in{from{opacity:0; transform:scale(.96) translateY(8px); filter:blur(6px)}to{opacity:1; transform:none; filter:none}}
+  .scrim{animation:scrim-in 200ms ease-out;}
+  .sheet{animation:sheet-in 280ms cubic-bezier(.2,.8,.2,1); transform-origin:50% 60%;}
+  @media (prefers-reduced-motion: reduce){
+    *{transition-duration:.01ms!important;}
+    .sheet{animation:scrim-in 200ms ease!important; filter:none!important;}
+    button:active{transform:none;}
+  }
+  @media (prefers-reduced-transparency: reduce){
+    .scrim,#toast,.badge{-webkit-backdrop-filter:none; backdrop-filter:none;}
+    .scrim{background:rgba(10,14,40,.7);} .badge{background:rgba(255,255,255,.2);}
+  }
   @media (prefers-contrast: more){:root{--border:#8a93a8;}.note,.hist-card,.fecha-card,.grp-block{border:1px solid var(--border);}}
 </style>
 </head>

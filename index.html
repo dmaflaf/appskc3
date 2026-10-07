@@ -17,18 +17,18 @@
   body{
     margin:0; min-height:100vh; background:var(--bg); color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","Segoe UI",Roboto,Arial,sans-serif;
-    -webkit-font-smoothing:antialiased; letter-spacing:-.011em; line-height:1.47;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
     padding:max(48px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(32px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
   }
   .wrap{max-width:560px; margin:0 auto}
   header{margin-bottom:28px}
   .eyebrow{font-size:.8rem; font-weight:600; color:var(--sub); text-transform:uppercase; letter-spacing:.08em}
-  h1{font-size:clamp(2rem,8vw,2.75rem); line-height:1.1; letter-spacing:-.035em; font-weight:700; margin:6px 0 8px}
+  h1{font-size:clamp(2rem,8vw,2.75rem); line-height:1.05; letter-spacing:-.02em; font-optical-sizing:auto; font-weight:700; margin:6px 0 8px}
   header p{margin:0; color:var(--sub); font-size:1.05rem}
   .list{background:var(--card); border-radius:20px; box-shadow:var(--shadow); overflow:hidden}
   a.row{
     display:flex; align-items:center; gap:14px; min-height:76px; padding:14px 16px;
-    color:inherit; text-decoration:none; transition:background-color .2s ease;
+    color:inherit; text-decoration:none; transition:background-color 100ms ease-out;
   }
   a.row{position:relative}
   a.row + a.row::before{content:""; position:absolute; top:0; right:0; left:86px; border-top:1px solid var(--sep)}
@@ -43,7 +43,8 @@
   .txt span{display:block; color:var(--sub); font-size:.9rem; line-height:1.35}
   .chev{flex:0 0 auto; color:var(--sub); opacity:.6; font-size:1.3rem; font-weight:600}
   footer{margin-top:22px; text-align:center; color:var(--sub); font-size:.8rem}
-  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+  @media (prefers-reduced-motion: reduce){*{transition-duration:.01ms!important}}
+  @media (prefers-contrast: more){:root{--sep:#6e6e73}.list{outline:1px solid var(--sep)}}
 </style>
 </head>
 <body>
