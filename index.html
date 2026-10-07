@@ -113,7 +113,8 @@
   .viewbar button.on{background:var(--navy); color:#fff; border-color:transparent;}
   .view{display:none;} .view.on{display:block;}
   .day-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; margin-bottom:14px;}
-  .day-head{font-weight:800; font-size:.92rem; margin-bottom:8px; color:var(--amber);}
+  .day-head{font-weight:800; font-size:.92rem; margin-bottom:8px; color:var(--amber); display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .addtime{border:1px solid var(--border); background:var(--bg); color:var(--blue); font-weight:700; font-size:.74rem; border-radius:16px; padding:5px 11px; font-family:inherit; cursor:pointer;}
   .slot-head,.slot-row{display:grid; grid-template-columns:46px 1fr 1fr; gap:6px; align-items:stretch;}
   .slot-head{font-size:.66rem; font-weight:700; color:var(--sub); text-transform:uppercase; margin-bottom:4px;}
   .slot-row{margin-bottom:6px;}
@@ -484,6 +485,9 @@ function swapRival(fecha, grupo, teamA, teamB){
 /* ---- Orden cronológico y programación ---- */
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const toHora = v => String(v||'').replace(':','h');          // "15:30" -> "15h30"
+const toInput = h => String(h||'').replace('h',':');         // "15h30" -> "15:30"
+const validHora = h => /^([01]\d|2[0-3])h[0-5]\d$/.test(h);
 const HORAS = ['09h00','11h00','13h00','14h00','15h00','16h00','17h00','18h00','19h00','20h00','21h00'];
 function schedKey(m){
   if(!m.estadio) return 'zz';
@@ -530,20 +534,19 @@ function openScheduleModal(id){
       <option value="San Miguel"${m.estadio==='San Miguel'?' selected':''}>Estadio San Miguel</option>
       <option value="Los Sauces"${m.estadio==='Los Sauces'?' selected':''}>Estadio Los Sauces</option></select></label>
     <label class="fld">Día<input type="date" id="schDate" class="teamsel" style="margin-bottom:10px" value="${iso}"></label>
-    <label class="fld">Hora<select id="schHora" class="teamsel" style="margin-bottom:14px">
-      ${HORAS.map(h=>`<option${h===(m.hora||'19h00')?' selected':''}>${h}</option>`).join('')}</select></label>
+    <label class="fld">Hora<input type="time" id="schHora" class="teamsel" step="300" style="margin-bottom:14px" value="${toInput(m.hora||'19h00')}"></label>
     <button class="close-btn" id="schSave" style="background:var(--gold);color:#3a2400;border-color:transparent">Guardar</button>
     ${m.estadio?'<button class="close-btn" id="schClear">Quitar horario</button>':''}
     <button class="close-btn" id="schCancel">Cancelar</button>
   </div></div>`;
   const done = msg=>{ closeModal(); renderAll(); toast(msg); };
   const updTime = ()=>{
-    const d = modalRoot.querySelector('#schDate').value, hora = modalRoot.querySelector('#schHora').value;
+    const d = modalRoot.querySelector('#schDate').value, hora = toHora(modalRoot.querySelector('#schHora').value);
     if(!d){ modalRoot.querySelector('#schTimeInfo').textContent=''; return; }
     const dia = DIAS[new Date(d+'T00:00:00Z').getUTCDay()];
     modalRoot.querySelector('#schTimeInfo').innerHTML = '🕒 ' + timeWarn(m,dia,hora);
   };
-  ['#schDate','#schHora'].forEach(q=>modalRoot.querySelector(q).addEventListener('change', updTime)); updTime();
+  ['#schDate','#schHora'].forEach(q=>['change','input'].forEach(ev=>modalRoot.querySelector(q).addEventListener(ev, updTime))); updTime();
   modalRoot.querySelector('#schCancel').addEventListener('click', closeModal);
   modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
   const clr = modalRoot.querySelector('#schClear');
@@ -551,7 +554,8 @@ function openScheduleModal(id){
   modalRoot.querySelector('#schSave').addEventListener('click', ()=>{
     const est = modalRoot.querySelector('#schEst').value;
     const d = modalRoot.querySelector('#schDate').value;
-    const hora = modalRoot.querySelector('#schHora').value;
+    const hora = toHora(modalRoot.querySelector('#schHora').value);
+    if(!validHora(hora)){ toast('Escribe una hora válida'); return; }
     if(!est){ toast('Elige un estadio'); return; }
     if(!d){ toast('Elige un día'); return; }
     const dt = new Date(d+'T00:00:00Z');
@@ -889,7 +893,7 @@ function renderSchedule(){
     day.forEach(m=>times.add(m.hora));
     if(!editable && !day.length) return;
     const sorted = Array.from(times).sort();
-    html += `<div class="day-card"><div class="day-head">${DIAS[dt.getUTCDay()]} ${fechaCal}</div>
+    html += `<div class="day-card"><div class="day-head"><span>${DIAS[dt.getUTCDay()]} ${fechaCal}</span>${editable?`<button class="addtime" data-addtime="1" data-f="${f}" data-iso="${iso}">+ Horario</button>`:''}</div>
       <div class="slot-head"><span></span><span>San Miguel</span><span>Los Sauces</span></div>`;
     sorted.forEach(h=>{
       html += `<div class="slot-row"><div class="slot-time">${h}</div>` + STADIUMS.map(est=>{
@@ -905,40 +909,62 @@ function applySlot(m, est, iso, hora){
   const dt = new Date(iso+'T00:00:00Z');
   Object.assign(m,{estadio:est, dia:DIAS[dt.getUTCDay()], fechaCal:`${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`, hora});
 }
-function openSlotModal(f, est, iso, hora){
+function openSlotModal(f, est0, iso, hora0){
   const dt = new Date(iso+'T00:00:00Z');
   const fechaCal = `${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`;
+  const diaN = DIAS[dt.getUTCDay()];
   const games = gamesInFecha(f);
-  const occ = games.find(m=>m.estadio===est && m.fechaCal===fechaCal && m.hora===hora);
-  const key = est==='San Miguel' ? 'sm' : 'sauces';
-  const diaN = DIAS[dt.getUTCDay()], dia3 = diaN.slice(0,3);
-  const opt = m=>{
-    const cH = stadiumCounts(m.home, m.id), cA = stadiumCounts(m.away, m.id);
-    const where = m.estadio ? `<span class="warn" style="color:var(--sub)">${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora}</span>` : '';
-    return `<button class="rival-opt" data-pick="${m.id}"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}<br><small style="font-weight:400;color:var(--sub)">En ${est==='San Miguel'?'S. Miguel':'Sauces'}: ${m.home} ${cH[key]} · ${m.away} ${cA[key]}<br>${timeWarn(m,diaN,hora)}</small></span>${where}</button>`;
-  };
-  const free = games.filter(m=>!m.estadio), moved = games.filter(m=>m.estadio && m!==occ);
+  const editing = est0 ? games.find(m=>m.estadio===est0 && m.fechaCal===fechaCal && m.hora===hora0) : null; // partido de la casilla tocada
+  let est = est0 || 'San Miguel', hora = hora0 || '15h00';
+  const occAt = ()=>games.find(m=>m.estadio===est && m.fechaCal===fechaCal && m.hora===hora);
   modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
-    <h3>${est} · ${DIAS[dt.getUTCDay()]} ${fechaCal} · ${hora}</h3>
-    <p class="sub">Fecha ${f}${occ?` · Ahora: <b>${occ.home} vs ${occ.away}</b>`:' · Horario libre'}</p>
-    ${occ?'<button class="close-btn" id="slotClear" style="margin-bottom:8px">Quitar este partido del horario</button>':''}
-    <h4>Por programar (${free.length})</h4>${free.map(opt).join('') || '<p class="sub">No quedan partidos sin horario.</p>'}
-    ${moved.length?`<h4>Ya programados (mover aquí)</h4>${moved.map(opt).join('')}`:''}
+    <h3>${diaN} ${fechaCal} · Fecha ${f}</h3>
+    <p class="sub">Elige estadio y hora exacta${editing?`. Estás cambiando <b>${editing.home} vs ${editing.away}</b>`:''}.</p>
+    <label class="fld">Estadio<select id="slEst" class="teamsel" style="margin-bottom:10px">
+      <option${est==='San Miguel'?' selected':''}>San Miguel</option><option${est==='Los Sauces'?' selected':''}>Los Sauces</option></select></label>
+    <label class="fld">Hora<input type="time" id="slHora" class="teamsel" step="300" style="margin-bottom:10px" value="${toInput(hora)}"></label>
+    <div id="slBody"></div>
     <button class="close-btn" id="slotCancel">Cancelar</button></div></div>`;
   const finish = msg=>{ saveState(); closeModal(); renderAll(); toast(msg); };
+  const place = m=>{
+    if(!validHora(hora)){ toast('Escribe una hora válida'); return; }
+    const occ = occAt(); let note = '';
+    if(occ && occ !== m){ delete occ.estadio; delete occ.dia; delete occ.fechaCal; delete occ.hora; note = ` · ${occ.home} vs ${occ.away} quedó sin horario`; }
+    applySlot(m, est, iso, hora);
+    finish(`${m.home} vs ${m.away} → ${est} ${diaN.slice(0,3)} ${hora}${note}`);
+  };
+  function draw(){
+    const key = est==='San Miguel' ? 'sm' : 'sauces', dia3 = diaN.slice(0,3), occ = occAt();
+    const valid = validHora(hora);
+    const opt = m=>{
+      const cH = stadiumCounts(m.home, m.id), cA = stadiumCounts(m.away, m.id);
+      const where = m.estadio ? `<span class="warn" style="color:var(--sub)">${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora}</span>` : '';
+      return `<button class="rival-opt" data-pick="${m.id}"${valid?'':' disabled'}><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}<br><small style="font-weight:400;color:var(--sub)">En ${est==='San Miguel'?'S. Miguel':'Sauces'}: ${m.home} ${cH[key]} · ${m.away} ${cA[key]}<br>${valid?timeWarn(m,diaN,hora):''}</small></span>${where}</button>`;
+    };
+    const free = games.filter(m=>!m.estadio), others = games.filter(m=>m.estadio && m!==occ && m!==editing);
+    const moveBtn = editing && valid && !(editing.estadio===est && editing.hora===hora && editing.fechaCal===fechaCal)
+      ? `<button class="close-btn" id="slMove" style="background:var(--gold);color:#3a2400;border-color:transparent;margin-bottom:8px">Cambiar ${editing.home} vs ${editing.away} a ${est} · ${dia3} ${hora}</button>` : '';
+    document.getElementById('slBody').innerHTML = `
+      <p class="sub" style="margin-bottom:8px">${occ?`En ${est} ${dia3} ${hora} juega ahora: <b>${occ.home} vs ${occ.away}</b>`:`${est} ${dia3} ${hora}: libre`}</p>
+      ${moveBtn}
+      ${editing?'<button class="close-btn" id="slClear" style="margin-bottom:8px">Quitar este partido del horario</button>':''}
+      <h4>Por programar (${free.length})</h4>${free.map(opt).join('') || '<p class="sub">No quedan partidos sin horario.</p>'}
+      ${others.length?`<h4>Ya programados (mover aquí)</h4>${others.map(opt).join('')}`:''}`;
+    const body = document.getElementById('slBody');
+    body.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click', ()=>place(state.matches.find(x=>x.id===b.dataset.pick))));
+    const mv = body.querySelector('#slMove'); if(mv) mv.addEventListener('click', ()=>place(editing));
+    const cl = body.querySelector('#slClear'); if(cl) cl.addEventListener('click', ()=>{ delete editing.estadio; delete editing.dia; delete editing.fechaCal; delete editing.hora; finish('Horario liberado'); });
+  }
+  const estEl = modalRoot.querySelector('#slEst'), horaEl = modalRoot.querySelector('#slHora');
+  estEl.addEventListener('change', ()=>{ est = estEl.value; draw(); });
+  ['input','change'].forEach(ev=>horaEl.addEventListener(ev, ()=>{ hora = toHora(horaEl.value); draw(); }));
   modalRoot.querySelector('#slotCancel').addEventListener('click', closeModal);
   modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
-  const clr = modalRoot.querySelector('#slotClear');
-  if(clr) clr.addEventListener('click', ()=>{ delete occ.estadio; delete occ.dia; delete occ.fechaCal; delete occ.hora; finish('Horario liberado'); });
-  modalRoot.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click', ()=>{
-    const m = state.matches.find(x=>x.id===b.dataset.pick);
-    if(occ && occ!==m){ delete occ.estadio; delete occ.dia; delete occ.fechaCal; delete occ.hora; }
-    applySlot(m, est, iso, hora);
-    finish(`${m.home} vs ${m.away} → ${est} ${hora}`);
-  }));
+  draw();
 }
 schedViewEl.addEventListener('click', e=>{
   const sb = e.target.closest('.sched-btn'); if(sb){ openScheduleModal(sb.dataset.sched); return; }
+  const at = e.target.closest('[data-addtime]'); if(at){ openSlotModal(Number(at.dataset.f), null, at.dataset.iso, null); return; }
   const sl = e.target.closest('[data-slot]'); if(sl) openSlotModal(Number(sl.dataset.f), sl.dataset.est, sl.dataset.iso, sl.dataset.hora);
 });
 
