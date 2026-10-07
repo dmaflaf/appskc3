@@ -2,32 +2,74 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e">
 <title>Keeper Cup 3 — Herramientas</title>
 <style>
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0f1e;color:#eef1f8;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
-  .wrap{max-width:420px;width:100%}
-  h1{font-size:1.4rem;margin-bottom:18px}
-  a.card{display:block;background:#161f38;border:1px solid #26304d;border-radius:14px;padding:18px;margin-bottom:14px;color:#eef1f8;text-decoration:none}
-  a.card b{display:block;font-size:1.05rem;margin-bottom:4px}
-  a.card span{color:#9aa5c0;font-size:.85rem}
+  :root{
+    --bg:#f5f5f7; --card:#fff; --ink:#1d1d1f; --sub:#6e6e73; --sep:rgba(60,60,67,.14);
+    --gold:#f2b705; --blue:#0071e3; --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#000; --card:#1c1c1e; --ink:#f5f5f7; --sub:#98989d; --sep:rgba(84,84,88,.5); --shadow:none;}
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0; min-height:100vh; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; letter-spacing:-.011em; line-height:1.47;
+    padding:max(48px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(32px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+  }
+  .wrap{max-width:560px; margin:0 auto}
+  header{margin-bottom:28px}
+  .eyebrow{font-size:.8rem; font-weight:600; color:var(--sub); text-transform:uppercase; letter-spacing:.08em}
+  h1{font-size:clamp(2rem,8vw,2.75rem); line-height:1.1; letter-spacing:-.035em; font-weight:700; margin:6px 0 8px}
+  header p{margin:0; color:var(--sub); font-size:1.05rem}
+  .list{background:var(--card); border-radius:20px; box-shadow:var(--shadow); overflow:hidden}
+  a.row{
+    display:flex; align-items:center; gap:14px; min-height:76px; padding:14px 16px;
+    color:inherit; text-decoration:none; transition:background-color .2s ease;
+  }
+  a.row{position:relative}
+  a.row + a.row::before{content:""; position:absolute; top:0; right:0; left:86px; border-top:1px solid var(--sep)}
+  a.row:active{background:var(--sep)}
+  a.row:focus-visible{outline:3px solid color-mix(in srgb,var(--blue) 60%,transparent); outline-offset:-3px; border-radius:20px}
+  .icon{flex:0 0 auto; width:54px; height:54px; border-radius:13px; display:grid; place-items:center; font-size:1.7rem; color:#fff}
+  .i1{background:linear-gradient(160deg,#34aadc,#0071e3)}
+  .i2{background:linear-gradient(160deg,#34c759,#1e9e6a)}
+  .i3{background:linear-gradient(160deg,#ffcc00,#f2a100)}
+  .txt{flex:1 1 auto; min-width:0}
+  .txt b{display:block; font-size:1.05rem; font-weight:600; letter-spacing:-.02em}
+  .txt span{display:block; color:var(--sub); font-size:.9rem; line-height:1.35}
+  .chev{flex:0 0 auto; color:var(--sub); opacity:.6; font-size:1.3rem; font-weight:600}
+  footer{margin-top:22px; text-align:center; color:var(--sub); font-size:.8rem}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>⚽ Keeper Cup 3 — Herramientas</h1>
-  <a class="card" href="tools/keeper-cup-3-programacion.html">
-    <b>Programación</b>
-    <span>Armar y editar los horarios de partidos</span>
-  </a>
-  <a class="card" href="tools/rotacion-cancha-sauces.html">
-    <b>Rotación Cancha Los Sauces</b>
-    <span>Calendario y conteo de visitas por equipo</span>
-  </a>
-  <a class="card" href="tools/fixture-keeper-cup-3.html">
-    <b>Fixture</b>
-    <span>Todos contra todos por grupo, 7 fechas, con resultados y tabla de posiciones</span>
-  </a>
+  <header>
+    <div class="eyebrow">Keeper Cup 3</div>
+    <h1>Herramientas</h1>
+    <p>Todo el torneo en un solo lugar.</p>
+  </header>
+  <nav class="list" aria-label="Herramientas">
+    <a class="row" href="tools/keeper-cup-3-programacion.html">
+      <div class="icon i1" aria-hidden="true">🗓️</div>
+      <div class="txt"><b>Programación</b><span>Armar y editar los horarios de partidos</span></div>
+      <div class="chev" aria-hidden="true">›</div>
+    </a>
+    <a class="row" href="tools/rotacion-cancha-sauces.html">
+      <div class="icon i2" aria-hidden="true">🔄</div>
+      <div class="txt"><b>Rotación Cancha Los Sauces</b><span>Calendario y conteo de visitas por equipo</span></div>
+      <div class="chev" aria-hidden="true">›</div>
+    </a>
+    <a class="row" href="tools/fixture-keeper-cup-3.html">
+      <div class="icon i3" aria-hidden="true">🏆</div>
+      <div class="txt"><b>Fixture</b><span>Todos contra todos por grupo, 7 fechas, resultados y tabla de posiciones</span></div>
+      <div class="chev" aria-hidden="true">›</div>
+    </a>
+  </nav>
 </div>
 </body>
 </html>
