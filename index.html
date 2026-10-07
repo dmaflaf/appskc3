@@ -114,6 +114,10 @@
   .view{display:none;} .view.on{display:block;}
   .day-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; margin-bottom:14px;}
   .day-head{font-weight:800; font-size:.92rem; margin-bottom:8px; color:var(--amber); display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .delx{flex:0 0 auto; border:0; background:transparent; font-size:1rem; opacity:.55; cursor:pointer; padding:6px;}
+  .delx:hover{opacity:1;}
+  .slot-time{display:flex; flex-direction:column; gap:2px; align-items:flex-start;}
+  .rowx{border:0; background:transparent; color:var(--sub); font-size:.7rem; padding:0 2px; cursor:pointer;}
   .addtime{border:1px solid var(--border); background:var(--bg); color:var(--blue); font-weight:700; font-size:.74rem; border-radius:16px; padding:5px 11px; font-family:inherit; cursor:pointer;}
   .slot-head,.slot-row{display:grid; grid-template-columns:46px 1fr 1fr; gap:6px; align-items:stretch;}
   .slot-head{font-size:.66rem; font-weight:700; color:var(--sub); text-transform:uppercase; margin-bottom:4px;}
@@ -184,7 +188,7 @@
     <div class="note"><b>Fixture:</b> cada partido tiene dos casillas para el marcador — anota el resultado apenas se juegue (se guarda en este dispositivo). En fechas por jugar (4-7) toca el <b>nombre de un equipo</b> para cambiarle el rival, o «Programar» para asignar estadio, día y hora.</div>
     <div class="section-title">
       <span class="ttl">📋 Fechas y cruces</span>
-      <button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button>
+      <span style="display:flex;gap:6px;flex-wrap:wrap"><button id="restoreBtn" class="reset-btn" hidden>↩️ Restaurar eliminados</button><button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button></span>
     </div>
     <div class="tabbar" id="tabbar"></div>
     <div class="tabbar" id="groupbar"></div>
@@ -362,7 +366,14 @@ function touchChanged(){
   const now = Date.now();
   state.matches.forEach(m=>{ const k = JSON.stringify(docOf(m)); if(seen.get(m.id) !== k){ m.ts = now; seen.set(m.id, k); } });
 }
-function blobOf(){ return {v:1, updated:Date.now(), matches:state.matches.map(m=>Object.assign(docOf(m), {ts:m.ts || 0}))}; }
+function liveTomb(){
+  const live = new Map(state.matches.map(m=>[m.id, m]));
+  Object.keys(state.tomb).forEach(id=>{ const m = live.get(id); if(m && (m.ts || 0) > state.tomb[id]) delete state.tomb[id]; });
+  const out = {};
+  Object.keys(state.tomb).forEach(id=>{ if(!live.has(id)) out[id] = state.tomb[id]; });
+  return out;
+}
+function blobOf(){ return {v:1, updated:Date.now(), matches:state.matches.map(m=>Object.assign(docOf(m), {ts:m.ts || 0})), tomb:liveTomb(), rows:state.rows}; }
 function persistLocal(){ try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){} }
 async function gh(path, opts = {}){
   const ctl = new AbortController(), to = setTimeout(()=>ctl.abort(), 25000);
@@ -409,10 +420,23 @@ async function createGist(token){
 }
 /* Mezcla el archivo de la nube con el estado local. Gana el cambio más reciente de cada partido. */
 function mergeBlob(blob){
-  const remote = new Map(((blob && blob.matches) || []).map(d=>[d.id, d]));
-  const local = new Map(state.matches.map(m=>[m.id, m]));
   let changedLocal = false, needPush = false;
+  const local = new Map(state.matches.map(m=>[m.id, m]));
+  // 1) partidos eliminados
+  const rt = (blob && blob.tomb) || {};
+  Object.keys(rt).forEach(id=>{
+    const m = local.get(id);
+    if(m && (m.ts || 0) > rt[id]){ needPush = true; return; }          // se editó después de borrarse: se queda
+    if(m){ state.matches = state.matches.filter(x=>x.id !== id); delete state.scores[id]; seen.delete(id); local.delete(id); changedLocal = true; }
+    if((state.tomb[id] || 0) < rt[id]) state.tomb[id] = rt[id];
+  });
+  Object.keys(state.tomb).forEach(id=>{ if(rt[id] !== state.tomb[id]) needPush = true; });
+  // 2) partidos
+  const remote = new Map(((blob && blob.matches) || []).map(d=>[d.id, d]));
   remote.forEach((d, id)=>{
+    const tt = state.tomb[id] || 0;
+    if(tt && tt >= (d.ts || 0)){ needPush = true; return; }            // borrado aquí y más reciente
+    if(tt) delete state.tomb[id];                                       // se editó después de borrarse: reaparece
     const m = local.get(id);
     if(m && (m.ts || 0) > (d.ts || 0)){ needPush = true; return; }
     const nm = {id:d.id, fecha:d.fecha, grupo:d.grupo, home:d.home, away:d.away, ts:d.ts || 0};
@@ -421,11 +445,19 @@ function mergeBlob(blob){
     const before = m ? JSON.stringify(docOf(m)) : null;
     if(m) ['estadio','dia','fechaCal','hora'].forEach(k=>delete m[k]);
     const target = m || nm;
-    if(m) Object.assign(m, nm); else state.matches.push(nm);
+    if(m) Object.assign(m, nm); else { state.matches.push(nm); changedLocal = true; }
     if(hasScore) state.scores[id] = {h:d.h ?? '', a:d.a ?? ''}; else delete state.scores[id];
     if(before !== JSON.stringify(docOf(target))) changedLocal = true;
   });
   local.forEach((m, id)=>{ if(!remote.has(id)) needPush = true; });
+  // 3) filas de horario ocultas
+  const rr = (blob && blob.rows) || {};
+  Object.keys(rr).forEach(k=>{
+    const l = state.rows[k];
+    if(!l || (rr[k].ts || 0) > (l.ts || 0)){ if(!l || l.hide !== rr[k].hide) changedLocal = true; state.rows[k] = rr[k]; }
+    else if((l.ts || 0) > (rr[k].ts || 0)) needPush = true;
+  });
+  Object.keys(state.rows).forEach(k=>{ if(!rr[k]) needPush = true; });
   if(changedLocal){
     const idx = id => Number(id.split('-')[2]);
     state.matches.sort((x,y)=> x.fecha-y.fecha || x.grupo.localeCompare(y.grupo) || idx(x.id)-idx(y.id));
@@ -463,6 +495,8 @@ function saveState(){
   if(cloud.c){ clearTimeout(cloud.t); setCloudStatus('pending'); cloud.t = setTimeout(()=>cloudSync(), 1200); }
 }
 let state = loadState();
+state.tomb = state.tomb || {};   // partidos eliminados: id -> hora de borrado (para que la nube no los reviva)
+state.rows = state.rows || {};   // filas de horario ocultas: 'YYYY-MM-DD|HHhMM' -> {hide, ts}
 snapshotSeen();
 
 function gamesInFecha(f){ return state.matches.filter(m=>m.fecha===f); }
@@ -537,6 +571,7 @@ function openScheduleModal(id){
     <label class="fld">Hora<input type="time" id="schHora" class="teamsel" step="300" style="margin-bottom:14px" value="${toInput(m.hora||'19h00')}"></label>
     <button class="close-btn" id="schSave" style="background:var(--gold);color:#3a2400;border-color:transparent">Guardar</button>
     ${m.estadio?'<button class="close-btn" id="schClear">Quitar horario</button>':''}
+    <button class="close-btn" id="schDel" style="color:var(--red)">🗑 Eliminar este partido del torneo</button>
     <button class="close-btn" id="schCancel">Cancelar</button>
   </div></div>`;
   const done = msg=>{ closeModal(); renderAll(); toast(msg); };
@@ -548,6 +583,7 @@ function openScheduleModal(id){
   };
   ['#schDate','#schHora'].forEach(q=>['change','input'].forEach(ev=>modalRoot.querySelector(q).addEventListener(ev, updTime))); updTime();
   modalRoot.querySelector('#schCancel').addEventListener('click', closeModal);
+  modalRoot.querySelector('#schDel').addEventListener('click', ()=>deleteMatch(id));
   modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
   const clr = modalRoot.querySelector('#schClear');
   if(clr) clr.addEventListener('click', ()=>{ delete m.estadio; delete m.dia; delete m.fechaCal; delete m.hora; saveState(); done('Horario quitado'); });
@@ -629,7 +665,7 @@ let activeFecha = [1,2,3,4,5,6,7].find(f=>!PLAYED_FECHAS.has(f)) || 7;
 function renderTabs(){
   const html = [1,2,3,4,5,6,7].map(f=>{
     const games = gamesInFecha(f);
-    const allDone = games.every(g => state.scores[g.id] && state.scores[g.id].h !== '' && state.scores[g.id].a !== '');
+    const allDone = games.length > 0 && games.every(g => state.scores[g.id] && state.scores[g.id].h !== '' && state.scores[g.id].a !== '');
     return `<button class="tabbtn${f===activeFecha?' on':''}" data-f="${f}">Fecha ${f}${allDone?' ✓':''}</button>`;
   }).join('');
   tabbar.innerHTML = html; hTabbar.innerHTML = html;
@@ -667,6 +703,37 @@ function scoreBoxes(m){
     <input type="tel" inputmode="numeric" maxlength="2" class="sc" data-id="${m.id}" data-side="a" value="${s.a}" aria-label="Goles ${m.away}">
   </div>`;
 }
+/* ---- Eliminar y restaurar ---- */
+function deleteMatches(ids, msg){
+  const now = Date.now(), set = new Set(ids);
+  state.matches = state.matches.filter(m=>!set.has(m.id));
+  ids.forEach(id=>{ delete state.scores[id]; seen.delete(id); state.tomb[id] = now; });
+  saveState(); renderAll(); toast(msg);
+}
+function deleteMatch(id){
+  const m = state.matches.find(x=>x.id===id); if(!m || PLAYED_FECHAS.has(m.fecha)) return;
+  if(!confirm(`¿Eliminar ${m.home} vs ${m.away} (Fecha ${m.fecha}) del torneo? Se elimina también de la nube.`)) return;
+  closeModal(); deleteMatches([id], 'Partido eliminado');
+}
+function deleteFecha(f){
+  if(PLAYED_FECHAS.has(f)) return;
+  const ids = gamesInFecha(f).map(m=>m.id);
+  if(!ids.length){ toast('La Fecha '+f+' ya está vacía'); return; }
+  if(!confirm(`¿Eliminar la Fecha ${f} completa (${ids.length} partidos)? Se elimina también de la nube. Puedes recuperarlos con «Restaurar eliminados».`)) return;
+  deleteMatches(ids, 'Fecha '+f+' eliminada');
+}
+function restoreDeleted(){
+  const base = buildBaseline(), ids = Object.keys(state.tomb).filter(id=>base.some(b=>b.id===id) && !state.matches.some(m=>m.id===id));
+  ids.forEach(id=>{ state.matches.push(base.find(b=>b.id===id)); delete state.tomb[id]; });
+  const idx = id => Number(id.split('-')[2]);
+  state.matches.sort((x,y)=> x.fecha-y.fecha || x.grupo.localeCompare(y.grupo) || idx(x.id)-idx(y.id));
+  saveState(); renderAll(); toast(ids.length ? ids.length+' partidos restaurados (sin horario)' : 'No hay nada que restaurar');
+}
+function renderRestore(){
+  const n = Object.keys(state.tomb).filter(id=>!state.matches.some(m=>m.id===id)).length;
+  const b = document.getElementById('restoreBtn'); b.hidden = !n; b.textContent = '↩️ Restaurar eliminados (' + n + ')';
+}
+function setRowHidden(iso, hora, hide){ state.rows[iso+'|'+hora] = {hide, ts:Date.now()}; saveState(); renderAll(); }
 function renderFecha(){
   const games = gamesInFecha(activeFecha);
   const isPlayed = PLAYED_FECHAS.has(activeFecha);
@@ -677,6 +744,8 @@ function renderFecha(){
       <div class="status ${isPlayed?'played':'pending'}">${isPlayed?'✓ Jugada':'Por jugar'}</div>
     </div>
     <p class="fecha-sub">${isPlayed ? 'Cruces, locales y horarios tal cual el horario publicado. Ya no se pueden editar.' : 'Toca el nombre de un equipo para cambiarle el rival, o «Programar» para asignar estadio, día y hora.'}</p>`;
+  if(!isPlayed) html += `<button class="reset-btn" data-delfecha="${activeFecha}" style="color:var(--red);margin-bottom:6px">🗑 Eliminar Fecha ${activeFecha}</button>`;
+  if(!games.length) html += '<p class="fecha-sub">Esta fecha no tiene partidos. Usa «Restaurar eliminados» para recuperarlos.</p>';
   groupsToShow.forEach(g=>{
     const gGames = games.filter(m=>m.grupo===g).sort((a,b)=>schedKey(a).localeCompare(schedKey(b)));
     if(!gGames.length) return;
@@ -701,6 +770,7 @@ function renderFecha(){
           ${meta}
         </div>
         ${scoreBoxes(m)}
+        ${isPlayed?'':`<button class="delx" data-delmatch="${m.id}" aria-label="Eliminar partido" title="Eliminar partido">🗑</button>`}
       </div>`;
     });
   });
@@ -709,6 +779,8 @@ function renderFecha(){
 }
 fechasEl.addEventListener('click', e=>{
   const sb = e.target.closest('.sched-btn'); if(sb){ openScheduleModal(sb.dataset.sched); return; }
+  const dm = e.target.closest('[data-delmatch]'); if(dm){ deleteMatch(dm.dataset.delmatch); return; }
+  const df = e.target.closest('[data-delfecha]'); if(df){ deleteFecha(Number(df.dataset.delfecha)); return; }
   const btn = e.target.closest('.teamname-btn'); if(!btn) return;
   openSwapModal(Number(btn.dataset.fecha), btn.dataset.grupo, btn.dataset.team);
 });
@@ -882,7 +954,7 @@ function renderSchedule(){
   if(editable){
     const done = games.length - pending.length;
     html += `<div class="pend"><b>${pending.length} por programar</b> · ${done} de ${games.length} ya tienen horario`;
-    pending.forEach(m=>{ html += `<div class="it"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}</span><button class="sched-btn" data-sched="${m.id}">Programar</button></div>`; });
+    pending.forEach(m=>{ html += `<div class="it"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}</span><span><button class="sched-btn" data-sched="${m.id}" style="display:inline">Programar</button><button class="delx" data-delmatch="${m.id}" aria-label="Eliminar partido" style="padding:0 4px 0 10px">🗑</button></span></div>`; });
     html += '</div>';
   }
   fechaDays(f).forEach(iso=>{
@@ -892,17 +964,22 @@ function renderSchedule(){
     const times = new Set(STD_TIMES[dt.getUTCDay()] || []);
     day.forEach(m=>times.add(m.hora));
     if(!editable && !day.length) return;
-    const sorted = Array.from(times).sort();
+    const hiddenKeys = Object.keys(state.rows).filter(k=>k.startsWith(iso+'|') && state.rows[k].hide && !day.some(m=>m.hora===k.split('|')[1]));
+    const sorted = Array.from(times).filter(h=>!(state.rows[iso+'|'+h] && state.rows[iso+'|'+h].hide) || day.some(m=>m.hora===h)).sort();
     html += `<div class="day-card"><div class="day-head"><span>${DIAS[dt.getUTCDay()]} ${fechaCal}</span>${editable?`<button class="addtime" data-addtime="1" data-f="${f}" data-iso="${iso}">+ Horario</button>`:''}</div>
       <div class="slot-head"><span></span><span>San Miguel</span><span>Los Sauces</span></div>`;
     sorted.forEach(h=>{
-      html += `<div class="slot-row"><div class="slot-time">${h}</div>` + STADIUMS.map(est=>{
+      const used = day.some(m=>m.hora===h);
+      html += `<div class="slot-row"><div class="slot-time">${h}${editable&&!used?`<button class="rowx" data-hide="${iso}|${h}" aria-label="Quitar horario ${h}" title="Quitar este horario">✕</button>`:''}</div>` + STADIUMS.map(est=>{
         const m = day.find(x=>x.estadio===est && x.hora===h);
         return slotCellHTML(m, editable, f, est, iso, h);
       }).join('') + '</div>';
     });
+    if(editable && hiddenKeys.length) html += `<button class="rowx" data-unhide="${iso}" style="margin-top:4px;color:var(--blue)">Mostrar ${hiddenKeys.length} horario${hiddenKeys.length>1?'s':''} oculto${hiddenKeys.length>1?'s':''}</button>`;
     html += '</div>';
   });
+  if(editable) html += `<button class="reset-btn" data-delfecha="${f}" style="color:var(--red)">🗑 Eliminar Fecha ${f}</button>`;
+  if(!games.length) html = '<p class="fecha-sub">Esta fecha no tiene partidos. En Fixture puedes usar «Restaurar eliminados».</p>' + html;
   schedViewEl.innerHTML = html;
 }
 function applySlot(m, est, iso, hora){
@@ -947,12 +1024,13 @@ function openSlotModal(f, est0, iso, hora0){
     document.getElementById('slBody').innerHTML = `
       <p class="sub" style="margin-bottom:8px">${occ?`En ${est} ${dia3} ${hora} juega ahora: <b>${occ.home} vs ${occ.away}</b>`:`${est} ${dia3} ${hora}: libre`}</p>
       ${moveBtn}
-      ${editing?'<button class="close-btn" id="slClear" style="margin-bottom:8px">Quitar este partido del horario</button>':''}
+      ${editing?'<button class="close-btn" id="slClear" style="margin-bottom:8px">Quitar este partido del horario</button><button class="close-btn" id="slDel" style="margin-bottom:8px;color:var(--red)">🗑 Eliminar este partido del torneo</button>':''}
       <h4>Por programar (${free.length})</h4>${free.map(opt).join('') || '<p class="sub">No quedan partidos sin horario.</p>'}
       ${others.length?`<h4>Ya programados (mover aquí)</h4>${others.map(opt).join('')}`:''}`;
     const body = document.getElementById('slBody');
     body.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click', ()=>place(state.matches.find(x=>x.id===b.dataset.pick))));
     const mv = body.querySelector('#slMove'); if(mv) mv.addEventListener('click', ()=>place(editing));
+    const dl = body.querySelector('#slDel'); if(dl) dl.addEventListener('click', ()=>deleteMatch(editing.id));
     const cl = body.querySelector('#slClear'); if(cl) cl.addEventListener('click', ()=>{ delete editing.estadio; delete editing.dia; delete editing.fechaCal; delete editing.hora; finish('Horario liberado'); });
   }
   const estEl = modalRoot.querySelector('#slEst'), horaEl = modalRoot.querySelector('#slHora');
@@ -964,6 +1042,12 @@ function openSlotModal(f, est0, iso, hora0){
 }
 schedViewEl.addEventListener('click', e=>{
   const sb = e.target.closest('.sched-btn'); if(sb){ openScheduleModal(sb.dataset.sched); return; }
+  const dm = e.target.closest('[data-delmatch]'); if(dm){ deleteMatch(dm.dataset.delmatch); return; }
+  const df = e.target.closest('[data-delfecha]'); if(df){ deleteFecha(Number(df.dataset.delfecha)); return; }
+  const hr = e.target.closest('[data-hide]'); if(hr){ const [iso,h] = hr.dataset.hide.split('|'); setRowHidden(iso, h, true); return; }
+  const uh = e.target.closest('[data-unhide]'); if(uh){
+    const iso = uh.dataset.unhide; Object.keys(state.rows).filter(k=>k.startsWith(iso+'|') && state.rows[k].hide).forEach(k=>{ state.rows[k] = {hide:false, ts:Date.now()}; });
+    saveState(); renderAll(); return; }
   const at = e.target.closest('[data-addtime]'); if(at){ openSlotModal(Number(at.dataset.f), null, at.dataset.iso, null); return; }
   const sl = e.target.closest('[data-slot]'); if(sl) openSlotModal(Number(sl.dataset.f), sl.dataset.est, sl.dataset.iso, sl.dataset.hora);
 });
@@ -980,7 +1064,7 @@ function showView(v){
   window.scrollTo(0,0);
 }
 document.getElementById('viewbar').addEventListener('click', e=>{ const b = e.target.closest('button'); if(b) showView(b.dataset.view); });
-function renderAll(){ renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); }
+function renderAll(){ renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); renderRestore(); }
 
 populateTeamPicker();
 renderGroupbar();
@@ -1042,6 +1126,7 @@ function openCloudModal(){
   }
 }
 document.getElementById('cloudBadge').addEventListener('click', openCloudModal);
+document.getElementById('restoreBtn').addEventListener('click', restoreDeleted);
 if(cloud.c){ setCloudStatus('connecting'); cloudSync(); } else setCloudStatus('local');
 setInterval(()=>{ if(cloud.c && !document.hidden && !cloud.t) cloudSync(); }, 30000);
 document.addEventListener('visibilitychange', ()=>{ if(cloud.c && !document.hidden) cloudSync(); });
