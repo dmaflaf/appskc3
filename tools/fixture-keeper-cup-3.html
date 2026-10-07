@@ -127,18 +127,18 @@
 
 <div class="hero">
   <h1>🗓️ Fixture — Keeper Cup 3</h1>
-  <p>Fase de grupos: todos contra todos. 8 equipos por grupo, 7 fechas, cada equipo enfrenta una vez a cada rival de su grupo. Las Fechas 1 y 2 ya se jugaron (estadio, día y horario reales); las Fechas 3-7 se generaron para completar el todos-contra-todos sin repetir cruces y se pueden editar.</p>
+  <p>Fase de grupos: todos contra todos. 8 equipos por grupo, 7 fechas, cada equipo enfrenta una vez a cada rival de su grupo. Las Fechas 1, 2 y 3 ya se jugaron (estadio, día y horario reales); las Fechas 4-7 se generaron para completar el todos-contra-todos sin repetir cruces y se pueden editar.</p>
   <div class="badge-row">
     <div class="badge">4 grupos · 8 equipos c/u</div>
     <div class="badge">28 partidos por grupo</div>
-    <div class="badge">7 fechas · Fechas 1 y 2 jugadas</div>
+    <div class="badge">7 fechas · Fechas 1 a 3 jugadas</div>
   </div>
 </div>
 
 <div class="wrap">
 
   <div class="note">
-    <b>Cómo usarlo:</b> cada partido tiene dos casillas para el marcador — tócalas para anotar el resultado apenas se juegue (se guarda solo, en este dispositivo). En fechas por jugar, toca el <b>nombre de un equipo</b> para cambiarle el rival. Las Fechas 1 y 2 muestran estadio, día y horario reales; con ese dato ya puedes ver en <b>Balance de estadios</b> si hay igualdad entre San Miguel y Los Sauces.
+    <b>Cómo usarlo:</b> cada partido tiene dos casillas para el marcador — tócalas para anotar el resultado apenas se juegue (se guarda solo, en este dispositivo). En fechas por jugar (4-7), toca el <b>nombre de un equipo</b> para cambiarle el rival. Las Fechas 1 a 3 muestran estadio, día y horario reales; con ese dato ya puedes ver en <b>Balance de estadios</b> si hay igualdad entre San Miguel y Los Sauces.
   </div>
 
   <div class="section-title"><span class="ttl">🔍 Historial por equipo</span></div>
@@ -154,20 +154,20 @@
   <div id="fechas"></div>
 
   <div class="section-title" style="margin-top:8px;"><span class="ttl">⚖️ Balance de estadios</span> <span class="tag">San Miguel vs Sauces</span></div>
-  <p class="fecha-sub" style="margin:-6px 0 12px;">Solo cuenta partidos con estadio ya asignado (Fechas 1 y 2 por ahora).</p>
+  <p class="fecha-sub" style="margin:-6px 0 12px;">Solo cuenta partidos con estadio ya asignado (Fechas 1 a 3 por ahora).</p>
   <div class="counter-wrap" id="balance"></div>
 
   <div class="section-title" style="margin-top:8px;"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
   <div class="counter-wrap" id="standings"></div>
 
-  <footer>Fixture generado con el método de rotación circular (round-robin) a partir de los cruces reales de la Fecha 1. Puedes cambiar rivales manualmente en cualquier fecha.</footer>
+  <footer>Fixture generado con el método de rotación circular (round-robin) a partir de los cruces reales de las Fechas 1 a 3. Puedes cambiar rivales manualmente en cualquier fecha.</footer>
 </div>
 
 <div id="modal-root"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Arapaima","Alianza Jr."],["Galacticos","Gladiadores AZ"],["Cordovez","Huracán"]],[["Barrio Fino","Alianza Jr."],["Corintians","Gladiadores AZ"],["Arapaima","Huracán"],["Galacticos","Cordovez"]],[["Barrio Fino","Gladiadores AZ"],["Alianza Jr.","Huracán"],["Corintians","Cordovez"],["Arapaima","Galacticos"]],[["Barrio Fino","Huracán"],["Gladiadores AZ","Cordovez"],["Alianza Jr.","Galacticos"],["Corintians","Arapaima"]],[["Barrio Fino","Cordovez"],["Huracán","Galacticos"],["Gladiadores AZ","Arapaima"],["Alianza Jr.","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Jolines"],["Real Sevilla","Libert"],["Pecezuelos","Templo Fit"],["Leones","Sub 21"]],[["Mandela","Libert"],["Jolines","Templo Fit"],["Real Sevilla","Sub 21"],["Pecezuelos","Leones"]],[["Mandela","Templo Fit"],["Libert","Sub 21"],["Jolines","Leones"],["Real Sevilla","Pecezuelos"]],[["Mandela","Sub 21"],["Templo Fit","Leones"],["Libert","Pecezuelos"],["Jolines","Real Sevilla"]],[["Mandela","Leones"],["Sub 21","Pecezuelos"],["Templo Fit","Real Sevilla"],["Libert","Jolines"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Cormoran","La Banda"],["Somec","Real Potosí"],["Vaster","San Andres"],["Barcelona","San Francisco"]],[["Cormoran","Real Potosí"],["La Banda","San Andres"],["Somec","San Francisco"],["Vaster","Barcelona"]],[["Cormoran","San Andres"],["Real Potosí","San Francisco"],["La Banda","Barcelona"],["Somec","Vaster"]],[["Cormoran","San Francisco"],["San Andres","Barcelona"],["Real Potosí","Vaster"],["La Banda","Somec"]],[["Cormoran","Barcelona"],["San Francisco","Vaster"],["San Andres","Somec"],["Real Potosí","La Banda"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","Xeneise"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","Xeneise"],["America","Universitarios"]],[["Xeneise","Leipzig"],["Clowiss","Universitarios"],["America","Juventus"],["Randagi","Legacy"]],[["Legacy","Juventus"],["Universitarios","Leipzig"],["Clowiss","America"],["Xeneise","Randagi"]],[["Randagi","America"],["Legacy","Leipzig"],["Xeneise","Universitarios"],["Clowiss","Juventus"]],[["Xeneise","America"],["Clowiss","Leipzig"],["Randagi","Juventus"],["Universitarios","Legacy"]],[["Universitarios","Randagi"],["America","Legacy"],["Juventus","Leipzig"],["Clowiss","Xeneise"]]]}};
+const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Alianza Jr.","Arapaima"],["Galacticos","Huracán"],["Cordovez","Gladiadores AZ"]],[["Alianza Jr.","Barrio Fino"],["Arapaima","Corintians"],["Cordovez","Huracán"],["Galacticos","Gladiadores AZ"]],[["Alianza Jr.","Corintians"],["Arapaima","Gladiadores AZ"],["Barrio Fino","Huracán"],["Cordovez","Galacticos"]],[["Alianza Jr.","Galacticos"],["Arapaima","Huracán"],["Barrio Fino","Cordovez"],["Corintians","Gladiadores AZ"]],[["Alianza Jr.","Huracán"],["Arapaima","Galacticos"],["Barrio Fino","Gladiadores AZ"],["Cordovez","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Sub 21"],["Templo Fit","Pecezuelos"],["Leones","Jolines"],["Libert","Real Sevilla"]],[["Jolines","Libert"],["Leones","Mandela"],["Pecezuelos","Sub 21"],["Real Sevilla","Templo Fit"]],[["Jolines","Mandela"],["Leones","Templo Fit"],["Libert","Pecezuelos"],["Real Sevilla","Sub 21"]],[["Jolines","Real Sevilla"],["Leones","Pecezuelos"],["Libert","Sub 21"],["Mandela","Templo Fit"]],[["Jolines","Templo Fit"],["Leones","Sub 21"],["Libert","Mandela"],["Pecezuelos","Real Sevilla"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Barcelona","San Andres"],["Real Potosí","San Francisco"],["Vaster","Somec"],["La Banda","Cormoran"]],[["Barcelona","Cormoran"],["La Banda","Real Potosí"],["San Andres","Somec"],["San Francisco","Vaster"]],[["Barcelona","La Banda"],["Cormoran","Real Potosí"],["San Andres","Vaster"],["San Francisco","Somec"]],[["Barcelona","San Francisco"],["Cormoran","San Andres"],["La Banda","Somec"],["Real Potosí","Vaster"]],[["Barcelona","Vaster"],["Cormoran","San Francisco"],["La Banda","San Andres"],["Real Potosí","Somec"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","Xeneise"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","Xeneise"],["America","Universitarios"]],[["Universitarios","Legacy"],["Juventus","Clowiss"],["America","Randagi"],["Xeneise","Leipzig"]],[["America","Clowiss"],["Juventus","Legacy"],["Leipzig","Universitarios"],["Randagi","Xeneise"]],[["America","Juventus"],["Clowiss","Leipzig"],["Legacy","Randagi"],["Universitarios","Xeneise"]],[["America","Legacy"],["Clowiss","Xeneise"],["Juventus","Leipzig"],["Randagi","Universitarios"]],[["America","Xeneise"],["Clowiss","Universitarios"],["Juventus","Randagi"],["Legacy","Leipzig"]]]}};
 
 const REAL_INFO = [
   {fecha:1, home:"Cormoran", away:"Vaster", estadio:"San Miguel", dia:"Viernes", fechaCal:"18 de septiembre", hora:"19h00"},
@@ -201,9 +201,25 @@ const REAL_INFO = [
   {fecha:2, home:"Mandela", away:"Real Sevilla", estadio:"Los Sauces", dia:"Viernes", fechaCal:"25 de septiembre", hora:"21h00"},
   {fecha:2, home:"America", away:"Universitarios", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"15h00"},
   {fecha:2, home:"Cormoran", away:"Somec", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"17h00"},
-  {fecha:2, home:"Corintians", away:"Galacticos", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"19h00"}
+  {fecha:2, home:"Corintians", away:"Galacticos", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"19h00"},
+  {fecha:3, home:"Barrio Fino", away:"Corintians", estadio:"San Miguel", dia:"Viernes", fechaCal:"2 de octubre", hora:"19h00"},
+  {fecha:3, home:"Mandela", away:"Sub 21", estadio:"San Miguel", dia:"Viernes", fechaCal:"2 de octubre", hora:"21h00"},
+  {fecha:3, home:"Templo Fit", away:"Pecezuelos", estadio:"San Miguel", dia:"Sábado", fechaCal:"3 de octubre", hora:"14h00"},
+  {fecha:3, home:"Universitarios", away:"Legacy", estadio:"San Miguel", dia:"Sábado", fechaCal:"3 de octubre", hora:"16h00"},
+  {fecha:3, home:"Galacticos", away:"Huracán", estadio:"San Miguel", dia:"Sábado", fechaCal:"3 de octubre", hora:"18h00"},
+  {fecha:3, home:"Barcelona", away:"San Andres", estadio:"San Miguel", dia:"Sábado", fechaCal:"3 de octubre", hora:"20h00"},
+  {fecha:3, home:"Leones", away:"Jolines", estadio:"San Miguel", dia:"Domingo", fechaCal:"4 de octubre", hora:"14h00"},
+  {fecha:3, home:"Cordovez", away:"Gladiadores AZ", estadio:"San Miguel", dia:"Domingo", fechaCal:"4 de octubre", hora:"16h00"},
+  {fecha:3, home:"Real Potosí", away:"San Francisco", estadio:"San Miguel", dia:"Domingo", fechaCal:"4 de octubre", hora:"18h00"},
+  {fecha:3, home:"Alianza Jr.", away:"Arapaima", estadio:"Los Sauces", dia:"Viernes", fechaCal:"2 de octubre", hora:"19h00"},
+  {fecha:3, home:"Libert", away:"Real Sevilla", estadio:"Los Sauces", dia:"Viernes", fechaCal:"2 de octubre", hora:"21h00"},
+  {fecha:3, home:"Juventus", away:"Clowiss", estadio:"Los Sauces", dia:"Sábado", fechaCal:"3 de octubre", hora:"18h00"},
+  {fecha:3, home:"Vaster", away:"Somec", estadio:"Los Sauces", dia:"Sábado", fechaCal:"3 de octubre", hora:"20h00"},
+  {fecha:3, home:"America", away:"Randagi", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"14h00"},
+  {fecha:3, home:"Xeneise", away:"Leipzig", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"16h00"},
+  {fecha:3, home:"La Banda", away:"Cormoran", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"18h00"}
 ];
-const PLAYED_FECHAS = new Set([1,2]);
+const PLAYED_FECHAS = new Set([1,2,3]);
 
 const groupNames = {A:"Grupo A", B:"Grupo B", C:"Grupo C", D:"Grupo D"};
 const groupOrder = ["A","B","C","D"];
@@ -241,7 +257,8 @@ const teamGroup = {};
 groupOrder.forEach(g=> roster[g].forEach(t=> teamGroup[t]=g));
 
 /* ---- Estado persistente: cruces (editables) + resultados ---- */
-const STATE_KEY = 'kc3_fixture_state_v2';
+const STATE_KEY = 'kc3_fixture_state_v3';
+const PREV_STATE_KEY = 'kc3_fixture_state_v2';
 const OLD_SCORE_KEY = 'kc3_fixture_scores_v1';
 function loadState(){
   try{
@@ -250,7 +267,24 @@ function loadState(){
   }catch(e){}
   let scores = {};
   try{ const os = localStorage.getItem(OLD_SCORE_KEY); if(os) scores = JSON.parse(os) || {}; }catch(e){}
-  return { matches: buildBaseline(), scores };
+  const matches = buildBaseline();
+  /* Migración desde v2: los cruces de las Fechas 3-7 se regeneraron con la Fecha 3 real,
+     así que los marcadores se re-asocian por cruce (no por posición) para no perderlos ni cruzarlos. */
+  try{
+    const prev = localStorage.getItem(PREV_STATE_KEY);
+    if(prev){
+      const o = JSON.parse(prev);
+      if(o && Array.isArray(o.matches) && o.scores){
+        scores = {};
+        o.matches.forEach(om=>{
+          const sc = o.scores[om.id]; if(!sc || (sc.h==='' && sc.a==='')) return;
+          const nm = matches.find(m=>m.fecha===om.fecha && m.grupo===om.grupo && ((m.home===om.home&&m.away===om.away)||(m.home===om.away&&m.away===om.home)));
+          if(nm) scores[nm.id] = nm.home===om.home ? {h:sc.h,a:sc.a} : {h:sc.a,a:sc.h};
+        });
+      }
+    }
+  }catch(e){}
+  return { matches, scores };
 }
 function saveState(){ try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){} }
 let state = loadState();
