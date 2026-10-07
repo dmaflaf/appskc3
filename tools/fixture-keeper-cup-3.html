@@ -87,6 +87,7 @@
   .teams .t1,.teams .t2{display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .teams .vs{font-size:.68rem; color:var(--sub); font-weight:400;}
   .match-meta{font-size:.68rem; color:var(--sub); font-weight:600; margin-top:2px;}
+  .sched-btn{display:block; background:none; border:0; padding:2px 0; text-align:left; font-family:inherit; cursor:pointer; color:var(--blue); text-decoration:underline dotted; text-underline-offset:3px;}
   .match-meta.muted{font-style:italic; font-weight:400; opacity:.75;}
   .score{display:flex; align-items:center; gap:4px; flex:0 0 auto;}
   .score input{
@@ -154,7 +155,7 @@
   <div id="fechas"></div>
 
   <div class="section-title" style="margin-top:8px;"><span class="ttl">⚖️ Balance de estadios</span> <span class="tag">San Miguel vs Sauces</span></div>
-  <p class="fecha-sub" style="margin:-6px 0 12px;">Solo cuenta partidos con estadio ya asignado (Fechas 1 a 3 por ahora).</p>
+  <p class="fecha-sub" style="margin:-6px 0 12px;">Cuenta todos los partidos con estadio asignado, incluida la Fecha 4 a medida que la programes.</p>
   <div class="counter-wrap" id="balance"></div>
 
   <div class="section-title" style="margin-top:8px;"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
@@ -239,7 +240,7 @@ function buildBaseline(){
       pairs.forEach((p,i)=>{
         const m = {id:`f${f}-${g}-${i}`, fecha:f, grupo:g, home:p[0], away:p[1]};
         const info = PLAYED_FECHAS.has(f) ? findRealInfo(f, p[0], p[1]) : null;
-        if(info){ m.estadio=info.estadio; m.dia=info.dia; m.fechaCal=info.fechaCal; m.hora=info.hora; }
+        if(info){ m.home=info.home; m.away=info.away; m.estadio=info.estadio; m.dia=info.dia; m.fechaCal=info.fechaCal; m.hora=info.hora; }
         arr.push(m);
       });
     });
@@ -257,8 +258,8 @@ const teamGroup = {};
 groupOrder.forEach(g=> roster[g].forEach(t=> teamGroup[t]=g));
 
 /* ---- Estado persistente: cruces (editables) + resultados ---- */
-const STATE_KEY = 'kc3_fixture_state_v3';
-const PREV_STATE_KEY = 'kc3_fixture_state_v2';
+const STATE_KEY = 'kc3_fixture_state_v4';
+const PREV_STATE_KEYS = ['kc3_fixture_state_v3','kc3_fixture_state_v2'];
 const OLD_SCORE_KEY = 'kc3_fixture_scores_v1';
 function loadState(){
   try{
@@ -271,7 +272,7 @@ function loadState(){
   /* Migración desde v2: los cruces de las Fechas 3-7 se regeneraron con la Fecha 3 real,
      así que los marcadores se re-asocian por cruce (no por posición) para no perderlos ni cruzarlos. */
   try{
-    const prev = localStorage.getItem(PREV_STATE_KEY);
+    const prev = PREV_STATE_KEYS.map(k=>localStorage.getItem(k)).find(Boolean);
     if(prev){
       const o = JSON.parse(prev);
       if(o && Array.isArray(o.matches) && o.scores){
@@ -280,6 +281,11 @@ function loadState(){
           const sc = o.scores[om.id]; if(!sc || (sc.h==='' && sc.a==='')) return;
           const nm = matches.find(m=>m.fecha===om.fecha && m.grupo===om.grupo && ((m.home===om.home&&m.away===om.away)||(m.home===om.away&&m.away===om.home)));
           if(nm) scores[nm.id] = nm.home===om.home ? {h:sc.h,a:sc.a} : {h:sc.a,a:sc.h};
+        });
+        o.matches.forEach(om=>{
+          if(PLAYED_FECHAS.has(om.fecha) || !om.estadio) return;
+          const nm = matches.find(m=>m.fecha===om.fecha && m.grupo===om.grupo && ((m.home===om.home&&m.away===om.away)||(m.home===om.away&&m.away===om.home)));
+          if(nm) Object.assign(nm,{estadio:om.estadio,dia:om.dia,fechaCal:om.fechaCal,hora:om.hora});
         });
       }
     }
@@ -304,6 +310,70 @@ function swapRival(fecha, grupo, teamA, teamB){
   mB.home = partnerA; mB.away = partnerB;
   saveState();
   return true;
+}
+
+/* ---- Orden cronológico y programación ---- */
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const HORAS = ['09h00','11h00','13h00','14h00','15h00','16h00','17h00','18h00','19h00','20h00','21h00'];
+function schedKey(m){
+  if(!m.estadio) return 'zz';
+  const p = m.fechaCal.split(' de ');
+  return String(MESES.indexOf(p[1])).padStart(2,'0') + String(p[0]).padStart(2,'0') + m.hora + m.estadio;
+}
+/* Viernes de cada fecha: F1 = 18 sep 2026, +7 días por fecha */
+function defaultFridayISO(fecha){ return new Date(Date.UTC(2026,8,18+7*(fecha-1))).toISOString().slice(0,10); }
+function isoOf(m){
+  if(!m.fechaCal) return '';
+  const p = m.fechaCal.split(' de ');
+  return `2026-${String(MESES.indexOf(p[1])+1).padStart(2,'0')}-${String(p[0]).padStart(2,'0')}`;
+}
+function stadiumCounts(team, excludeId){
+  const c = {sm:0, sauces:0};
+  state.matches.forEach(m=>{
+    if(m.id===excludeId || !m.estadio || (m.home!==team && m.away!==team)) return;
+    c[m.estadio==='San Miguel'?'sm':'sauces']++;
+  });
+  return c;
+}
+function openScheduleModal(id){
+  const m = state.matches.find(x=>x.id===id);
+  if(!m || PLAYED_FECHAS.has(m.fecha)) return;
+  const cH = stadiumCounts(m.home, id), cA = stadiumCounts(m.away, id);
+  const iso = isoOf(m) || defaultFridayISO(m.fecha);
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
+    <h3>Programar partido</h3>
+    <p class="sub">Fecha ${m.fecha} · ${groupNames[m.grupo]}<br><b>${m.home}</b> vs <b>${m.away}</b></p>
+    <p class="sub">🏟️ Visitas ya asignadas — ${m.home}: San Miguel <b>${cH.sm}</b> · Sauces <b>${cH.sauces}</b><br>${m.away}: San Miguel <b>${cA.sm}</b> · Sauces <b>${cA.sauces}</b></p>
+    <label class="fld">Estadio<select id="schEst" class="teamsel" style="margin-bottom:10px">
+      <option value="">Sin asignar</option>
+      <option value="San Miguel"${m.estadio==='San Miguel'?' selected':''}>Estadio San Miguel</option>
+      <option value="Los Sauces"${m.estadio==='Los Sauces'?' selected':''}>Estadio Los Sauces</option></select></label>
+    <label class="fld">Día<input type="date" id="schDate" class="teamsel" style="margin-bottom:10px" value="${iso}"></label>
+    <label class="fld">Hora<select id="schHora" class="teamsel" style="margin-bottom:14px">
+      ${HORAS.map(h=>`<option${h===(m.hora||'19h00')?' selected':''}>${h}</option>`).join('')}</select></label>
+    <button class="close-btn" id="schSave" style="background:var(--gold);color:#3a2400;border-color:transparent">Guardar</button>
+    ${m.estadio?'<button class="close-btn" id="schClear">Quitar horario</button>':''}
+    <button class="close-btn" id="schCancel">Cancelar</button>
+  </div></div>`;
+  const done = msg=>{ closeModal(); renderTabs(); renderFecha(); renderBalance(); renderTeamHistory(); toast(msg); };
+  modalRoot.querySelector('#schCancel').addEventListener('click', closeModal);
+  modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+  const clr = modalRoot.querySelector('#schClear');
+  if(clr) clr.addEventListener('click', ()=>{ delete m.estadio; delete m.dia; delete m.fechaCal; delete m.hora; saveState(); done('Horario quitado'); });
+  modalRoot.querySelector('#schSave').addEventListener('click', ()=>{
+    const est = modalRoot.querySelector('#schEst').value;
+    const d = modalRoot.querySelector('#schDate').value;
+    const hora = modalRoot.querySelector('#schHora').value;
+    if(!est){ toast('Elige un estadio'); return; }
+    if(!d){ toast('Elige un día'); return; }
+    const dt = new Date(d+'T00:00:00Z');
+    const dia = DIAS[dt.getUTCDay()], fechaCal = `${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`;
+    const clash = state.matches.find(x=>x.id!==id && x.estadio===est && x.fechaCal===fechaCal && x.hora===hora);
+    if(clash && !confirm(`${est} ya tiene ${clash.home} vs ${clash.away} el ${dia} ${fechaCal} a las ${hora}. ¿Guardar igual?`)) return;
+    Object.assign(m,{estadio:est,dia,fechaCal,hora});
+    saveState(); done(`Programado: ${est} · ${dia} ${fechaCal} · ${hora}`);
+  });
 }
 
 /* ---- Toast ---- */
@@ -354,7 +424,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
 /* ---- Restablecer ---- */
 document.getElementById('resetFixtureBtn').addEventListener('click', ()=>{
-  if(!confirm('¿Restablecer los cruces al fixture generado automáticamente? Los resultados ya cargados se mantienen.')) return;
+  if(!confirm('¿Restablecer los cruces al fixture generado automáticamente? Los resultados se mantienen, pero se pierden los horarios que hayas programado en fechas por jugar.')) return;
   state.matches = buildBaseline();
   saveState();
   renderTabs(); renderFecha(); renderStandings(); renderTeamHistory();
@@ -413,15 +483,17 @@ function renderFecha(){
       <div class="t">Fecha ${activeFecha}</div>
       <div class="status ${isPlayed?'played':'pending'}">${isPlayed?'✓ Jugada':'Por jugar'}</div>
     </div>
-    <p class="fecha-sub">${isPlayed ? 'Cruces reales según el horario publicado. El orden de rivales ya no se puede editar.' : 'Toca el nombre de un equipo para cambiarle el rival en esta fecha.'}</p>`;
+    <p class="fecha-sub">${isPlayed ? 'Cruces, locales y horarios tal cual el horario publicado. Ya no se pueden editar.' : 'Toca el nombre de un equipo para cambiarle el rival, o «Programar» para asignar estadio, día y hora.'}</p>`;
   groupsToShow.forEach(g=>{
-    const gGames = games.filter(m=>m.grupo===g);
+    const gGames = games.filter(m=>m.grupo===g).sort((a,b)=>schedKey(a).localeCompare(schedKey(b)));
     if(!gGames.length) return;
     html += `<div class="grp-label"><span class="grp-dot g-${g}"></span>${groupNames[g]}</div>`;
     gGames.forEach(m=>{
       const s = state.scores[m.id];
       const done = s && s.h !== '' && s.a !== '';
-      const meta = m.estadio ? `<div class="match-meta">🏟️ ${m.estadio} · ${m.dia} ${m.fechaCal} · ${m.hora}</div>` : (isPlayed ? '' : '<div class="match-meta muted">Sin estadio/horario asignado aún</div>');
+      const metaTxt = m.estadio ? `🏟️ ${m.estadio} · ${m.dia} ${m.fechaCal} · ${m.hora}` : 'Sin estadio/horario asignado aún';
+      const meta = isPlayed ? (m.estadio ? `<div class="match-meta">${metaTxt}</div>` : '')
+        : `<button class="match-meta sched-btn${m.estadio?'':' muted'}" data-sched="${m.id}">${m.estadio ? metaTxt : '📅 Programar estadio y horario'}</button>`;
       const home = isPlayed
         ? `<span class="t1">${m.home}</span>`
         : `<button class="teamname-btn t1" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.home)}">${m.home}</button>`;
@@ -443,6 +515,7 @@ function renderFecha(){
   fechasEl.innerHTML = html;
 }
 fechasEl.addEventListener('click', e=>{
+  const sb = e.target.closest('.sched-btn'); if(sb){ openScheduleModal(sb.dataset.sched); return; }
   const btn = e.target.closest('.teamname-btn'); if(!btn) return;
   openSwapModal(Number(btn.dataset.fecha), btn.dataset.grupo, btn.dataset.team);
 });
