@@ -2,7 +2,7 @@ name: Deploy Pages
 
 on:
   push:
-    branches: ["claude/zen-dijkstra-4s6l7a"]
+    branches: ["claude/zen-dijkstra-4s6l7a", "claude/fervent-archimedes-whjcak"]
   workflow_dispatch:
 
 permissions:
