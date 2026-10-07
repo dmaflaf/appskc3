@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Keeper Cup 3</title>
+<style>
+  :root{
+    --navy:#101a33; --navy2:#16223f; --gold:#f2b705; --gold-soft:#fde7a8;
+    --ink:#1c2333; --sub:#5b6478; --card:#ffffff; --border:#e4e7ee; --bg:#f4f6fb;
+    --green:#1e9e6a; --green-bg:#e3f7ee; --blue:#2f6fed; --blue-bg:#e9f0fe;
+    --amber:#c8720a; --amber-bg:#fdf0dd; --red:#d93025;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --navy:#0b1226; --navy2:#121b36; --card:#161f38; --border:#26304d;
+      --bg:#0a0f1e; --ink:#eef1f8; --sub:#9aa5c0;
+      --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409; --red:#ff6b61;
+    }
+  }
+  :root[data-theme="dark"]{ --red:#ff6b61;
+    --navy:#0b1226; --navy2:#121b36; --card:#161f38; --border:#26304d;
+    --bg:#0a0f1e; --ink:#eef1f8; --sub:#9aa5c0;
+    --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .hero{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
+    color:#fff; padding:28px 18px 22px;
+  }
+  .hero h1{margin:0 0 6px; font-size:1.5rem; letter-spacing:.3px;}
+  .hero p{margin:0; color:#c7cfe6; font-size:.9rem; max-width:640px; line-height:1.45;}
+  .badge-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .badge{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; padding:5px 10px; border-radius:20px; font-size:.75rem;}
+  .wrap{max-width:960px; margin:0 auto; padding:18px 14px 60px;}
+
+  .note{background:var(--card); border:1px solid var(--border); border-left:4px solid var(--gold); border-radius:10px; padding:12px 14px; font-size:.85rem; color:var(--sub); margin:18px 0 22px; line-height:1.5;}
+  .note b{color:var(--ink);}
+
+  .tabbar{display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:2px 0 4px; margin-bottom:10px;}
+  .tabbar::-webkit-scrollbar{display:none;}
+  .tabbtn{flex:0 0 auto; height:40px; padding:0 16px; border-radius:20px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-weight:700; font-size:.85rem; display:flex; align-items:center; gap:6px;}
+  .tabbtn.on{background:var(--gold); color:#3a2400; border-color:transparent;}
+  #groupbar{margin-bottom:16px;}
+
+  .section-title{font-size:1.05rem; font-weight:700; margin:26px 0 12px; color:var(--ink); display:flex; align-items:center; gap:8px; justify-content:space-between;}
+  .section-title .ttl{display:flex; align-items:center; gap:8px;}
+  .section-title .tag{font-size:.68rem; font-weight:700; background:var(--gold); color:#3a2400; padding:2px 8px; border-radius:6px; letter-spacing:.4px;}
+  .reset-btn{font-size:.72rem; font-weight:700; color:var(--sub); background:transparent; border:1px solid var(--border); border-radius:20px; padding:6px 12px;}
+  .reset-btn:active{color:var(--amber); border-color:var(--amber);}
+
+  .teamsel{width:100%; height:48px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-size:.9rem; padding:0 12px; margin-bottom:14px;}
+  .hist-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:20px;}
+  .hist-row{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px dashed var(--border); font-size:.85rem;}
+  .hist-row:first-of-type{border-top:none;}
+  .hist-row .f{flex:0 0 66px; font-weight:700; color:var(--sub); font-size:.78rem;}
+  .hist-row .riv{flex:1 1 auto; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .hist-row .res{font-weight:700; color:var(--ink); font-size:.8rem; flex:0 0 auto;}
+  .hist-empty{color:var(--sub); font-size:.85rem; padding:4px 0 0;}
+
+  .fecha-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:16px;}
+  .fecha-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+  .fecha-head .t{font-weight:700; font-size:1rem;}
+  .fecha-head .status{font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:20px;}
+  .status.played{background:var(--green-bg); color:var(--green);}
+  .status.pending{background:var(--blue-bg); color:var(--blue);}
+  .fecha-sub{font-size:.78rem; color:var(--sub); margin:0 0 10px;}
+
+  .grp-label{display:flex; align-items:center; gap:6px; font-size:.75rem; font-weight:700; color:var(--sub); margin:12px 0 6px;}
+  .grp-label:first-of-type{margin-top:0;}
+  .grp-dot{width:9px; height:9px; border-radius:50%;}
+  .g-A{background:#e0562f;} .g-B{background:#2f6fed;} .g-C{background:#1e9e6a;} .g-D{background:#8a4fd6;}
+
+  .match-row{display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px dashed var(--border); font-size:.85rem;}
+  .match-row:first-of-type{border-top:none;}
+  .match-row.done{background:linear-gradient(90deg, var(--green-bg), transparent 90%); border-radius:8px;}
+  .teams{flex:1 1 auto; min-width:0;}
+  .teams .t1,.teams .t2{display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .teams .vs{font-size:.68rem; color:var(--sub); font-weight:400;}
+  .match-meta{font-size:.68rem; color:var(--sub); font-weight:600; margin-top:2px;}
+  .sched-btn{display:block; background:none; border:0; padding:2px 0; text-align:left; font-family:inherit; cursor:pointer; color:var(--blue); text-decoration:underline dotted; text-underline-offset:3px;}
+  .match-meta.muted{font-style:italic; font-weight:400; opacity:.75;}
+  .score{display:flex; align-items:center; gap:4px; flex:0 0 auto;}
+  .score input{
+    width:34px; height:34px; text-align:center; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--ink); font-size:1rem; font-weight:700; padding:0;
+  }
+  .score input:focus{outline:2px solid var(--gold); outline-offset:1px;}
+  .score .dash{color:var(--sub); font-weight:700;}
+
+  .counter-wrap{display:grid; grid-template-columns:1fr; gap:10px;}
+  .grp-block{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 14px; overflow-x:auto;}
+  .grp-block h3{margin:0 0 10px; font-size:.85rem; display:flex; align-items:center; gap:8px;}
+  table.standings{width:100%; border-collapse:collapse; font-size:.78rem; min-width:420px;}
+  table.standings th, table.standings td{padding:6px 5px; text-align:center; border-bottom:1px solid var(--border);}
+  table.standings th{color:var(--sub); font-weight:700; font-size:.68rem; text-transform:uppercase;}
+  table.standings td.team{text-align:left; font-weight:600; white-space:nowrap;}
+  table.standings td.pts{font-weight:800; color:var(--ink);}
+  table.standings tr:last-child td{border-bottom:none;}
+
+  .viewbar{position:sticky; top:0; z-index:50; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:10px 14px; background:var(--bg); border-bottom:1px solid var(--border);}
+  .viewbar::-webkit-scrollbar{display:none;}
+  .viewbar button{flex:0 0 auto; height:38px; padding:0 14px; border-radius:19px; border:1px solid var(--border); background:var(--card); color:var(--ink); font-weight:700; font-size:.82rem;}
+  .viewbar button.on{background:var(--navy); color:#fff; border-color:transparent;}
+  .view{display:none;} .view.on{display:block;}
+  .day-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; margin-bottom:14px;}
+  .day-head{font-weight:800; font-size:.92rem; margin-bottom:8px; color:var(--amber);}
+  .slot-head,.slot-row{display:grid; grid-template-columns:46px 1fr 1fr; gap:6px; align-items:stretch;}
+  .slot-head{font-size:.66rem; font-weight:700; color:var(--sub); text-transform:uppercase; margin-bottom:4px;}
+  .slot-row{margin-bottom:6px;}
+  .slot-time{font-weight:800; font-size:.78rem; padding-top:8px;}
+  .slot{min-height:46px; border:1px solid var(--border); border-radius:9px; background:var(--bg); padding:6px 7px; font-size:.74rem; line-height:1.25; text-align:left; color:var(--ink); font-family:inherit; display:block; width:100%; word-break:break-word;}
+  .slot.free{color:var(--sub); border-style:dashed; text-align:center;}
+  .slot.ro{cursor:default;}
+  .slot .sc{display:block; font-weight:800; color:var(--green); margin-top:2px;}
+  .slot .gd{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;}
+  .pend{background:var(--amber-bg); border:1px solid var(--amber); border-radius:12px; padding:10px 12px; margin-bottom:14px; font-size:.8rem;}
+  .pend b{color:var(--amber);}
+  .pend .it{display:flex; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px dashed var(--border);}
+  .pend .it:first-of-type{border-top:none;}
+  .twarn{color:var(--red); font-weight:700;}
+  .sheet h4{margin:12px 0 6px; font-size:.78rem; color:var(--sub); text-transform:uppercase;}
+  .chip{display:inline-block; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:10px; background:var(--blue-bg); color:var(--blue); margin:1px 2px 1px 0; white-space:nowrap;}
+  .chip.rep{background:var(--amber-bg); color:var(--amber);}
+  table.tbal{min-width:0;} table.tbal td.team{white-space:normal;}
+  table.standings td.chips{text-align:left;}
+  footer{text-align:center; color:var(--sub); font-size:.75rem; padding:20px 0 4px;}
+
+  .teamname-btn{display:block; width:100%; text-align:left; background:none; border:0; padding:0; margin:0; font:inherit; color:inherit; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px; text-decoration-color:var(--border);}
+  .teamname-btn:active{text-decoration-color:var(--gold);}
+
+  .scrim{position:fixed; inset:0; z-index:200; background:rgba(10,14,40,.55); display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto;}
+  .sheet{width:min(420px,100%); max-height:100%; overflow:auto; background:var(--card); color:var(--ink); border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.4);}
+  .sheet h3{margin:0 0 4px; font-size:1.05rem;}
+  .sheet .sub{font-size:.78rem; color:var(--sub); margin:0 0 14px; line-height:1.4;}
+  .rival-opt{display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:12px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--ink); margin-bottom:8px; font-weight:600; font-size:.88rem; text-align:left;}
+  .rival-opt .warn{font-size:.66rem; color:var(--amber); font-weight:700; flex:0 0 auto;}
+  .close-btn{margin-top:4px; width:100%; height:46px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink); font-weight:700;}
+
+  #toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,20px); z-index:300; background:var(--ink); color:var(--bg); padding:12px 18px; border-radius:12px; font-weight:700; font-size:.85rem; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; max-width:90vw; text-align:center;}
+  #toast.on{opacity:1; transform:translate(-50%,0);}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>⚽ Keeper Cup 3</h1>
+  <p>Todo el torneo en un solo lugar: horarios por estadio, fixture por grupo con resultados, historial por equipo, balance San Miguel / Los Sauces y tabla de posiciones. Fechas 1 a 3 jugadas (datos reales); Fechas 4 a 7 por programar.</p>
+  <div class="badge-row">
+    <div class="badge">4 grupos · 8 equipos c/u</div>
+    <div class="badge">28 partidos por grupo</div>
+    <div class="badge">7 fechas · Fechas 1 a 3 jugadas</div>
+    <div class="badge" id="cloudBadge">💾 Solo en este dispositivo</div>
+  </div>
+</div>
+
+<nav class="viewbar" id="viewbar" aria-label="Secciones">
+  <button data-view="horarios">🗓️ Horarios</button>
+  <button data-view="fixture">📋 Fixture</button>
+  <button data-view="equipos">🔍 Equipos</button>
+  <button data-view="balance">⚖️ Balance</button>
+  <button data-view="posiciones">🏆 Posiciones</button>
+</nav>
+
+<div class="wrap">
+
+  <section class="view" id="view-horarios">
+    <div class="note"><b>Horarios:</b> así se ve cada fecha por estadio, como en las fotos publicadas. En fechas por jugar toca un horario libre para asignarle un partido, o un horario ocupado para cambiarlo o quitarlo. Los pendientes aparecen arriba.</div>
+    <div class="tabbar" id="hTabbar"></div>
+    <div id="schedView"></div>
+  </section>
+
+  <section class="view" id="view-fixture">
+    <div class="note"><b>Fixture:</b> cada partido tiene dos casillas para el marcador — anota el resultado apenas se juegue (se guarda en este dispositivo). En fechas por jugar (4-7) toca el <b>nombre de un equipo</b> para cambiarle el rival, o «Programar» para asignar estadio, día y hora.</div>
+    <div class="section-title">
+      <span class="ttl">📋 Fechas y cruces</span>
+      <button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button>
+    </div>
+    <div class="tabbar" id="tabbar"></div>
+    <div class="tabbar" id="groupbar"></div>
+    <div id="fechas"></div>
+  </section>
+
+  <section class="view" id="view-equipos">
+    <div class="section-title"><span class="ttl">🔍 Historial por equipo</span></div>
+    <select id="teamPicker" class="teamsel"></select>
+    <div id="teamHistory"></div>
+  </section>
+
+  <section class="view" id="view-balance">
+    <div class="section-title"><span class="ttl">⚖️ Balance de estadios</span> <span class="tag">San Miguel vs Sauces</span></div>
+    <div class="tabbar" id="balMode"></div>
+    <p class="fecha-sub" id="balHint" style="margin:0 0 12px;"></p>
+    <div class="counter-wrap" id="balance"></div>
+  </section>
+
+  <section class="view" id="view-posiciones">
+    <div class="section-title"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
+    <div class="counter-wrap" id="standings"></div>
+  </section>
+
+  <footer>Fixture por rotación circular (round-robin) a partir de los cruces reales de las Fechas 1 a 3. Todo se guarda en este dispositivo.</footer>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Alianza Jr.","Arapaima"],["Galacticos","Huracán"],["Cordovez","Gladiadores AZ"]],[["Alianza Jr.","Barrio Fino"],["Arapaima","Corintians"],["Cordovez","Huracán"],["Galacticos","Gladiadores AZ"]],[["Alianza Jr.","Corintians"],["Arapaima","Gladiadores AZ"],["Barrio Fino","Huracán"],["Cordovez","Galacticos"]],[["Alianza Jr.","Galacticos"],["Arapaima","Huracán"],["Barrio Fino","Cordovez"],["Corintians","Gladiadores AZ"]],[["Alianza Jr.","Huracán"],["Arapaima","Galacticos"],["Barrio Fino","Gladiadores AZ"],["Cordovez","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Sub 21"],["Templo Fit","Pecezuelos"],["Leones","Jolines"],["Libert","Real Sevilla"]],[["Jolines","Libert"],["Leones","Mandela"],["Pecezuelos","Sub 21"],["Real Sevilla","Templo Fit"]],[["Jolines","Mandela"],["Leones","Templo Fit"],["Libert","Pecezuelos"],["Real Sevilla","Sub 21"]],[["Jolines","Real Sevilla"],["Leones","Pecezuelos"],["Libert","Sub 21"],["Mandela","Templo Fit"]],[["Jolines","Templo Fit"],["Leones","Sub 21"],["Libert","Mandela"],["Pecezuelos","Real Sevilla"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Barcelona","San Andres"],["Real Potosí","San Francisco"],["Vaster","Somec"],["La Banda","Cormoran"]],[["Barcelona","Cormoran"],["La Banda","Real Potosí"],["San Andres","Somec"],["San Francisco","Vaster"]],[["Barcelona","La Banda"],["Cormoran","Real Potosí"],["San Andres","Vaster"],["San Francisco","Somec"]],[["Barcelona","San Francisco"],["Cormoran","San Andres"],["La Banda","Somec"],["Real Potosí","Vaster"]],[["Barcelona","Vaster"],["Cormoran","San Francisco"],["La Banda","San Andres"],["Real Potosí","Somec"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","Xeneise"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","Xeneise"],["America","Universitarios"]],[["Universitarios","Legacy"],["Juventus","Clowiss"],["America","Randagi"],["Xeneise","Leipzig"]],[["America","Clowiss"],["Juventus","Legacy"],["Leipzig","Universitarios"],["Randagi","Xeneise"]],[["America","Juventus"],["Clowiss","Leipzig"],["Legacy","Randagi"],["Universitarios","Xeneise"]],[["America","Legacy"],["Clowiss","Xeneise"],["Juventus","Leipzig"],["Randagi","Universitarios"]],[["America","Xeneise"],["Clowiss","Universitarios"],["Juventus","Randagi"],["Legacy","Leipzig"]]]}};
+
+const REAL_INFO = [
+  {fecha:1, home:"Cormoran", away:"Vaster", estadio:"San Miguel", dia:"Viernes", fechaCal:"18 de septiembre", hora:"19h00"},
+  {fecha:1, home:"Mandela", away:"Pecezuelos", estadio:"San Miguel", dia:"Viernes", fechaCal:"18 de septiembre", hora:"21h00"},
+  {fecha:1, home:"Barrio Fino", away:"Galacticos", estadio:"San Miguel", dia:"Sábado", fechaCal:"19 de septiembre", hora:"14h00"},
+  {fecha:1, home:"Leipzig", away:"America", estadio:"San Miguel", dia:"Sábado", fechaCal:"19 de septiembre", hora:"16h00"},
+  {fecha:1, home:"Juventus", away:"Universitarios", estadio:"San Miguel", dia:"Sábado", fechaCal:"19 de septiembre", hora:"18h00"},
+  {fecha:1, home:"Cordovez", away:"Arapaima", estadio:"San Miguel", dia:"Sábado", fechaCal:"19 de septiembre", hora:"20h00"},
+  {fecha:1, home:"Leones", away:"Real Sevilla", estadio:"San Miguel", dia:"Domingo", fechaCal:"20 de septiembre", hora:"09h00"},
+  {fecha:1, home:"Huracán", away:"Corintians", estadio:"San Miguel", dia:"Domingo", fechaCal:"20 de septiembre", hora:"15h00"},
+  {fecha:1, home:"Barcelona", away:"Somec", estadio:"San Miguel", dia:"Domingo", fechaCal:"20 de septiembre", hora:"17h00"},
+  {fecha:1, home:"Clowiss", away:"Randagi", estadio:"San Miguel", dia:"Domingo", fechaCal:"20 de septiembre", hora:"19h00"},
+  {fecha:1, home:"Sub 21", away:"Jolines", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"14h00"},
+  {fecha:1, home:"Gladiadores AZ", away:"Alianza Jr.", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"16h00"},
+  {fecha:1, home:"San Francisco", away:"La Banda", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"18h00"},
+  {fecha:1, home:"San Andres", away:"Real Potosí", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"20h00"},
+  {fecha:1, home:"Templo Fit", away:"Libert", estadio:"Los Sauces", dia:"Domingo", fechaCal:"20 de septiembre", hora:"17h00"},
+  {fecha:1, home:"Legacy", away:"Xeneise", estadio:"Los Sauces", dia:"Domingo", fechaCal:"20 de septiembre", hora:"19h00"},
+  {fecha:2, home:"Legacy", away:"Clowiss", estadio:"San Miguel", dia:"Viernes", fechaCal:"25 de septiembre", hora:"19h00"},
+  {fecha:2, home:"Vaster", away:"La Banda", estadio:"San Miguel", dia:"Viernes", fechaCal:"25 de septiembre", hora:"21h00"},
+  {fecha:2, home:"Arapaima", away:"Barrio Fino", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"11h00"},
+  {fecha:2, home:"Pecezuelos", away:"Jolines", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"16h00"},
+  {fecha:2, home:"Randagi", away:"Leipzig", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"18h00"},
+  {fecha:2, home:"Huracán", away:"Gladiadores AZ", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"20h00"},
+  {fecha:2, home:"Leones", away:"Libert", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"09h00"},
+  {fecha:2, home:"Cordovez", away:"Alianza Jr.", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"11h00"},
+  {fecha:2, home:"Juventus", away:"Xeneise", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"15h00"},
+  {fecha:2, home:"Real Potosí", away:"Barcelona", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"17h00"},
+  {fecha:2, home:"Templo Fit", away:"Sub 21", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"19h00"},
+  {fecha:2, home:"San Andres", away:"San Francisco", estadio:"Los Sauces", dia:"Viernes", fechaCal:"25 de septiembre", hora:"19h00"},
+  {fecha:2, home:"Mandela", away:"Real Sevilla", estadio:"Los Sauces", dia:"Viernes", fechaCal:"25 de septiembre", hora:"21h00"},
+  {fecha:2, home:"America", away:"Universitarios", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"15h00"},
+  {fecha:2, home:"Cormoran", away:"Somec", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"17h00"},
+  {fecha:2, home:"Corintians", away:"Galacticos", estadio:"Los Sauces", dia:"Domingo", fechaCal:"27 de septiembre", hora:"19h00"},
+  {fecha:3, home:"Barrio Fino", away:"Corintians", estadio:"San Miguel", dia:"Viernes", fechaCal:"2 de octubre", hora:"19h00"},
+  {fecha:3, home:"Mandela", away:"Sub 21", estadio:"San Miguel", dia:"Viernes", fechaCal:"2 de octubre", hora:"21h00"},
+  {fecha:3, home:"Templo Fit", away:"Pecezuelos", estadio:"San Miguel", dia:"Sábado", fechaCal:"3 de octubre", hora:"14h00"},
+  {fecha:3, home:"Universitarios", away:"Legacy", estadio:"San Miguel", dia:"Sábado", fechaCal:"3 de octubre", hora:"16h00"},
+  {fecha:3, home:"Galacticos", away:"Huracán", estadio:"San Miguel", dia:"Sábado", fechaCal:"3 de octubre", hora:"18h00"},
+  {fecha:3, home:"Barcelona", away:"San Andres", estadio:"San Miguel", dia:"Sábado", fechaCal:"3 de octubre", hora:"20h00"},
+  {fecha:3, home:"Leones", away:"Jolines", estadio:"San Miguel", dia:"Domingo", fechaCal:"4 de octubre", hora:"14h00"},
+  {fecha:3, home:"Cordovez", away:"Gladiadores AZ", estadio:"San Miguel", dia:"Domingo", fechaCal:"4 de octubre", hora:"16h00"},
+  {fecha:3, home:"Real Potosí", away:"San Francisco", estadio:"San Miguel", dia:"Domingo", fechaCal:"4 de octubre", hora:"18h00"},
+  {fecha:3, home:"Alianza Jr.", away:"Arapaima", estadio:"Los Sauces", dia:"Viernes", fechaCal:"2 de octubre", hora:"19h00"},
+  {fecha:3, home:"Libert", away:"Real Sevilla", estadio:"Los Sauces", dia:"Viernes", fechaCal:"2 de octubre", hora:"21h00"},
+  {fecha:3, home:"Juventus", away:"Clowiss", estadio:"Los Sauces", dia:"Sábado", fechaCal:"3 de octubre", hora:"18h00"},
+  {fecha:3, home:"Vaster", away:"Somec", estadio:"Los Sauces", dia:"Sábado", fechaCal:"3 de octubre", hora:"20h00"},
+  {fecha:3, home:"America", away:"Randagi", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"14h00"},
+  {fecha:3, home:"Xeneise", away:"Leipzig", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"16h00"},
+  {fecha:3, home:"La Banda", away:"Cormoran", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"18h00"}
+];
+const PLAYED_FECHAS = new Set([1,2,3]);
+
+const groupNames = {A:"Grupo A", B:"Grupo B", C:"Grupo C", D:"Grupo D"};
+const groupOrder = ["A","B","C","D"];
+function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+
+/* Busca la info real (estadio/día/fecha/hora) de un cruce, sin importar el orden local/visitante */
+function findRealInfo(fecha, home, away){
+  return REAL_INFO.find(r => r.fecha===fecha && ((r.home===home && r.away===away) || (r.home===away && r.away===home))) || null;
+}
+
+/* Baseline: 7 fechas x 4 grupos. Fechas 1-2 son historia real (fija); 3-7 son round-robin generado. */
+function buildBaseline(){
+  const arr = [];
+  for(let f=1; f<=7; f++){
+    groupOrder.forEach(g=>{
+      const pairs = f===1 ? FIXTURE[g].fecha1 : FIXTURE[g].fechas_2_7[f-2];
+      pairs.forEach((p,i)=>{
+        const m = {id:`f${f}-${g}-${i}`, fecha:f, grupo:g, home:p[0], away:p[1]};
+        const info = PLAYED_FECHAS.has(f) ? findRealInfo(f, p[0], p[1]) : null;
+        if(info){ m.home=info.home; m.away=info.away; m.estadio=info.estadio; m.dia=info.dia; m.fechaCal=info.fechaCal; m.hora=info.hora; }
+        arr.push(m);
+      });
+    });
+  }
+  return arr;
+}
+
+const roster = {};
+groupOrder.forEach(g=>{
+  const set = new Set();
+  buildBaseline().filter(m=>m.grupo===g).forEach(m=>{ set.add(m.home); set.add(m.away); });
+  roster[g] = Array.from(set).sort((a,b)=>a.localeCompare(b));
+});
+const teamGroup = {};
+groupOrder.forEach(g=> roster[g].forEach(t=> teamGroup[t]=g));
+
+/* ---- Estado persistente: cruces (editables) + resultados ---- */
+const STATE_KEY = 'kc3_fixture_state_v4';
+const PREV_STATE_KEYS = ['kc3_fixture_state_v3','kc3_fixture_state_v2'];
+const OLD_SCORE_KEY = 'kc3_fixture_scores_v1';
+function loadState(){
+  try{
+    const s = localStorage.getItem(STATE_KEY);
+    if(s){ const o = JSON.parse(s); if(o && Array.isArray(o.matches) && o.scores) return o; }
+  }catch(e){}
+  let scores = {};
+  try{ const os = localStorage.getItem(OLD_SCORE_KEY); if(os) scores = JSON.parse(os) || {}; }catch(e){}
+  const matches = buildBaseline();
+  /* Migración desde v2: los cruces de las Fechas 3-7 se regeneraron con la Fecha 3 real,
+     así que los marcadores se re-asocian por cruce (no por posición) para no perderlos ni cruzarlos. */
+  try{
+    const prev = PREV_STATE_KEYS.map(k=>localStorage.getItem(k)).find(Boolean);
+    if(prev){
+      const o = JSON.parse(prev);
+      if(o && Array.isArray(o.matches) && o.scores){
+        scores = {};
+        o.matches.forEach(om=>{
+          const sc = o.scores[om.id]; if(!sc || (sc.h==='' && sc.a==='')) return;
+          const nm = matches.find(m=>m.fecha===om.fecha && m.grupo===om.grupo && ((m.home===om.home&&m.away===om.away)||(m.home===om.away&&m.away===om.home)));
+          if(nm) scores[nm.id] = nm.home===om.home ? {h:sc.h,a:sc.a} : {h:sc.a,a:sc.h};
+        });
+        o.matches.forEach(om=>{
+          if(PLAYED_FECHAS.has(om.fecha) || !om.estadio) return;
+          const nm = matches.find(m=>m.fecha===om.fecha && m.grupo===om.grupo && ((m.home===om.home&&m.away===om.away)||(m.home===om.away&&m.away===om.home)));
+          if(nm) Object.assign(nm,{estadio:om.estadio,dia:om.dia,fechaCal:om.fechaCal,hora:om.hora});
+        });
+      }
+    }
+  }catch(e){}
+  return { matches, scores };
+}
+/* Nube: un documento por partido, para que dos dispositivos no se pisen los cambios.
+   Solo existe cuando la página corre como Artifact de Claude con db; si no, queda en este dispositivo. */
+const cloud = {col:null, synced:new Map(), busy:false, dirty:false, readOnly:false, seeded:false, t:0, pendingRender:false};
+const CLOUD_LABEL = {local:'💾 Solo en este dispositivo', connecting:'☁️ Conectando…', saving:'☁️ Guardando…', ok:'☁️ Guardado en la nube', readonly:'👁️ Solo lectura (sin permiso para editar)', error:'⚠️ Sin conexión, reintentando'};
+function setCloudStatus(st){ const b = document.getElementById('cloudBadge'); if(b) b.textContent = CLOUD_LABEL[st] || CLOUD_LABEL.local; }
+function docOf(m){
+  const sc = state.scores[m.id] || {};
+  const d = {id:m.id, fecha:m.fecha, grupo:m.grupo, home:m.home, away:m.away, h:sc.h ?? '', a:sc.a ?? ''};
+  ['estadio','dia','fechaCal','hora'].forEach(k=>{ if(m[k]) d[k] = m[k]; });
+  return d;
+}
+async function flushCloud(){
+  cloud.t = 0;
+  if(!cloud.col || cloud.readOnly) return;
+  if(cloud.busy){ cloud.dirty = true; return; }
+  cloud.busy = true;
+  try{
+    do{
+      cloud.dirty = false;
+      const todo = state.matches.map(docOf).filter(d=>cloud.synced.get(d.id) !== JSON.stringify(d));
+      if(todo.length) setCloudStatus('saving');
+      for(const d of todo){ await cloud.col.doc(d.id).set(d); cloud.synced.set(d.id, JSON.stringify(d)); }
+    }while(cloud.dirty);
+    setCloudStatus('ok');
+  }catch(e){
+    if(e && e.code === 'invalid_argument'){ cloud.readOnly = true; setCloudStatus('readonly'); }
+    else { setCloudStatus('error'); setTimeout(flushCloud, 8000); }
+  }finally{ cloud.busy = false; }
+}
+function saveState(){
+  try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){}
+  if(cloud.col && !cloud.readOnly){ clearTimeout(cloud.t); cloud.t = setTimeout(flushCloud, 400); }
+}
+function applyRemote(snap){
+  if(snap.metadata.hasPendingWrites) return;
+  const docs = snap.docs.map(d=>d.data()).filter(d=>d && d.id);
+  if(!docs.length){
+    if(!snap.metadata.fromCache && !cloud.seeded){ cloud.seeded = true; cloud.synced.clear(); flushCloud(); }
+    return;
+  }
+  if(cloud.busy || cloud.t) return; // hay cambios locales en camino; el eco del servidor ya los trae mezclados
+  const matches = [], scores = {};
+  docs.forEach(d=>{
+    const m = {id:d.id, fecha:d.fecha, grupo:d.grupo, home:d.home, away:d.away};
+    ['estadio','dia','fechaCal','hora'].forEach(k=>{ if(d[k]) m[k] = d[k]; });
+    matches.push(m);
+    if((d.h ?? '') !== '' || (d.a ?? '') !== '') scores[d.id] = {h:d.h ?? '', a:d.a ?? ''};
+  });
+  const idx = id => Number(id.split('-')[2]);
+  matches.sort((x,y)=> x.fecha-y.fecha || x.grupo.localeCompare(y.grupo) || idx(x.id)-idx(y.id));
+  state.matches = matches; state.scores = scores;
+  try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){}
+  cloud.synced = new Map(matches.map(m=>[m.id, JSON.stringify(docOf(m))]));
+  setCloudStatus('ok');
+  const ae = document.activeElement;
+  if(ae && ae.classList && ae.classList.contains('sc')) cloud.pendingRender = true; else renderAll();
+}
+let state = loadState();
+
+function gamesInFecha(f){ return state.matches.filter(m=>m.fecha===f); }
+function alreadyPlayed(teamA, teamB, excludeFecha){
+  return state.matches.some(m => m.fecha!==excludeFecha && ((m.home===teamA&&m.away===teamB)||(m.home===teamB&&m.away===teamA)));
+}
+function swapRival(fecha, grupo, teamA, teamB){
+  const games = state.matches.filter(m=>m.fecha===fecha && m.grupo===grupo);
+  const mA = games.find(m=>m.home===teamA || m.away===teamA);
+  const mB = games.find(m=>m.home===teamB || m.away===teamB);
+  if(!mA || !mB || mA.id===mB.id) return false;
+  const partnerA = mA.home===teamA ? mA.away : mA.home;
+  const partnerB = mB.home===teamB ? mB.away : mB.home;
+  if(mA.home===teamA) mA.away = teamB; else mA.home = teamB;
+  mB.home = partnerA; mB.away = partnerB;
+  saveState();
+  return true;
+}
+
+/* ---- Orden cronológico y programación ---- */
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const HORAS = ['09h00','11h00','13h00','14h00','15h00','16h00','17h00','18h00','19h00','20h00','21h00'];
+function schedKey(m){
+  if(!m.estadio) return 'zz';
+  const p = m.fechaCal.split(' de ');
+  return String(MESES.indexOf(p[1])).padStart(2,'0') + String(p[0]).padStart(2,'0') + m.hora + m.estadio;
+}
+/* Viernes de cada fecha: F1 = 18 sep 2026, +7 días por fecha */
+function defaultFridayISO(fecha){ return new Date(Date.UTC(2026,8,18+7*(fecha-1))).toISOString().slice(0,10); }
+function isoOf(m){
+  if(!m.fechaCal) return '';
+  const p = m.fechaCal.split(' de ');
+  return `2026-${String(MESES.indexOf(p[1])+1).padStart(2,'0')}-${String(p[0]).padStart(2,'0')}`;
+}
+function stadiumCounts(team, excludeId){
+  const c = {sm:0, sauces:0};
+  state.matches.forEach(m=>{
+    if(m.id===excludeId || !m.estadio || (m.home!==team && m.away!==team)) return;
+    c[m.estadio==='San Miguel'?'sm':'sauces']++;
+  });
+  return c;
+}
+function timeCount(team, dia, hora, excludeId){
+  return state.matches.filter(m=>m.id!==excludeId && m.estadio && m.dia===dia && m.hora===hora && (m.home===team||m.away===team)).length;
+}
+/* Advertencia (no bloqueante): equipos que ya jugaron en ese mismo día y hora */
+function timeWarn(m, dia, hora){
+  const h = timeCount(m.home,dia,hora,m.id), a = timeCount(m.away,dia,hora,m.id);
+  const lbl = `${dia.slice(0,3)} ${hora}`;
+  const rep = [h&&`${m.home} (${h}×)`, a&&`${m.away} (${a}×)`].filter(Boolean);
+  return rep.length ? `<span class="twarn">⚠️ Ya jugó ${lbl}: ${rep.join(' y ')}</span>`
+                    : `${lbl}: ${m.home} 0 · ${m.away} 0`;
+}
+function openScheduleModal(id){
+  const m = state.matches.find(x=>x.id===id);
+  if(!m || PLAYED_FECHAS.has(m.fecha)) return;
+  const cH = stadiumCounts(m.home, id), cA = stadiumCounts(m.away, id);
+  const iso = isoOf(m) || defaultFridayISO(m.fecha);
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
+    <h3>Programar partido</h3>
+    <p class="sub">Fecha ${m.fecha} · ${groupNames[m.grupo]}<br><b>${m.home}</b> vs <b>${m.away}</b></p>
+    <p class="sub">🏟️ Visitas ya asignadas — ${m.home}: San Miguel <b>${cH.sm}</b> · Sauces <b>${cH.sauces}</b><br>${m.away}: San Miguel <b>${cA.sm}</b> · Sauces <b>${cA.sauces}</b><br><span id="schTimeInfo"></span></p>
+    <label class="fld">Estadio<select id="schEst" class="teamsel" style="margin-bottom:10px">
+      <option value="">Sin asignar</option>
+      <option value="San Miguel"${m.estadio==='San Miguel'?' selected':''}>Estadio San Miguel</option>
+      <option value="Los Sauces"${m.estadio==='Los Sauces'?' selected':''}>Estadio Los Sauces</option></select></label>
+    <label class="fld">Día<input type="date" id="schDate" class="teamsel" style="margin-bottom:10px" value="${iso}"></label>
+    <label class="fld">Hora<select id="schHora" class="teamsel" style="margin-bottom:14px">
+      ${HORAS.map(h=>`<option${h===(m.hora||'19h00')?' selected':''}>${h}</option>`).join('')}</select></label>
+    <button class="close-btn" id="schSave" style="background:var(--gold);color:#3a2400;border-color:transparent">Guardar</button>
+    ${m.estadio?'<button class="close-btn" id="schClear">Quitar horario</button>':''}
+    <button class="close-btn" id="schCancel">Cancelar</button>
+  </div></div>`;
+  const done = msg=>{ closeModal(); renderAll(); toast(msg); };
+  const updTime = ()=>{
+    const d = modalRoot.querySelector('#schDate').value, hora = modalRoot.querySelector('#schHora').value;
+    if(!d){ modalRoot.querySelector('#schTimeInfo').textContent=''; return; }
+    const dia = DIAS[new Date(d+'T00:00:00Z').getUTCDay()];
+    modalRoot.querySelector('#schTimeInfo').innerHTML = '🕒 ' + timeWarn(m,dia,hora);
+  };
+  ['#schDate','#schHora'].forEach(q=>modalRoot.querySelector(q).addEventListener('change', updTime)); updTime();
+  modalRoot.querySelector('#schCancel').addEventListener('click', closeModal);
+  modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+  const clr = modalRoot.querySelector('#schClear');
+  if(clr) clr.addEventListener('click', ()=>{ delete m.estadio; delete m.dia; delete m.fechaCal; delete m.hora; saveState(); done('Horario quitado'); });
+  modalRoot.querySelector('#schSave').addEventListener('click', ()=>{
+    const est = modalRoot.querySelector('#schEst').value;
+    const d = modalRoot.querySelector('#schDate').value;
+    const hora = modalRoot.querySelector('#schHora').value;
+    if(!est){ toast('Elige un estadio'); return; }
+    if(!d){ toast('Elige un día'); return; }
+    const dt = new Date(d+'T00:00:00Z');
+    const dia = DIAS[dt.getUTCDay()], fechaCal = `${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`;
+    const clash = state.matches.find(x=>x.id!==id && x.estadio===est && x.fechaCal===fechaCal && x.hora===hora);
+    if(clash && !confirm(`${est} ya tiene ${clash.home} vs ${clash.away} el ${dia} ${fechaCal} a las ${hora}. ¿Guardar igual?`)) return;
+    Object.assign(m,{estadio:est,dia,fechaCal,hora});
+    saveState(); done(`Programado: ${est} · ${dia} ${fechaCal} · ${hora}`);
+  });
+}
+
+/* ---- Toast ---- */
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('on'), 2400);
+}
+
+/* ---- Modal: cambiar rival ---- */
+const modalRoot = document.getElementById('modal-root');
+function closeModal(){ modalRoot.innerHTML = ''; }
+function openSwapModal(fecha, grupo, team){
+  if(PLAYED_FECHAS.has(fecha)) return; // fechas ya jugadas son historia, no se editan
+  const current = state.matches.find(m=>m.fecha===fecha && m.grupo===grupo && (m.home===team||m.away===team));
+  if(!current) return;
+  const currentRival = current.home===team ? current.away : current.home;
+  const candidates = roster[grupo].filter(t=>t!==team);
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
+    <h3>Cambiar rival de ${team}</h3>
+    <p class="sub">Fecha ${fecha} · ${groupNames[grupo]} · Rival actual: <b>${currentRival}</b></p>
+    <div id="rivalList"></div>
+    <button class="close-btn" id="closeModalBtn">Cancelar</button>
+  </div></div>`;
+  const list = modalRoot.querySelector('#rivalList');
+  list.innerHTML = candidates.map(c=>{
+    const isCurrent = c===currentRival;
+    const warn = (!isCurrent && alreadyPlayed(team,c,fecha)) ? '<span class="warn">Ya se enfrentaron</span>' : '';
+    return `<button class="rival-opt" data-rival="${escAttr(c)}"${isCurrent?' disabled style="opacity:.45"':''}>
+      <span>${c}${isCurrent?' (actual)':''}</span>${warn}
+    </button>`;
+  }).join('');
+  list.querySelectorAll('.rival-opt').forEach(btn=>{
+    if(btn.disabled) return;
+    btn.addEventListener('click', ()=>{
+      const rival = btn.dataset.rival;
+      swapRival(fecha, grupo, team, rival);
+      closeModal();
+      renderAll();
+      toast(`${team} ahora juega con ${rival} en la Fecha ${fecha}`);
+    });
+  });
+  modalRoot.querySelector('#closeModalBtn').addEventListener('click', closeModal);
+  modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ---- Restablecer ---- */
+document.getElementById('resetFixtureBtn').addEventListener('click', ()=>{
+  if(!confirm('¿Restablecer los cruces al fixture generado automáticamente? Los resultados se mantienen, pero se pierden los horarios que hayas programado en fechas por jugar.')) return;
+  state.matches = buildBaseline();
+  saveState();
+  renderAll();
+  toast('Fixture restablecido');
+});
+
+/* ---- Tabs de fecha ---- */
+const tabbar = document.getElementById('tabbar');
+const hTabbar = document.getElementById('hTabbar');
+let activeFecha = [1,2,3,4,5,6,7].find(f=>!PLAYED_FECHAS.has(f)) || 7;
+function renderTabs(){
+  const html = [1,2,3,4,5,6,7].map(f=>{
+    const games = gamesInFecha(f);
+    const allDone = games.every(g => state.scores[g.id] && state.scores[g.id].h !== '' && state.scores[g.id].a !== '');
+    return `<button class="tabbtn${f===activeFecha?' on':''}" data-f="${f}">Fecha ${f}${allDone?' ✓':''}</button>`;
+  }).join('');
+  tabbar.innerHTML = html; hTabbar.innerHTML = html;
+}
+[tabbar,hTabbar].forEach(bar=>bar.addEventListener('click', e=>{
+  const b = e.target.closest('.tabbtn'); if(!b) return;
+  activeFecha = Number(b.dataset.f);
+  renderTabs(); renderFecha(); renderSchedule();
+}));
+
+/* ---- Filtro de grupo ---- */
+const groupbar = document.getElementById('groupbar');
+let activeGroupFilter = '';
+function renderGroupbar(){
+  const chips = [{g:'',label:'Todos'}].concat(groupOrder.map(g=>({g,label:'Grupo '+g})));
+  groupbar.innerHTML = chips.map(c=>{
+    const on = activeGroupFilter===c.g;
+    const dot = c.g ? `<span class="grp-dot g-${c.g}"></span>` : '';
+    return `<button class="tabbtn${on?' on':''}" data-g="${c.g}">${dot}${c.label}</button>`;
+  }).join('');
+}
+groupbar.addEventListener('click', e=>{
+  const b = e.target.closest('.tabbtn'); if(!b) return;
+  activeGroupFilter = b.dataset.g;
+  renderGroupbar(); renderFecha();
+});
+
+/* ---- Fecha view ---- */
+const fechasEl = document.getElementById('fechas');
+function scoreBoxes(m){
+  const s = state.scores[m.id] || {h:'', a:''};
+  return `<div class="score">
+    <input type="tel" inputmode="numeric" maxlength="2" class="sc" data-id="${m.id}" data-side="h" value="${s.h}" aria-label="Goles ${m.home}">
+    <span class="dash">-</span>
+    <input type="tel" inputmode="numeric" maxlength="2" class="sc" data-id="${m.id}" data-side="a" value="${s.a}" aria-label="Goles ${m.away}">
+  </div>`;
+}
+function renderFecha(){
+  const games = gamesInFecha(activeFecha);
+  const isPlayed = PLAYED_FECHAS.has(activeFecha);
+  const groupsToShow = activeGroupFilter ? [activeGroupFilter] : groupOrder;
+  let html = `<div class="fecha-card">
+    <div class="fecha-head">
+      <div class="t">Fecha ${activeFecha}</div>
+      <div class="status ${isPlayed?'played':'pending'}">${isPlayed?'✓ Jugada':'Por jugar'}</div>
+    </div>
+    <p class="fecha-sub">${isPlayed ? 'Cruces, locales y horarios tal cual el horario publicado. Ya no se pueden editar.' : 'Toca el nombre de un equipo para cambiarle el rival, o «Programar» para asignar estadio, día y hora.'}</p>`;
+  groupsToShow.forEach(g=>{
+    const gGames = games.filter(m=>m.grupo===g).sort((a,b)=>schedKey(a).localeCompare(schedKey(b)));
+    if(!gGames.length) return;
+    html += `<div class="grp-label"><span class="grp-dot g-${g}"></span>${groupNames[g]}</div>`;
+    gGames.forEach(m=>{
+      const s = state.scores[m.id];
+      const done = s && s.h !== '' && s.a !== '';
+      const metaTxt = m.estadio ? `🏟️ ${m.estadio} · ${m.dia} ${m.fechaCal} · ${m.hora}` : 'Sin estadio/horario asignado aún';
+      const meta = isPlayed ? (m.estadio ? `<div class="match-meta">${metaTxt}</div>` : '')
+        : `<button class="match-meta sched-btn${m.estadio?'':' muted'}" data-sched="${m.id}">${m.estadio ? metaTxt : '📅 Programar estadio y horario'}</button>`;
+      const home = isPlayed
+        ? `<span class="t1">${m.home}</span>`
+        : `<button class="teamname-btn t1" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.home)}">${m.home}</button>`;
+      const away = isPlayed
+        ? `<span class="t2">${m.away}</span>`
+        : `<button class="teamname-btn t2" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.away)}">${m.away}</button>`;
+      html += `<div class="match-row${done?' done':''}">
+        <div class="teams">
+          ${home}
+          <span class="vs">vs</span>
+          ${away}
+          ${meta}
+        </div>
+        ${scoreBoxes(m)}
+      </div>`;
+    });
+  });
+  html += '</div>';
+  fechasEl.innerHTML = html;
+}
+fechasEl.addEventListener('click', e=>{
+  const sb = e.target.closest('.sched-btn'); if(sb){ openScheduleModal(sb.dataset.sched); return; }
+  const btn = e.target.closest('.teamname-btn'); if(!btn) return;
+  openSwapModal(Number(btn.dataset.fecha), btn.dataset.grupo, btn.dataset.team);
+});
+fechasEl.addEventListener('input', e=>{
+  const inp = e.target.closest('input.sc'); if(!inp) return;
+  const id = inp.dataset.id, side = inp.dataset.side;
+  inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,2);
+  if(!state.scores[id]) state.scores[id] = {h:'', a:''};
+  state.scores[id][side] = inp.value;
+  saveState();
+  inp.closest('.match-row').classList.toggle('done', state.scores[id].h !== '' && state.scores[id].a !== '');
+  renderTabs();
+  renderStandings();
+  renderTeamHistory();
+  renderSchedule();
+});
+
+/* ---- Historial por equipo ---- */
+const teamPicker = document.getElementById('teamPicker');
+function populateTeamPicker(){
+  teamPicker.innerHTML = '<option value="">Selecciona un equipo…</option>' + groupOrder.map(g=>
+    `<optgroup label="${groupNames[g]}">${roster[g].map(t=>`<option value="${escAttr(t)}">${t}</option>`).join('')}</optgroup>`
+  ).join('');
+}
+teamPicker.addEventListener('change', renderTeamHistory);
+const teamHistoryEl = document.getElementById('teamHistory');
+function renderTeamHistory(){
+  const team = teamPicker.value;
+  if(!team){ teamHistoryEl.innerHTML = ''; return; }
+  const g = teamGroup[team];
+  const rows = state.matches.filter(m=>m.grupo===g && (m.home===team||m.away===team)).sort((a,b)=>a.fecha-b.fecha);
+  const smCount = rows.filter(m=>m.estadio==='San Miguel').length;
+  const saucesCount = rows.filter(m=>m.estadio==='Los Sauces').length;
+  let html = `<div class="hist-card"><h3 style="margin:0 0 4px;font-size:.9rem;display:flex;align-items:center;gap:8px;"><span class="grp-dot g-${g}"></span>${team} · ${groupNames[g]}</h3>`;
+  if(smCount||saucesCount){
+    html += `<p class="fecha-sub" style="margin:0 0 10px;">🏟️ San Miguel: <b>${smCount}</b> · Los Sauces: <b>${saucesCount}</b></p>`;
+  }
+  rows.forEach(m=>{
+    const rival = m.home===team ? m.away : m.home;
+    const s = state.scores[m.id];
+    let res = 'Sin jugar';
+    if(s && s.h!=='' && s.a!==''){
+      const mine = m.home===team ? s.h : s.a, theirs = m.home===team ? s.a : s.h;
+      const tag = Number(mine)>Number(theirs) ? ' G' : Number(mine)<Number(theirs) ? ' P' : ' E';
+      res = `${mine}-${theirs}${tag}`;
+    }
+    const where = m.estadio ? ` · ${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora||''}` : '';
+    html += `<div class="hist-row"><span class="f">Fecha ${m.fecha}</span><span class="riv">vs ${rival}${where}</span><span class="res">${res}</span></div>`;
+  });
+  html += '</div>';
+  teamHistoryEl.innerHTML = html;
+}
+
+/* ---- Standings (tabla de posiciones) ---- */
+const standingsEl = document.getElementById('standings');
+function computeStandings(g){
+  const table = {};
+  roster[g].forEach(t=> table[t] = {team:t, pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0});
+  state.matches.filter(m=>m.grupo===g).forEach(m=>{
+    const s = state.scores[m.id];
+    if(!s || s.h==='' || s.a==='') return;
+    const h = parseInt(s.h,10), a = parseInt(s.a,10);
+    const H = table[m.home], A = table[m.away];
+    H.pj++; A.pj++; H.gf+=h; H.gc+=a; A.gf+=a; A.gc+=h;
+    if(h>a){ H.g++; H.pts+=3; A.p++; }
+    else if(h<a){ A.g++; A.pts+=3; H.p++; }
+    else { H.e++; A.e++; H.pts++; A.pts++; }
+  });
+  return Object.values(table).sort((x,y)=> y.pts-x.pts || (y.gf-y.gc)-(x.gf-x.gc) || y.gf-x.gf || x.team.localeCompare(y.team));
+}
+function renderStandings(){
+  let html = '';
+  groupOrder.forEach(g=>{
+    const rows = computeStandings(g);
+    html += `<div class="grp-block"><h3><span class="grp-dot g-${g}"></span>${groupNames[g]}</h3>
+      <table class="standings"><thead><tr>
+        <th style="text-align:left">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
+      </tr></thead><tbody>
+        ${rows.map(r=>`<tr><td class="team">${r.team}</td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.gf}</td><td>${r.gc}</td><td>${r.gf-r.gc}</td><td class="pts">${r.pts}</td></tr>`).join('')}
+      </tbody></table>
+    </div>`;
+  });
+  standingsEl.innerHTML = html;
+}
+
+/* ---- Balance de estadios (San Miguel vs Los Sauces) ---- */
+const balanceEl = document.getElementById('balance');
+function computeBalance(g){
+  const table = {};
+  roster[g].forEach(t=> table[t] = {team:t, sm:0, sauces:0});
+  state.matches.filter(m=>m.grupo===g && m.estadio).forEach(m=>{
+    const key = m.estadio==='San Miguel' ? 'sm' : 'sauces';
+    table[m.home][key]++; table[m.away][key]++;
+  });
+  return Object.values(table).sort((a,b)=> (b.sm+b.sauces)-(a.sm+a.sauces) || a.team.localeCompare(b.team));
+}
+let balanceMode = 'estadios';
+const balMode = document.getElementById('balMode');
+balMode.innerHTML = '<button class="tabbtn" data-m="estadios">🏟️ Estadios</button><button class="tabbtn" data-m="horarios">🕒 Horarios</button>';
+balMode.addEventListener('click', e=>{ const b = e.target.closest('.tabbtn'); if(!b) return; balanceMode = b.dataset.m; renderBalance(); });
+const DIA_CORTO = {Viernes:'Vie', 'Sábado':'Sáb', Domingo:'Dom'};
+function slotLabel(m){ return `${DIA_CORTO[m.dia]||m.dia} ${m.hora}`; }
+const slotOrder = l => { const [d,h]=l.split(' '); return ({Vie:0,'Sáb':1,Dom:2}[d] ?? 3)+h; };
+function computeTimeBalance(g){
+  const table = {};
+  roster[g].forEach(t=> table[t] = {team:t, Vie:0, 'Sáb':0, Dom:0, slots:{}, n:0});
+  state.matches.filter(m=>m.grupo===g && m.estadio).forEach(m=>{
+    [m.home,m.away].forEach(t=>{
+      const r = table[t], d = DIA_CORTO[m.dia];
+      if(d) r[d]++;
+      const l = slotLabel(m); r.slots[l] = (r.slots[l]||0)+1; r.n++;
+    });
+  });
+  return Object.values(table).sort((a,b)=> a.team.localeCompare(b.team));
+}
+function renderBalance(){
+  balMode.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('on', b.dataset.m===balanceMode));
+  document.getElementById('balHint').textContent = balanceMode==='estadios'
+    ? 'Cuenta todos los partidos con estadio asignado, incluida la Fecha 4 a medida que la programes.'
+    : 'Cuántas veces ha jugado cada equipo en cada día y horario (ej. Sáb 14h00). En ámbar, los horarios que se repiten.';
+  let html = '';
+  groupOrder.forEach(g=>{
+    if(balanceMode==='estadios'){
+      const rows = computeBalance(g);
+      html += `<div class="grp-block"><h3><span class="grp-dot g-${g}"></span>${groupNames[g]}</h3>
+        <table class="standings"><thead><tr>
+          <th style="text-align:left">Equipo</th><th>San Miguel</th><th>Los Sauces</th><th>Total</th>
+        </tr></thead><tbody>
+          ${rows.map(r=>`<tr><td class="team">${r.team}</td><td>${r.sm}</td><td>${r.sauces}</td><td class="pts">${r.sm+r.sauces}</td></tr>`).join('')}
+        </tbody></table>
+      </div>`;
+    }else{
+      const rows = computeTimeBalance(g);
+      html += `<div class="grp-block"><h3><span class="grp-dot g-${g}"></span>${groupNames[g]}</h3>
+        <table class="standings tbal"><thead><tr>
+          <th style="text-align:left">Equipo</th><th>Vie</th><th>Sáb</th><th>Dom</th><th style="text-align:left">Horarios jugados</th>
+        </tr></thead><tbody>
+          ${rows.map(r=>`<tr><td class="team">${r.team}</td><td>${r.Vie}</td><td>${r['Sáb']}</td><td>${r.Dom}</td><td class="chips">${
+            Object.keys(r.slots).sort((a,b)=>slotOrder(a).localeCompare(slotOrder(b))).map(l=>`<span class="chip${r.slots[l]>1?' rep':''}">${l}${r.slots[l]>1?' ×'+r.slots[l]:''}</span>`).join('')
+          }</td></tr>`).join('')}
+        </tbody></table>
+      </div>`;
+    }
+  });
+  balanceEl.innerHTML = html;
+}
+
+/* ---- Vista de horarios por estadio ---- */
+const schedViewEl = document.getElementById('schedView');
+const STD_TIMES = {5:['19h00','21h00'], 6:['11h00','14h00','16h00','18h00','20h00'], 0:['09h00','11h00','13h00','15h00','17h00','19h00']};
+const STADIUMS = ['San Miguel','Los Sauces'];
+function fechaDays(f){
+  const fri = defaultFridayISO(f);
+  const add = n => new Date(new Date(fri+'T00:00:00Z').getTime()+n*864e5).toISOString().slice(0,10);
+  const set = new Set([fri, add(1), add(2)]);
+  gamesInFecha(f).forEach(m=>{ const i = isoOf(m); if(i) set.add(i); });
+  return Array.from(set).sort();
+}
+function slotCellHTML(m, editable, f, est, iso, hora){
+  const data = `data-slot="1" data-f="${f}" data-est="${est}" data-iso="${iso}" data-hora="${hora}"`;
+  if(!m) return editable ? `<button class="slot free" ${data}>+ libre</button>` : `<div class="slot free ro">—</div>`;
+  const sc = state.scores[m.id];
+  const score = sc && sc.h!=='' && sc.a!=='' ? `<span class="sc">${sc.h} - ${sc.a}</span>` : '';
+  const inner = `<span class="gd g-${m.grupo}"></span>${m.home}<br>vs ${m.away}${score}`;
+  return editable ? `<button class="slot" ${data} data-mid="${m.id}">${inner}</button>` : `<div class="slot ro">${inner}</div>`;
+}
+function renderSchedule(){
+  const f = activeFecha, editable = !PLAYED_FECHAS.has(f), games = gamesInFecha(f);
+  const pending = games.filter(m=>!m.estadio);
+  let html = '';
+  if(editable){
+    const done = games.length - pending.length;
+    html += `<div class="pend"><b>${pending.length} por programar</b> · ${done} de ${games.length} ya tienen horario`;
+    pending.forEach(m=>{ html += `<div class="it"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}</span><button class="sched-btn" data-sched="${m.id}">Programar</button></div>`; });
+    html += '</div>';
+  }
+  fechaDays(f).forEach(iso=>{
+    const dt = new Date(iso+'T00:00:00Z');
+    const fechaCal = `${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`;
+    const day = games.filter(m=>m.fechaCal===fechaCal);
+    const times = new Set(STD_TIMES[dt.getUTCDay()] || []);
+    day.forEach(m=>times.add(m.hora));
+    if(!editable && !day.length) return;
+    const sorted = Array.from(times).sort();
+    html += `<div class="day-card"><div class="day-head">${DIAS[dt.getUTCDay()]} ${fechaCal}</div>
+      <div class="slot-head"><span></span><span>San Miguel</span><span>Los Sauces</span></div>`;
+    sorted.forEach(h=>{
+      html += `<div class="slot-row"><div class="slot-time">${h}</div>` + STADIUMS.map(est=>{
+        const m = day.find(x=>x.estadio===est && x.hora===h);
+        return slotCellHTML(m, editable, f, est, iso, h);
+      }).join('') + '</div>';
+    });
+    html += '</div>';
+  });
+  schedViewEl.innerHTML = html;
+}
+function applySlot(m, est, iso, hora){
+  const dt = new Date(iso+'T00:00:00Z');
+  Object.assign(m,{estadio:est, dia:DIAS[dt.getUTCDay()], fechaCal:`${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`, hora});
+}
+function openSlotModal(f, est, iso, hora){
+  const dt = new Date(iso+'T00:00:00Z');
+  const fechaCal = `${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`;
+  const games = gamesInFecha(f);
+  const occ = games.find(m=>m.estadio===est && m.fechaCal===fechaCal && m.hora===hora);
+  const key = est==='San Miguel' ? 'sm' : 'sauces';
+  const diaN = DIAS[dt.getUTCDay()], dia3 = diaN.slice(0,3);
+  const opt = m=>{
+    const cH = stadiumCounts(m.home, m.id), cA = stadiumCounts(m.away, m.id);
+    const where = m.estadio ? `<span class="warn" style="color:var(--sub)">${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora}</span>` : '';
+    return `<button class="rival-opt" data-pick="${m.id}"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}<br><small style="font-weight:400;color:var(--sub)">En ${est==='San Miguel'?'S. Miguel':'Sauces'}: ${m.home} ${cH[key]} · ${m.away} ${cA[key]}<br>${timeWarn(m,diaN,hora)}</small></span>${where}</button>`;
+  };
+  const free = games.filter(m=>!m.estadio), moved = games.filter(m=>m.estadio && m!==occ);
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
+    <h3>${est} · ${DIAS[dt.getUTCDay()]} ${fechaCal} · ${hora}</h3>
+    <p class="sub">Fecha ${f}${occ?` · Ahora: <b>${occ.home} vs ${occ.away}</b>`:' · Horario libre'}</p>
+    ${occ?'<button class="close-btn" id="slotClear" style="margin-bottom:8px">Quitar este partido del horario</button>':''}
+    <h4>Por programar (${free.length})</h4>${free.map(opt).join('') || '<p class="sub">No quedan partidos sin horario.</p>'}
+    ${moved.length?`<h4>Ya programados (mover aquí)</h4>${moved.map(opt).join('')}`:''}
+    <button class="close-btn" id="slotCancel">Cancelar</button></div></div>`;
+  const finish = msg=>{ saveState(); closeModal(); renderAll(); toast(msg); };
+  modalRoot.querySelector('#slotCancel').addEventListener('click', closeModal);
+  modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+  const clr = modalRoot.querySelector('#slotClear');
+  if(clr) clr.addEventListener('click', ()=>{ delete occ.estadio; delete occ.dia; delete occ.fechaCal; delete occ.hora; finish('Horario liberado'); });
+  modalRoot.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click', ()=>{
+    const m = state.matches.find(x=>x.id===b.dataset.pick);
+    if(occ && occ!==m){ delete occ.estadio; delete occ.dia; delete occ.fechaCal; delete occ.hora; }
+    applySlot(m, est, iso, hora);
+    finish(`${m.home} vs ${m.away} → ${est} ${hora}`);
+  }));
+}
+schedViewEl.addEventListener('click', e=>{
+  const sb = e.target.closest('.sched-btn'); if(sb){ openScheduleModal(sb.dataset.sched); return; }
+  const sl = e.target.closest('[data-slot]'); if(sl) openSlotModal(Number(sl.dataset.f), sl.dataset.est, sl.dataset.iso, sl.dataset.hora);
+});
+
+/* ---- Navegación entre secciones ---- */
+const VIEWS = ['horarios','fixture','equipos','balance','posiciones'];
+let activeView = 'horarios';
+try{ const v = localStorage.getItem('kc3_view'); if(VIEWS.includes(v)) activeView = v; }catch(e){}
+function showView(v){
+  activeView = v;
+  try{ localStorage.setItem('kc3_view', v); }catch(e){}
+  VIEWS.forEach(x=>document.getElementById('view-'+x).classList.toggle('on', x===v));
+  document.querySelectorAll('#viewbar button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
+  window.scrollTo(0,0);
+}
+document.getElementById('viewbar').addEventListener('click', e=>{ const b = e.target.closest('button'); if(b) showView(b.dataset.view); });
+function renderAll(){ renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); }
+
+populateTeamPicker();
+renderGroupbar();
+renderAll();
+showView(activeView);
+
+document.addEventListener('focusout', e=>{
+  if(cloud.pendingRender && e.target.classList && e.target.classList.contains('sc')){ cloud.pendingRender = false; setTimeout(renderAll, 0); }
+});
+(async function initCloud(){
+  try{
+    if(!window.claude || typeof window.claude.use !== 'function') return;
+    const db = await window.claude.use('db');
+    if(!db) return;
+    cloud.col = db.collection('matches');
+    setCloudStatus('connecting');
+    cloud.col.onSnapshot(applyRemote, e=>{ setCloudStatus(e && e.code === 'revoked' ? 'local' : 'error'); });
+  }catch(e){ setCloudStatus('local'); }
+})();
+</script>
+
+</body>
+</html>
