@@ -9,7 +9,7 @@
     --navy:#101a33; --navy2:#16223f; --gold:#f2b705; --gold-soft:#fde7a8;
     --ink:#1c2333; --sub:#5b6478; --card:#ffffff; --border:#e4e7ee; --bg:#f4f6fb;
     --green:#1e9e6a; --green-bg:#e3f7ee; --blue:#2f6fed; --blue-bg:#e9f0fe;
-    --amber:#c8720a; --amber-bg:#fdf0dd;
+    --amber:#c8720a; --amber-bg:#fdf0dd; --red:#d93025;
     box-sizing:border-box;
     padding-top:env(safe-area-inset-top,0px);
     padding-bottom:env(safe-area-inset-bottom,0px);
@@ -19,10 +19,10 @@
     :root:not([data-theme="light"]){
       --navy:#0b1226; --navy2:#121b36; --card:#161f38; --border:#26304d;
       --bg:#0a0f1e; --ink:#eef1f8; --sub:#9aa5c0;
-      --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409;
+      --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409; --red:#ff6b61;
     }
   }
-  :root[data-theme="dark"]{
+  :root[data-theme="dark"]{ --red:#ff6b61;
     --navy:#0b1226; --navy2:#121b36; --card:#161f38; --border:#26304d;
     --bg:#0a0f1e; --ink:#eef1f8; --sub:#9aa5c0;
     --green-bg:#0f2c22; --blue-bg:#12203f; --amber-bg:#3a2409;
@@ -127,6 +127,7 @@
   .pend b{color:var(--amber);}
   .pend .it{display:flex; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px dashed var(--border);}
   .pend .it:first-of-type{border-top:none;}
+  .twarn{color:var(--red); font-weight:700;}
   .sheet h4{margin:12px 0 6px; font-size:.78rem; color:var(--sub); text-transform:uppercase;}
   .chip{display:inline-block; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:10px; background:var(--blue-bg); color:var(--blue); margin:1px 2px 1px 0; white-space:nowrap;}
   .chip.rep{background:var(--amber-bg); color:var(--amber);}
@@ -384,6 +385,14 @@ function stadiumCounts(team, excludeId){
 function timeCount(team, dia, hora, excludeId){
   return state.matches.filter(m=>m.id!==excludeId && m.estadio && m.dia===dia && m.hora===hora && (m.home===team||m.away===team)).length;
 }
+/* Advertencia (no bloqueante): equipos que ya jugaron en ese mismo día y hora */
+function timeWarn(m, dia, hora){
+  const h = timeCount(m.home,dia,hora,m.id), a = timeCount(m.away,dia,hora,m.id);
+  const lbl = `${dia.slice(0,3)} ${hora}`;
+  const rep = [h&&`${m.home} (${h}×)`, a&&`${m.away} (${a}×)`].filter(Boolean);
+  return rep.length ? `<span class="twarn">⚠️ Ya jugó ${lbl}: ${rep.join(' y ')}</span>`
+                    : `${lbl}: ${m.home} 0 · ${m.away} 0`;
+}
 function openScheduleModal(id){
   const m = state.matches.find(x=>x.id===id);
   if(!m || PLAYED_FECHAS.has(m.fecha)) return;
@@ -409,7 +418,7 @@ function openScheduleModal(id){
     const d = modalRoot.querySelector('#schDate').value, hora = modalRoot.querySelector('#schHora').value;
     if(!d){ modalRoot.querySelector('#schTimeInfo').textContent=''; return; }
     const dia = DIAS[new Date(d+'T00:00:00Z').getUTCDay()];
-    modalRoot.querySelector('#schTimeInfo').innerHTML = `🕒 ${dia.slice(0,3)} ${hora} — ${m.home} <b>${timeCount(m.home,dia,hora,id)}</b> · ${m.away} <b>${timeCount(m.away,dia,hora,id)}</b> veces`;
+    modalRoot.querySelector('#schTimeInfo').innerHTML = '🕒 ' + timeWarn(m,dia,hora);
   };
   ['#schDate','#schHora'].forEach(q=>modalRoot.querySelector(q).addEventListener('change', updTime)); updTime();
   modalRoot.querySelector('#schCancel').addEventListener('click', closeModal);
@@ -783,7 +792,7 @@ function openSlotModal(f, est, iso, hora){
   const opt = m=>{
     const cH = stadiumCounts(m.home, m.id), cA = stadiumCounts(m.away, m.id);
     const where = m.estadio ? `<span class="warn" style="color:var(--sub)">${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora}</span>` : '';
-    return `<button class="rival-opt" data-pick="${m.id}"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}<br><small style="font-weight:400;color:var(--sub)">En ${est==='San Miguel'?'S. Miguel':'Sauces'}: ${m.home} ${cH[key]} · ${m.away} ${cA[key]}<br>${dia3} ${hora}: ${m.home} ${timeCount(m.home,diaN,hora,m.id)} · ${m.away} ${timeCount(m.away,diaN,hora,m.id)}</small></span>${where}</button>`;
+    return `<button class="rival-opt" data-pick="${m.id}"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}<br><small style="font-weight:400;color:var(--sub)">En ${est==='San Miguel'?'S. Miguel':'Sauces'}: ${m.home} ${cH[key]} · ${m.away} ${cA[key]}<br>${timeWarn(m,diaN,hora)}</small></span>${where}</button>`;
   };
   const free = games.filter(m=>!m.estadio), moved = games.filter(m=>m.estadio && m!==occ);
   modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
