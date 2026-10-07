@@ -128,6 +128,10 @@
   .pend .it{display:flex; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px dashed var(--border);}
   .pend .it:first-of-type{border-top:none;}
   .sheet h4{margin:12px 0 6px; font-size:.78rem; color:var(--sub); text-transform:uppercase;}
+  .chip{display:inline-block; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:10px; background:var(--blue-bg); color:var(--blue); margin:1px 2px 1px 0; white-space:nowrap;}
+  .chip.rep{background:var(--amber-bg); color:var(--amber);}
+  table.tbal{min-width:0;} table.tbal td.team{white-space:normal;}
+  table.standings td.chips{text-align:left;}
   footer{text-align:center; color:var(--sub); font-size:.75rem; padding:20px 0 4px;}
 
   .teamname-btn{display:block; width:100%; text-align:left; background:none; border:0; padding:0; margin:0; font:inherit; color:inherit; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px; text-decoration-color:var(--border);}
@@ -192,7 +196,8 @@
 
   <section class="view" id="view-balance">
     <div class="section-title"><span class="ttl">⚖️ Balance de estadios</span> <span class="tag">San Miguel vs Sauces</span></div>
-    <p class="fecha-sub" style="margin:-6px 0 12px;">Cuenta todos los partidos con estadio asignado, incluida la Fecha 4 a medida que la programes.</p>
+    <div class="tabbar" id="balMode"></div>
+    <p class="fecha-sub" id="balHint" style="margin:0 0 12px;"></p>
     <div class="counter-wrap" id="balance"></div>
   </section>
 
@@ -376,6 +381,9 @@ function stadiumCounts(team, excludeId){
   });
   return c;
 }
+function timeCount(team, dia, hora, excludeId){
+  return state.matches.filter(m=>m.id!==excludeId && m.estadio && m.dia===dia && m.hora===hora && (m.home===team||m.away===team)).length;
+}
 function openScheduleModal(id){
   const m = state.matches.find(x=>x.id===id);
   if(!m || PLAYED_FECHAS.has(m.fecha)) return;
@@ -384,7 +392,7 @@ function openScheduleModal(id){
   modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
     <h3>Programar partido</h3>
     <p class="sub">Fecha ${m.fecha} · ${groupNames[m.grupo]}<br><b>${m.home}</b> vs <b>${m.away}</b></p>
-    <p class="sub">🏟️ Visitas ya asignadas — ${m.home}: San Miguel <b>${cH.sm}</b> · Sauces <b>${cH.sauces}</b><br>${m.away}: San Miguel <b>${cA.sm}</b> · Sauces <b>${cA.sauces}</b></p>
+    <p class="sub">🏟️ Visitas ya asignadas — ${m.home}: San Miguel <b>${cH.sm}</b> · Sauces <b>${cH.sauces}</b><br>${m.away}: San Miguel <b>${cA.sm}</b> · Sauces <b>${cA.sauces}</b><br><span id="schTimeInfo"></span></p>
     <label class="fld">Estadio<select id="schEst" class="teamsel" style="margin-bottom:10px">
       <option value="">Sin asignar</option>
       <option value="San Miguel"${m.estadio==='San Miguel'?' selected':''}>Estadio San Miguel</option>
@@ -397,6 +405,13 @@ function openScheduleModal(id){
     <button class="close-btn" id="schCancel">Cancelar</button>
   </div></div>`;
   const done = msg=>{ closeModal(); renderAll(); toast(msg); };
+  const updTime = ()=>{
+    const d = modalRoot.querySelector('#schDate').value, hora = modalRoot.querySelector('#schHora').value;
+    if(!d){ modalRoot.querySelector('#schTimeInfo').textContent=''; return; }
+    const dia = DIAS[new Date(d+'T00:00:00Z').getUTCDay()];
+    modalRoot.querySelector('#schTimeInfo').innerHTML = `🕒 ${dia.slice(0,3)} ${hora} — ${m.home} <b>${timeCount(m.home,dia,hora,id)}</b> · ${m.away} <b>${timeCount(m.away,dia,hora,id)}</b> veces`;
+  };
+  ['#schDate','#schHora'].forEach(q=>modalRoot.querySelector(q).addEventListener('change', updTime)); updTime();
   modalRoot.querySelector('#schCancel').addEventListener('click', closeModal);
   modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
   const clr = modalRoot.querySelector('#schClear');
@@ -654,17 +669,53 @@ function computeBalance(g){
   });
   return Object.values(table).sort((a,b)=> (b.sm+b.sauces)-(a.sm+a.sauces) || a.team.localeCompare(b.team));
 }
+let balanceMode = 'estadios';
+const balMode = document.getElementById('balMode');
+balMode.innerHTML = '<button class="tabbtn" data-m="estadios">🏟️ Estadios</button><button class="tabbtn" data-m="horarios">🕒 Horarios</button>';
+balMode.addEventListener('click', e=>{ const b = e.target.closest('.tabbtn'); if(!b) return; balanceMode = b.dataset.m; renderBalance(); });
+const DIA_CORTO = {Viernes:'Vie', 'Sábado':'Sáb', Domingo:'Dom'};
+function slotLabel(m){ return `${DIA_CORTO[m.dia]||m.dia} ${m.hora}`; }
+const slotOrder = l => { const [d,h]=l.split(' '); return ({Vie:0,'Sáb':1,Dom:2}[d] ?? 3)+h; };
+function computeTimeBalance(g){
+  const table = {};
+  roster[g].forEach(t=> table[t] = {team:t, Vie:0, 'Sáb':0, Dom:0, slots:{}, n:0});
+  state.matches.filter(m=>m.grupo===g && m.estadio).forEach(m=>{
+    [m.home,m.away].forEach(t=>{
+      const r = table[t], d = DIA_CORTO[m.dia];
+      if(d) r[d]++;
+      const l = slotLabel(m); r.slots[l] = (r.slots[l]||0)+1; r.n++;
+    });
+  });
+  return Object.values(table).sort((a,b)=> a.team.localeCompare(b.team));
+}
 function renderBalance(){
+  balMode.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('on', b.dataset.m===balanceMode));
+  document.getElementById('balHint').textContent = balanceMode==='estadios'
+    ? 'Cuenta todos los partidos con estadio asignado, incluida la Fecha 4 a medida que la programes.'
+    : 'Cuántas veces ha jugado cada equipo en cada día y horario (ej. Sáb 14h00). En ámbar, los horarios que se repiten.';
   let html = '';
   groupOrder.forEach(g=>{
-    const rows = computeBalance(g);
-    html += `<div class="grp-block"><h3><span class="grp-dot g-${g}"></span>${groupNames[g]}</h3>
-      <table class="standings"><thead><tr>
-        <th style="text-align:left">Equipo</th><th>San Miguel</th><th>Los Sauces</th><th>Total</th>
-      </tr></thead><tbody>
-        ${rows.map(r=>`<tr><td class="team">${r.team}</td><td>${r.sm}</td><td>${r.sauces}</td><td class="pts">${r.sm+r.sauces}</td></tr>`).join('')}
-      </tbody></table>
-    </div>`;
+    if(balanceMode==='estadios'){
+      const rows = computeBalance(g);
+      html += `<div class="grp-block"><h3><span class="grp-dot g-${g}"></span>${groupNames[g]}</h3>
+        <table class="standings"><thead><tr>
+          <th style="text-align:left">Equipo</th><th>San Miguel</th><th>Los Sauces</th><th>Total</th>
+        </tr></thead><tbody>
+          ${rows.map(r=>`<tr><td class="team">${r.team}</td><td>${r.sm}</td><td>${r.sauces}</td><td class="pts">${r.sm+r.sauces}</td></tr>`).join('')}
+        </tbody></table>
+      </div>`;
+    }else{
+      const rows = computeTimeBalance(g);
+      html += `<div class="grp-block"><h3><span class="grp-dot g-${g}"></span>${groupNames[g]}</h3>
+        <table class="standings tbal"><thead><tr>
+          <th style="text-align:left">Equipo</th><th>Vie</th><th>Sáb</th><th>Dom</th><th style="text-align:left">Horarios jugados</th>
+        </tr></thead><tbody>
+          ${rows.map(r=>`<tr><td class="team">${r.team}</td><td>${r.Vie}</td><td>${r['Sáb']}</td><td>${r.Dom}</td><td class="chips">${
+            Object.keys(r.slots).sort((a,b)=>slotOrder(a).localeCompare(slotOrder(b))).map(l=>`<span class="chip${r.slots[l]>1?' rep':''}">${l}${r.slots[l]>1?' ×'+r.slots[l]:''}</span>`).join('')
+          }</td></tr>`).join('')}
+        </tbody></table>
+      </div>`;
+    }
   });
   balanceEl.innerHTML = html;
 }
@@ -728,10 +779,11 @@ function openSlotModal(f, est, iso, hora){
   const games = gamesInFecha(f);
   const occ = games.find(m=>m.estadio===est && m.fechaCal===fechaCal && m.hora===hora);
   const key = est==='San Miguel' ? 'sm' : 'sauces';
+  const diaN = DIAS[dt.getUTCDay()], dia3 = diaN.slice(0,3);
   const opt = m=>{
     const cH = stadiumCounts(m.home, m.id), cA = stadiumCounts(m.away, m.id);
     const where = m.estadio ? `<span class="warn" style="color:var(--sub)">${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora}</span>` : '';
-    return `<button class="rival-opt" data-pick="${m.id}"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}<br><small style="font-weight:400;color:var(--sub)">Aquí ya jugó: ${m.home} ${cH[key]} · ${m.away} ${cA[key]}</small></span>${where}</button>`;
+    return `<button class="rival-opt" data-pick="${m.id}"><span><span class="grp-dot g-${m.grupo}" style="display:inline-block"></span> ${m.home} vs ${m.away}<br><small style="font-weight:400;color:var(--sub)">En ${est==='San Miguel'?'S. Miguel':'Sauces'}: ${m.home} ${cH[key]} · ${m.away} ${cA[key]}<br>${dia3} ${hora}: ${m.home} ${timeCount(m.home,diaN,hora,m.id)} · ${m.away} ${timeCount(m.away,diaN,hora,m.id)}</small></span>${where}</button>`;
   };
   const free = games.filter(m=>!m.estadio), moved = games.filter(m=>m.estadio && m!==occ);
   modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
