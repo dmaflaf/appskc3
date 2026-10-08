@@ -63,7 +63,8 @@
   .hist-row{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px dashed var(--border); font-size:.85rem;}
   .hist-row:first-of-type{border-top:none;}
   .hist-row .f{flex:0 0 66px; font-weight:700; color:var(--sub); font-size:.78rem;}
-  .hist-row .riv{flex:1 1 auto; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .hist-row .riv{flex:1 1 auto; font-weight:600; min-width:0;}
+  .hist-row .when{display:block; font-weight:400; font-size:.72rem; color:var(--sub); margin-top:1px;}
   .hist-row .res{font-weight:700; color:var(--ink); font-size:.8rem; flex:0 0 auto;}
   .hist-empty{color:var(--sub); font-size:.85rem; padding:4px 0 0;}
 
@@ -876,7 +877,8 @@ function renderTeamHistory(){
       const tag = Number(mine)>Number(theirs) ? ' G' : Number(mine)<Number(theirs) ? ' P' : ' E';
       res = `${mine}-${theirs}${tag}`;
     }
-    const where = m.estadio ? ` · ${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora||''}` : '';
+    const diaCorto = m.estadio ? `${(m.dia||'').slice(0,3)} ${m.fechaCal.replace(' de ',' ').split(' ').map((w,i)=>i?w.slice(0,3):w).join(' ')}` : '';
+    const where = m.estadio ? `<small class="when">${diaCorto} · ${m.hora} · ${m.estadio==='San Miguel'?'S. Miguel':'Los Sauces'}</small>` : '<small class="when">Sin programar</small>';
     html += `<div class="hist-row"><span class="f">Fecha ${m.fecha}</span><span class="riv">vs ${rival}${where}</span><span class="res">${res}</span></div>`;
   });
   html += '</div>';
