@@ -118,6 +118,10 @@
   .delx:hover{opacity:1;}
   .slot-time{display:flex; flex-direction:column; gap:2px; align-items:flex-start;}
   .rowx{border:0; background:transparent; color:var(--sub); font-size:.7rem; padding:0 2px; cursor:pointer;}
+  .qchips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;}
+  .qchip{border:1px solid var(--border); background:var(--bg); color:var(--ink); border-radius:14px; padding:5px 10px; font-size:.74rem; font-weight:700; font-family:inherit; cursor:pointer;}
+  .pv{display:block; min-height:1.1em; margin-bottom:10px; font-size:.75rem; color:var(--sub);}
+  .pv.bad{color:var(--red); font-weight:700;}
   .addtime{border:1px solid var(--border); background:var(--bg); color:var(--blue); font-weight:700; font-size:.74rem; border-radius:16px; padding:5px 11px; font-family:inherit; cursor:pointer;}
   .slot-head,.slot-row{display:grid; grid-template-columns:46px 1fr 1fr; gap:6px; align-items:stretch;}
   .slot-head{font-size:.66rem; font-weight:700; color:var(--sub); text-transform:uppercase; margin-bottom:4px;}
@@ -522,6 +526,54 @@ const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábad
 const toHora = v => String(v||'').replace(':','h');          // "15:30" -> "15h30"
 const toInput = h => String(h||'').replace('h',':');         // "15h30" -> "15:30"
 const validHora = h => /^([01]\d|2[0-3])h[0-5]\d$/.test(h);
+/* Campos de texto (en celular los selectores nativos de fecha/hora estorban): se escribe directo. */
+function parseHora(v){
+  const t = String(v||'').trim().toLowerCase();
+  let h, mi, m = t.match(/^(\d{1,2})\s*[:.h]\s*(\d{2})$/);
+  if(m){ h = m[1]; mi = m[2]; }
+  else{
+    const d = t.replace(/\D/g,'');
+    if(!d || d.length > 4 || /\D/.test(t.replace(/[:.h\s]/g,''))) return '';
+    if(d.length <= 2){ h = d; mi = '00'; } else if(d.length === 3){ h = d[0]; mi = d.slice(1); } else { h = d.slice(0,2); mi = d.slice(2); }
+  }
+  const r = String(+h).padStart(2,'0') + 'h' + mi;
+  return validHora(r) ? r : '';
+}
+function parseDia(v){
+  const t = String(v||'').trim();
+  let d, mo, m = t.match(/^(\d{1,2})\s*[\/\-. ]\s*(\d{1,2})(?:\s*[\/\-. ]\s*\d{2,4})?$/);
+  if(m){ d = +m[1]; mo = +m[2]; }
+  else if(/^\d{3,4}$/.test(t)){ if(t.length === 4){ d = +t.slice(0,2); mo = +t.slice(2); } else { d = +t[0]; mo = +t.slice(1); } }
+  else return '';
+  const dt = new Date(Date.UTC(2026, mo-1, d));
+  return (mo >= 1 && mo <= 12 && dt.getUTCMonth() === mo-1 && dt.getUTCDate() === d) ? dt.toISOString().slice(0,10) : '';
+}
+const ddmm = iso => iso.slice(8,10) + '/' + iso.slice(5,7);
+const diaLabel = iso => { const dt = new Date(iso+'T00:00:00Z'); return DIAS[dt.getUTCDay()] + ' ' + dt.getUTCDate() + ' de ' + MESES[dt.getUTCMonth()]; };
+function diaFieldHTML(id, iso, f){
+  const fri = defaultFridayISO(f), add = n => new Date(new Date(fri+'T00:00:00Z').getTime()+n*864e5).toISOString().slice(0,10);
+  return `<label class="fld">Día (día/mes, ej. 10/10)<input type="text" id="${id}" class="teamsel" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="dd/mm" style="margin-bottom:4px" value="${iso ? ddmm(iso) : ''}"></label>
+    <div class="qchips">${[0,1,2].map(n=>`<button type="button" class="qchip" data-fill="${id}" data-v="${ddmm(add(n))}">${['Vie','Sáb','Dom'][n]} ${ddmm(add(n))}</button>`).join('')}</div>
+    <small class="pv" id="${id}Pv"></small>`;
+}
+function horaFieldHTML(id, hora){
+  return `<label class="fld">Hora (ej. 15:30 o 1530)<input type="text" id="${id}" class="teamsel" inputmode="numeric" autocomplete="off" maxlength="5" placeholder="HH:MM" style="margin-bottom:4px" value="${hora ? toInput(hora) : ''}"></label>
+    <div class="qchips">${['09:00','11:00','14:00','16:00','18:00','19:00','20:00','21:00'].map(h=>`<button type="button" class="qchip" data-fill="${id}" data-v="${h}">${h}</button>`).join('')}</div>
+    <small class="pv" id="${id}Pv"></small>`;
+}
+/* Conecta chips y vista previa; onChange recibe {iso, hora} ya interpretados ('' si no es válido). */
+function wireTimeFields(root, diaId, horaId, onChange){
+  const dEl = diaId && root.querySelector('#'+diaId), hEl = root.querySelector('#'+horaId);
+  const upd = ()=>{
+    const iso = dEl ? parseDia(dEl.value) : null, hora = parseHora(hEl.value);
+    if(dEl){ const pv = root.querySelector('#'+diaId+'Pv'); pv.textContent = iso ? '→ ' + diaLabel(iso) : (dEl.value ? 'Día no válido' : ''); pv.classList.toggle('bad', !iso && !!dEl.value); }
+    const pv2 = root.querySelector('#'+horaId+'Pv'); pv2.textContent = hora ? '→ ' + toInput(hora) : (hEl.value ? 'Hora no válida' : ''); pv2.classList.toggle('bad', !hora && !!hEl.value);
+    onChange({iso, hora});
+  };
+  [dEl, hEl].filter(Boolean).forEach(el=>el.addEventListener('input', upd));
+  root.querySelectorAll('.qchip').forEach(b=>b.addEventListener('click', ()=>{ root.querySelector('#'+b.dataset.fill).value = b.dataset.v; upd(); }));
+  upd();
+}
 const HORAS = ['09h00','11h00','13h00','14h00','15h00','16h00','17h00','18h00','19h00','20h00','21h00'];
 function schedKey(m){
   if(!m.estadio) return 'zz';
@@ -567,21 +619,18 @@ function openScheduleModal(id){
       <option value="">Sin asignar</option>
       <option value="San Miguel"${m.estadio==='San Miguel'?' selected':''}>Estadio San Miguel</option>
       <option value="Los Sauces"${m.estadio==='Los Sauces'?' selected':''}>Estadio Los Sauces</option></select></label>
-    <label class="fld">Día<input type="date" id="schDate" class="teamsel" style="margin-bottom:10px" value="${iso}"></label>
-    <label class="fld">Hora<input type="time" id="schHora" class="teamsel" step="300" style="margin-bottom:14px" value="${toInput(m.hora||'19h00')}"></label>
+    ${diaFieldHTML('schDate', iso, m.fecha)}
+    ${horaFieldHTML('schHora', m.hora||'19h00')}
     <button class="close-btn" id="schSave" style="background:var(--gold);color:#3a2400;border-color:transparent">Guardar</button>
     ${m.estadio?'<button class="close-btn" id="schClear">Quitar horario</button>':''}
     <button class="close-btn" id="schDel" style="color:var(--red)">🗑 Eliminar este partido del torneo</button>
     <button class="close-btn" id="schCancel">Cancelar</button>
   </div></div>`;
   const done = msg=>{ closeModal(); renderAll(); toast(msg); };
-  const updTime = ()=>{
-    const d = modalRoot.querySelector('#schDate').value, hora = toHora(modalRoot.querySelector('#schHora').value);
-    if(!d){ modalRoot.querySelector('#schTimeInfo').textContent=''; return; }
-    const dia = DIAS[new Date(d+'T00:00:00Z').getUTCDay()];
-    modalRoot.querySelector('#schTimeInfo').innerHTML = '🕒 ' + timeWarn(m,dia,hora);
-  };
-  ['#schDate','#schHora'].forEach(q=>['change','input'].forEach(ev=>modalRoot.querySelector(q).addEventListener(ev, updTime))); updTime();
+  wireTimeFields(modalRoot, 'schDate', 'schHora', ({iso:d, hora})=>{
+    const info = modalRoot.querySelector('#schTimeInfo');
+    info.innerHTML = (d && hora) ? '🕒 ' + timeWarn(m, DIAS[new Date(d+'T00:00:00Z').getUTCDay()], hora) : '';
+  });
   modalRoot.querySelector('#schCancel').addEventListener('click', closeModal);
   modalRoot.querySelector('#schDel').addEventListener('click', ()=>deleteMatch(id));
   modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
@@ -589,11 +638,11 @@ function openScheduleModal(id){
   if(clr) clr.addEventListener('click', ()=>{ delete m.estadio; delete m.dia; delete m.fechaCal; delete m.hora; saveState(); done('Horario quitado'); });
   modalRoot.querySelector('#schSave').addEventListener('click', ()=>{
     const est = modalRoot.querySelector('#schEst').value;
-    const d = modalRoot.querySelector('#schDate').value;
-    const hora = toHora(modalRoot.querySelector('#schHora').value);
-    if(!validHora(hora)){ toast('Escribe una hora válida'); return; }
+    const d = parseDia(modalRoot.querySelector('#schDate').value);
+    const hora = parseHora(modalRoot.querySelector('#schHora').value);
     if(!est){ toast('Elige un estadio'); return; }
-    if(!d){ toast('Elige un día'); return; }
+    if(!d){ toast('Escribe un día válido, por ejemplo 10/10'); return; }
+    if(!hora){ toast('Escribe una hora válida, por ejemplo 15:30'); return; }
     const dt = new Date(d+'T00:00:00Z');
     const dia = DIAS[dt.getUTCDay()], fechaCal = `${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`;
     const clash = state.matches.find(x=>x.id!==id && x.estadio===est && x.fechaCal===fechaCal && x.hora===hora);
@@ -986,20 +1035,21 @@ function applySlot(m, est, iso, hora){
   const dt = new Date(iso+'T00:00:00Z');
   Object.assign(m,{estadio:est, dia:DIAS[dt.getUTCDay()], fechaCal:`${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`, hora});
 }
-function openSlotModal(f, est0, iso, hora0){
-  const dt = new Date(iso+'T00:00:00Z');
-  const fechaCal = `${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`;
-  const diaN = DIAS[dt.getUTCDay()];
+function openSlotModal(f, est0, iso0, hora0){
+  let iso = iso0, dt, fechaCal, diaN, dayOk = true;
+  const setDay = v=>{ iso = v; dt = new Date(iso+'T00:00:00Z'); fechaCal = `${dt.getUTCDate()} de ${MESES[dt.getUTCMonth()]}`; diaN = DIAS[dt.getUTCDay()]; };
+  setDay(iso0);
   const games = gamesInFecha(f);
   const editing = est0 ? games.find(m=>m.estadio===est0 && m.fechaCal===fechaCal && m.hora===hora0) : null; // partido de la casilla tocada
   let est = est0 || 'San Miguel', hora = hora0 || '15h00';
   const occAt = ()=>games.find(m=>m.estadio===est && m.fechaCal===fechaCal && m.hora===hora);
   modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
-    <h3>${diaN} ${fechaCal} · Fecha ${f}</h3>
-    <p class="sub">Elige estadio y hora exacta${editing?`. Estás cambiando <b>${editing.home} vs ${editing.away}</b>`:''}.</p>
+    <h3>Fecha ${f}</h3>
+    <p class="sub">Elige estadio, día y hora exacta${editing?`. Estás cambiando <b>${editing.home} vs ${editing.away}</b>`:''}.</p>
     <label class="fld">Estadio<select id="slEst" class="teamsel" style="margin-bottom:10px">
       <option${est==='San Miguel'?' selected':''}>San Miguel</option><option${est==='Los Sauces'?' selected':''}>Los Sauces</option></select></label>
-    <label class="fld">Hora<input type="time" id="slHora" class="teamsel" step="300" style="margin-bottom:10px" value="${toInput(hora)}"></label>
+    ${diaFieldHTML('slDia', iso, f)}
+    ${horaFieldHTML('slHora', hora)}
     <div id="slBody"></div>
     <button class="close-btn" id="slotCancel">Cancelar</button></div></div>`;
   const finish = msg=>{ saveState(); closeModal(); renderAll(); toast(msg); };
@@ -1012,7 +1062,7 @@ function openSlotModal(f, est0, iso, hora0){
   };
   function draw(){
     const key = est==='San Miguel' ? 'sm' : 'sauces', dia3 = diaN.slice(0,3), occ = occAt();
-    const valid = validHora(hora);
+    const valid = dayOk && validHora(hora);
     const opt = m=>{
       const cH = stadiumCounts(m.home, m.id), cA = stadiumCounts(m.away, m.id);
       const where = m.estadio ? `<span class="warn" style="color:var(--sub)">${m.estadio==='San Miguel'?'S. Miguel':'Sauces'} ${m.hora}</span>` : '';
@@ -1033,9 +1083,9 @@ function openSlotModal(f, est0, iso, hora0){
     const dl = body.querySelector('#slDel'); if(dl) dl.addEventListener('click', ()=>deleteMatch(editing.id));
     const cl = body.querySelector('#slClear'); if(cl) cl.addEventListener('click', ()=>{ delete editing.estadio; delete editing.dia; delete editing.fechaCal; delete editing.hora; finish('Horario liberado'); });
   }
-  const estEl = modalRoot.querySelector('#slEst'), horaEl = modalRoot.querySelector('#slHora');
+  const estEl = modalRoot.querySelector('#slEst');
   estEl.addEventListener('change', ()=>{ est = estEl.value; draw(); });
-  ['input','change'].forEach(ev=>horaEl.addEventListener(ev, ()=>{ hora = toHora(horaEl.value); draw(); }));
+  wireTimeFields(modalRoot, 'slDia', 'slHora', ({iso:d, hora:h})=>{ dayOk = !!d; if(d) setDay(d); hora = h; draw(); });
   modalRoot.querySelector('#slotCancel').addEventListener('click', closeModal);
   modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
   draw();
