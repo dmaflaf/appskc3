@@ -369,7 +369,7 @@ const GH = 'https://api.github.com', GFILE = 'keeper-cup-3.json', GDESC = 'Keepe
 const CLOUD_KEY = 'kc3_github_v1';
 const cloud = {c:null, busy:false, dirty:false, t:0, pendingRender:false};
 try{ const raw = localStorage.getItem(CLOUD_KEY); if(raw) cloud.c = JSON.parse(raw); }catch(e){}
-const CLOUD_LABEL = {local:'💾 Solo en este dispositivo · toca para conectar la nube', connecting:'☁️ Conectando…', pending:'☁️ Cambios pendientes…', saving:'☁️ Sincronizando…', ok:'☁️ Guardado en la nube', token:'⚠️ Token vencido · toca para reconectar', perm:'⚠️ El token no tiene permiso gist · toca para ver', net:'⚠️ Sin internet o GitHub no responde · reintentando', error:'⚠️ Error de nube · toca para ver el detalle'};
+const CLOUD_LABEL = {local:'💾 Solo en este dispositivo · toca para conectar la nube', connecting:'☁️ Conectando…', pending:'☁️ Cambios pendientes…', saving:'☁️ Sincronizando…', ok:'☁️ Guardado en la nube', token:'⚠️ Token vencido · toca para reconectar', perm:'⚠️ El token no tiene permiso gist · toca para ver', rate:'⏳ GitHub pidió esperar (límite de uso) · se reintenta solo', net:'⚠️ Sin internet o GitHub no responde · reintentando', error:'⚠️ Error de nube · toca para ver el detalle'};
 const horaNow = () => new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit',hour12:false});
 function setCloudStatus(st, extra){ const b = document.getElementById('cloudBadge'); if(b) b.textContent = (CLOUD_LABEL[st] || CLOUD_LABEL.local) + (extra ? ' ' + extra : ''); }
 function docOf(m){
@@ -398,7 +398,7 @@ async function gh(path, opts = {}){
   try{
     return await fetch(GH + path, {
       method: opts.method || 'GET',
-      headers: Object.assign({'Authorization':'Bearer '+cloud.c.t, 'Accept':'application/vnd.github+json'}, opts.body ? {'Content-Type':'application/json'} : {}),
+      headers: Object.assign({'Authorization':'Bearer '+cloud.c.t, 'Accept':'application/vnd.github+json'}, opts.body ? {'Content-Type':'application/json'} : {}, opts.headers || {}),
       body: opts.body ? JSON.stringify(opts.body) : undefined, signal: ctl.signal, cache:'no-store' });
   }catch(err){ const e = new Error('net'); e.detail = String(err && err.message || err); throw e;
   } finally { clearTimeout(to); }
@@ -406,21 +406,30 @@ async function gh(path, opts = {}){
 async function ghFail(r){
   const e = new Error(r.status === 401 ? 'token' : r.status === 404 ? 'nogist' : r.status === 403 ? 'perm' : 'http ' + r.status);
   e.status = r.status;
-  try{ e.scopes = r.headers.get('x-oauth-scopes'); e.remaining = r.headers.get('x-ratelimit-remaining'); }catch(x){}
+  try{ e.scopes = r.headers.get('x-oauth-scopes'); e.remaining = r.headers.get('x-ratelimit-remaining'); e.reset = Number(r.headers.get('x-ratelimit-reset')) || 0; e.retryAfter = Number(r.headers.get('retry-after')) || 0; }catch(x){}
   try{ const j = await r.clone().json(); e.detail = j && j.message; }catch(x){}
+  if(r.status === 429 || (r.status === 403 && (e.remaining === '0' || /rate limit/i.test(e.detail || '')))) e.message = 'rate';
   throw e;
 }
 async function gistRead(){
-  const r = await gh('/gists/' + cloud.c.g); if(!r.ok) await ghFail(r);
+  // Con ETag, si nada cambió GitHub responde 304 y esa consulta no cuenta contra el límite de uso.
+  const r = await gh('/gists/' + cloud.c.g, {headers: cloud.etag ? {'If-None-Match': cloud.etag} : {}});
+  if(r.status === 304 && cloud.lastRemote !== undefined) return cloud.lastRemote;
+  if(!r.ok) await ghFail(r);
   const j = await r.json(), f = j.files && j.files[GFILE];
-  if(!f) return null;
-  let txt = f.content;
-  if(f.truncated || txt == null) txt = await (await fetch(f.raw_url)).text();
-  return txt ? JSON.parse(txt) : null;
+  let blob = null;
+  if(f){
+    let txt = f.content;
+    if(f.truncated || txt == null) txt = await (await fetch(f.raw_url)).text();
+    blob = txt ? JSON.parse(txt) : null;
+  }
+  cloud.etag = r.headers.get('etag') || ''; cloud.lastRemote = blob;
+  return blob;
 }
 async function gistWrite(blob){
   const r = await gh('/gists/' + cloud.c.g, {method:'PATCH', body:{files:{[GFILE]:{content:JSON.stringify(blob)}}}});
   if(!r.ok) await ghFail(r);
+  cloud.etag = ''; cloud.lastRemote = undefined;
 }
 async function findGist(token){
   const prev = cloud.c; cloud.c = {t:token};
@@ -507,6 +516,7 @@ function mergeBlob(blob){
 }
 function cloudErrorText(e){
   const m = (e && e.message) || '';
+  if(m === 'rate'){ const at = e.reset ? new Date(e.reset*1000).toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit',hour12:false}) : ''; return 'GitHub pausó las consultas por haber superado el límite de uso (no es problema del token)' + (at ? '. Se reintenta solo a las ' + at : '. Se reintenta solo en unos minutos') + '. Cierra las demás pestañas de esta página para no gastar más.'; }
   if(m === 'token') return 'GitHub rechazó el token (401): venció o fue revocado. Crea uno nuevo y pégalo de nuevo.';
   if(m === 'perm'){
     const t = (cloud.c && cloud.c.t) || '', parts = ['GitHub respondió 403' + (e.detail ? ' («' + e.detail + '»)' : '') + '.'];
@@ -539,7 +549,7 @@ async function cloudSync(manual){
       }
       if(r.needPush || !remote) await gistWrite(blobOf());
     }while(cloud.dirty);
-    cloud.lastError = ''; setCloudStatus('ok', horaNow());
+    cloud.lastError = ''; cloud.fails = 0; clearTimeout(cloud.retryT); cloud.retryT = 0; setCloudStatus('ok', horaNow());
     if(manual) toast('Todo sincronizado');
   }catch(e){
     console.error('Nube:', e);
@@ -552,11 +562,16 @@ async function cloudSync(manual){
         cloud.busy = false; setTimeout(()=>cloudSync(manual), 300); return;
       }catch(e2){ e = e2; }
     }
-    const st = e.message === 'token' ? 'token' : e.message === 'perm' ? 'perm' : e.message === 'net' ? 'net' : 'error';
+    const st = e.message === 'token' ? 'token' : e.message === 'perm' ? 'perm' : e.message === 'rate' ? 'rate' : e.message === 'net' ? 'net' : 'error';
     cloud.lastError = cloudErrorText(e);
     setCloudStatus(st);
     if(manual) toast(cloud.lastError);
-    if(st !== 'token' && st !== 'perm') setTimeout(()=>cloudSync(), 15000);
+    if(st !== 'token' && st !== 'perm'){
+      cloud.fails = (cloud.fails || 0) + 1;
+      let wait = Math.min(15000 * Math.pow(2, cloud.fails - 1), 600000);   // 15 s, 30 s, 1 min … máx. 10 min
+      if(st === 'rate'){ const until = e.reset ? e.reset*1000 - Date.now() + 5000 : (e.retryAfter ? e.retryAfter*1000 : 0); wait = Math.max(wait, Math.min(Math.max(until, 60000), 3700000)); }
+      clearTimeout(cloud.retryT); cloud.retryT = setTimeout(()=>{ cloud.retryT = 0; cloudSync(); }, wait);   // un solo reintento pendiente a la vez
+    }
   }finally{ cloud.busy = false; }
 }
 function saveState(){
@@ -1657,7 +1672,7 @@ function openCloudModal(){
   modalRoot.querySelector('#cClose').addEventListener('click', closeModal);
   modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
   if(on){
-    modalRoot.querySelector('#cSync').addEventListener('click', ()=>{ closeModal(); cloudSync(true); });
+    modalRoot.querySelector('#cSync').addEventListener('click', ()=>{ closeModal(); clearTimeout(cloud.retryT); cloud.retryT = 0; cloudSync(true); });
     modalRoot.querySelector('#cCode').addEventListener('click', ()=>{
       const code = 'KC3.' + btoa(JSON.stringify(cloud.c));
       (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(()=>toast('Código copiado. Es como una contraseña: no lo compartas.'), ()=>{
@@ -1674,8 +1689,8 @@ function openCloudModal(){
 document.getElementById('cloudBadge').addEventListener('click', openCloudModal);
 document.getElementById('restoreBtn').addEventListener('click', restoreDeleted);
 if(cloud.c){ setCloudStatus('connecting'); cloudSync(); } else setCloudStatus('local');
-setInterval(()=>{ if(cloud.c && !document.hidden && !cloud.t) cloudSync(); }, 30000);
-document.addEventListener('visibilitychange', ()=>{ if(cloud.c && !document.hidden) cloudSync(); });
+setInterval(()=>{ if(cloud.c && !document.hidden && !cloud.t && !cloud.retryT) cloudSync(); }, 60000);
+document.addEventListener('visibilitychange', ()=>{ if(cloud.c && !document.hidden && !cloud.retryT) cloudSync(); });
 </script>
 
 </body>
