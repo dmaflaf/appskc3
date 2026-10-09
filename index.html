@@ -1604,7 +1604,7 @@ document.addEventListener('focusout', e=>{
 });
 
 /* ---- Conectar la nube ---- */
-const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Keeper%20Cup%203';
+const tokenUrl = ()=>'https://github.com/settings/tokens/new?scopes=gist&description=' + encodeURIComponent('Keeper Cup 3 nube ' + Math.random().toString(36).slice(2,6));
 async function connectCloud(raw){
   raw = String(raw || '').replace(/\s+/g, '');
   let c = null;
@@ -1635,7 +1635,7 @@ function openCloudModal(){
       <button class="close-btn" id="cCode">Copiar código para otro dispositivo</button>
       <button class="close-btn" id="cOff" style="color:var(--red)">Desconectar este dispositivo</button>`
     : `<p class="sub">Hoy este dispositivo guarda solo para sí. Conecta tu GitHub una vez y quedará igual en todos.</p>
-      <p class="sub"><b>1.</b> <a href="${TOKEN_URL}" target="_blank" rel="noopener" style="color:var(--blue)">Crear token en GitHub</a> (ya trae el permiso <b>gist</b>; solo da acceso a tus gists, no a tus repositorios). Pulsa «Generate token» y cópialo.<br><b>2.</b> Pégalo aquí.<br><b>En otro dispositivo:</b> pega el código KC3 que copias desde la nube conectada.</p>
+      <p class="sub"><b>1.</b> <a href="${tokenUrl()}" target="_blank" rel="noopener" style="color:var(--blue)">Crear token en GitHub</a> (ya trae el permiso <b>gist</b>; solo da acceso a tus gists, no a tus repositorios). Pulsa «Generate token» y cópialo.<br><b>2.</b> Pégalo aquí.<br><b>En otro dispositivo:</b> pega el código KC3 que copias desde la nube conectada.</p>
       <input id="cTok" class="teamsel" style="margin-bottom:10px" placeholder="ghp_… o KC3.…" autocomplete="off" autocapitalize="off" spellcheck="false">
       <button class="close-btn" id="cGo" style="background:var(--gold);color:#3a2400;border-color:transparent">Conectar</button>`}
     <button class="close-btn" id="cClose">Cerrar</button></div></div>`;
