@@ -1594,13 +1594,13 @@ function drawClubPages(pages){
 }
 function drawSuspendedPages(pages){
   const N = currentFecha(), CY = '#38d9ff';
-  const P = newPager(pages, `SUSPENDIDOS · FECHA ${N}`, `SUSPENDIDOS · FECHA ${N} (continuación)`);
+  const P = newPager(pages, `SANCIONADOS · FECHA ${N}`, `SANCIONADOS · FECHA ${N} (continuación)`);
   const all = []; groupOrder.forEach(g=>computeSanctions(g).forEach(r=>all.push(Object.assign({g}, r))));
   const now = all.filter(r=>r.pend.includes(N)), later = all.filter(r=>(r.pend.length || r.over) && !r.pend.includes(N)), risk = all.filter(r=>r.acum === 2);
   const table = (rows, cols, rowFn, emptyMsg)=>{
     if(!rows.length){ P.need(50); const c = P.page.c; c.textAlign = 'left'; c.font = '600 22px ' + FB; c.fillStyle = '#9aa6e0'; c.fillText(emptyMsg,100,P.y+8); P.y += 44; return; }
     P.need(34 + 34); let c = P.page.c; c.textAlign = 'left'; c.font = '700 17px ' + FB; c.fillStyle = CY;
-    cols.forEach(([t,x,al])=>{ c.textAlign = al; c.fillText(t,x,P.y+12); }); P.y += 30;
+    cols.forEach(([t,x,al],ci)=>{ c.textAlign = al; if(t === ''){ c.fillStyle = ci === 3 ? '#ffd23f' : '#ff3b3b'; rr(c,x-8,P.y+2,16,22,3); c.fill(); c.fillStyle = CY; } else c.fillText(t,x,P.y+12); }); P.y += 30;
     rows.forEach((r,i)=>{ P.need(34); c = P.page.c; const cy = P.y + 17;
       if(i%2===0){ rr(c,90,cy-17,PGW-180,34,9); c.fillStyle = 'rgba(255,255,255,.05)'; c.fill(); }
       rowFn(c, r, cy); P.y += 34; });
@@ -1617,7 +1617,19 @@ function drawSuspendedPages(pages){
   };
   P.section(`SUSPENDIDOS PARA LA FECHA ${N}`);
   table(now, motivoCols, suspRow, `Ningún jugador suspendido para la Fecha ${N}.`);
-  if(later.length){ P.section('CON SANCIÓN EN FECHAS POSTERIORES'); table(later, motivoCols, suspRow, ''); }
+  // Tabla global: todos los jugadores con tarjetas, de todos los grupos
+  const glob = all.slice().sort((a,b)=> ((b.pend.length||b.over)?1:0)-((a.pend.length||a.over)?1:0) || b.total-a.total || b.r-a.r || b.y-a.y || a.g.localeCompare(b.g) || a.team.localeCompare(b.team) || a.name.localeCompare(b.name));
+  P.section(`TABLA GLOBAL DE SANCIONADOS · TODOS LOS GRUPOS (${glob.length})`);
+  const gcols = [['JUGADOR',100,'left'],['EQUIPO',345,'left'],['GR.',560,'center'],['',640,'center'],['',705,'center'],['PARTIDOS',800,'center'],['ESTADO',875,'left']];
+  table(glob, gcols, (c, r, cy)=>{
+    c.textAlign = 'left'; fitText(c,r.name,235,22,700,FB); c.fillStyle = '#ffffff'; c.fillText(r.name,100,cy+1);
+    fitText(c,r.team,205,21,600,FB); c.fillStyle = '#e6ebff'; c.fillText(r.team,345,cy+1);
+    c.textAlign = 'center'; c.font = '700 21px ' + FB; c.fillStyle = '#ff9f4a'; c.fillText(r.g,560,cy+1);
+    c.font = '800 24px ' + FB; c.fillStyle = r.y ? '#ffd23f' : 'rgba(255,255,255,.3)'; c.fillText(String(r.y),640,cy+1);
+    c.fillStyle = r.r ? '#ff6b6b' : 'rgba(255,255,255,.3)'; c.fillText(String(r.r),705,cy+1);
+    c.fillStyle = r.total ? '#ffffff' : 'rgba(255,255,255,.3)'; c.fillText(r.total ? String(r.total) : '—',800,cy+1);
+    const susp = r.pend.length || r.over; c.textAlign = 'left'; fitText(c,r.estado,225,20,700,FB); c.fillStyle = susp ? '#ff6b6b' : '#e6ebff'; c.fillText(r.estado,875,cy+1);
+  }, 'Todavía no hay tarjetas registradas.');
   P.section('EN RIESGO · ACUMULAN 2 AMARILLAS (LA 3.ª = 1 PARTIDO)');
   table(risk, [['JUGADOR',100,'left'],['EQUIPO',370,'left'],['GR.',600,'center'],['AMARILLAS',760,'center']], (c,r,cy)=>{
     c.textAlign = 'left'; fitText(c,r.name,250,22,700,FB); c.fillStyle = '#ffffff'; c.fillText(r.name,100,cy+1);
