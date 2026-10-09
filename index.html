@@ -204,7 +204,8 @@
       <span class="ttl">📋 Fechas y cruces</span>
       <span style="display:flex;gap:6px;flex-wrap:wrap"><button id="restoreBtn" class="reset-btn" hidden>↩️ Restaurar eliminados</button><button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button></span>
     </div>
-    <button class="close-btn exportPdfBtn" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 12px">📄 Exportar PDF por grupo (fixture jugado + posiciones)</button>
+    <button class="close-btn exportPdfBtn" data-mode="clubes" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para los clubes (grupos, posiciones y sancionados)</button>
+    <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 12px">💵 PDF interno: tarjetas y valores a pagar</button>
     <div class="tabbar" id="tabbar"></div>
     <div class="tabbar" id="groupbar"></div>
     <div id="fechas"></div>
@@ -225,7 +226,8 @@
 
   <section class="view" id="view-posiciones">
     <div class="section-title"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
-    <button class="close-btn exportPdfBtn" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 12px">📄 Exportar PDF por grupo (fixture jugado + posiciones)</button>
+    <button class="close-btn exportPdfBtn" data-mode="clubes" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para los clubes (grupos, posiciones y sancionados)</button>
+    <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 12px">💵 PDF interno: tarjetas y valores a pagar</button>
     <div class="counter-wrap" id="standings"></div>
     <div class="section-title" style="margin-top:8px;"><span class="ttl">💵 Tarjetas y valores por club</span> <span class="tag">🟨 $1 · 🟥 $2</span></div>
     <div class="counter-wrap" id="clubCards"></div>
@@ -1627,10 +1629,10 @@ function drawSuspendedPages(pages){
   c.fillText('Reglas: ' + REGLAS_TXT,100,P.y+8);
 }
 
-function drawStatsPages(){
+function drawStatsPages(mode){
   const pages = [], fechas = playedFechas(), upto = fechas.length ? fechas[fechas.length-1] : 0;
   const ORG = '#ff9f4a', CY = '#38d9ff', LIMIT = PGH - 80 - 30;
-  groupOrder.forEach((g, gi)=>{
+  (mode === 'clubes' ? groupOrder : []).forEach((g, gi)=>{
     const hoja = gi + 1; let page = null, y = 0;
     const open = first=>{
       const cv = document.createElement('canvas'); cv.width = PGW*PGS; cv.height = PGH*PGS;
@@ -1710,9 +1712,9 @@ function drawStatsPages(){
       }
       c.textAlign = 'left'; fitText(c,'Reglas: ' + REGLAS_TXT,1000,17,500,FB); c.fillStyle = 'rgba(200,210,255,.75)'; c.fillText('Reglas: ' + REGLAS_TXT,100,y+12); y += 30; }
   });
-  drawClubPages(pages); drawSuspendedPages(pages);
+  if(mode === 'clubes') drawSuspendedPages(pages); else drawClubPages(pages);
   const hoy = new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'});
-  pages.forEach((p,i)=>{ const c = p.c; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '600 20px ' + FB; c.fillStyle = 'rgba(200,210,255,.7)'; c.fillText(`Keeper Cup 3 · Stats · generado el ${hoy} · página ${i+1} de ${pages.length}`,PGW/2,PGH-42); });
+  pages.forEach((p,i)=>{ const c = p.c; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '600 20px ' + FB; c.fillStyle = 'rgba(200,210,255,.7)'; c.fillText(`Keeper Cup 3 · ${mode === 'clubes' ? 'Stats' : 'USO INTERNO · Tarjetas y valores'} · generado el ${hoy} · página ${i+1} de ${pages.length}`,PGW/2,PGH-42); });
   return pages.map(p=>p.cv);
 }
 async function buildPDF(pages){
@@ -1736,13 +1738,14 @@ async function buildPDF(pages){
   push(x + `trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
   return new Blob(chunks, {type:'application/pdf'});
 }
-async function exportPDF(){
+async function exportPDF(mode){
+  mode = mode === 'interno' ? 'interno' : 'clubes';
   toast('Generando PDF…');
   try{
     let fonts = [];
     try{ if(document.fonts && document.fonts.load) fonts = [document.fonts.load('italic 800 60px Saira'), document.fonts.load('700 40px Barlow'), document.fonts.load('600 40px Barlow')]; }catch(e){}
     await Promise.all([Promise.all(fonts).catch(()=>{}), logoReady]);
-    const pages = drawStatsPages(), blob = await buildPDF(pages), name = 'KeeperCup3_Stats_Grupos.pdf';
+    const pages = drawStatsPages(mode), blob = await buildPDF(pages), name = mode === 'clubes' ? 'KeeperCup3_Stats_Clubes.pdf' : 'KeeperCup3_Tarjetas_Valores_INTERNO.pdf';
     showPdfExport(pages[0].toDataURL('image/jpeg',0.8), blob, name, pages.length);
   }catch(e){ toast('No se pudo generar el PDF'); }
 }
@@ -1766,7 +1769,7 @@ function showPdfExport(url, blob, name, n){
     catch(e){ toast('No se pudo guardar. Prueba con Compartir.'); }
   });
 }
-document.querySelectorAll('.exportPdfBtn').forEach(b=>b.addEventListener('click', exportPDF));
+document.querySelectorAll('.exportPdfBtn').forEach(b=>b.addEventListener('click', ()=>exportPDF(b.dataset.mode)));
 
 /* ---- Navegación entre secciones ---- */
 const VIEWS = ['horarios','fixture','equipos','balance','posiciones'];
