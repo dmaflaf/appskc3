@@ -1231,20 +1231,20 @@ function statsPageFrame(c, first, g, hoja){
   for(let gx=0; gx<PGW; gx+=60){ c.beginPath(); c.moveTo(gx,0); c.lineTo(gx,PGH); c.stroke(); }
   for(let gy=0; gy<PGH; gy+=60){ c.beginPath(); c.moveTo(0,gy); c.lineTo(PGW,gy); c.stroke(); }
   c.textBaseline = 'middle'; c.textAlign = 'left';
-  const lh = first ? 170 : 96, lw = lh * (logoImg.naturalWidth && logoImg.naturalHeight ? logoImg.naturalWidth/logoImg.naturalHeight : 0.857), lx = 60, ly = first ? 45 : 36;
+  const lh = first ? 140 : 96, lw = lh * (logoImg.naturalWidth && logoImg.naturalHeight ? logoImg.naturalWidth/logoImg.naturalHeight : 0.857), lx = 60, ly = first ? 45 : 36;
   if(logoImg.complete && logoImg.naturalWidth){
     c.save(); rr(c,lx,ly,lw,lh,first?18:12); c.clip(); c.drawImage(logoImg,lx,ly,lw,lh); c.restore();
     rr(c,lx,ly,lw,lh,first?18:12); c.strokeStyle = '#38d9ff'; c.lineWidth = 3; c.stroke();
   }
   const tx = lx + lw + 40;
   if(first){
-    fitText(c,'KEEPER CUP 3',700,36,800,FD,'italic'); c.fillStyle = '#38d9ff'; c.fillText('KEEPER CUP 3',tx,80);
-    fitText(c,'STATS',700,128,800,FD,'italic'); c.shadowColor = 'rgba(56,140,255,.8)'; c.shadowBlur = 24; c.fillStyle = '#ffffff'; c.fillText('STATS',tx,152); c.shadowBlur = 0;
-    const sub = `HOJA ${hoja} · GRUPO ${g}`; fitText(c,sub,PGW-tx-60,46,800,FD,'italic'); c.fillStyle = '#ff9f4a'; c.fillText(sub,tx,214);
+    fitText(c,'KEEPER CUP 3',700,30,800,FD,'italic'); c.fillStyle = '#38d9ff'; c.fillText('KEEPER CUP 3',tx,68);
+    fitText(c,'STATS',700,76,800,FD,'italic'); c.shadowColor = 'rgba(56,140,255,.8)'; c.shadowBlur = 20; c.fillStyle = '#ffffff'; c.fillText('STATS',tx,116); c.shadowBlur = 0;
+    const sub = `HOJA ${hoja} · GRUPO ${g}`; fitText(c,sub,PGW-tx-60,34,800,FD,'italic'); c.fillStyle = '#ff9f4a'; c.fillText(sub,tx,166);
   }else{
     const t = `STATS · HOJA ${hoja} · GRUPO ${g} (continuación)`; fitText(c,t,PGW-tx-60,38,800,FD,'italic'); c.fillStyle = '#ffffff'; c.fillText(t,tx,84);
   }
-  const top = first ? 255 : 160;
+  const top = first ? 225 : 160;
   rr(c,50,top,PGW-100,PGH-top-80,40); c.fillStyle = 'rgba(18,28,92,.62)'; c.fill();
   c.shadowColor = '#38d9ff'; c.shadowBlur = 24; c.strokeStyle = '#38d9ff'; c.lineWidth = 4; c.stroke(); c.shadowBlur = 0;
   if(logoImg.complete && logoImg.naturalWidth){
@@ -1284,14 +1284,11 @@ function drawStatsPages(){
       let c = page.c; c.textAlign = 'left'; c.font = 'italic 800 26px ' + FD; c.fillStyle = CY; c.fillText('FECHA ' + f,100,y+14); y += 34;
       games.forEach(m=>{
         c = page.c; const sc = state.scores[m.id], has = sc && sc.h !== '' && sc.a !== '', cy = y + 18;
-        c.textAlign = 'left'; c.font = '600 19px ' + FB; c.fillStyle = ORG;
-        const dd = m.estadio ? `${(m.dia||'').slice(0,3)} ${m.fechaCal.replace(' de ',' ').split(' ').map((w,i)=>i?w.slice(0,3):w).join(' ')} · ${m.hora} · ${m.estadio==='San Miguel'?'S. Miguel':'Sauces'}` : 'Sin horario';
-        fitText(c,dd,330,19,600,FB); c.fillStyle = ORG; c.fillText(dd,100,cy);
-        c.textAlign = 'right'; fitText(c,m.home,270,25,600,FB); c.fillStyle = '#ffffff'; c.fillText(m.home,700,cy);
+        c.textAlign = 'right'; fitText(c,m.home,380,27,600,FB); c.fillStyle = '#ffffff'; c.fillText(m.home,545,cy);
         c.textAlign = 'center';
-        if(has){ rr(c,722,cy-17,76,34,10); c.fillStyle = 'rgba(56,217,255,.16)'; c.fill(); c.font = '800 27px ' + FB; c.fillStyle = '#ffffff'; c.fillText(`${sc.h} - ${sc.a}`,760,cy+1); }
-        else { c.font = 'italic 700 22px ' + FB; c.fillStyle = CY; c.fillText('vs',760,cy+1); }
-        c.textAlign = 'left'; fitText(c,m.away,270,25,600,FB); c.fillStyle = '#ffffff'; c.fillText(m.away,820,cy);
+        if(has){ rr(c,560,cy-18,80,36,10); c.fillStyle = 'rgba(56,217,255,.16)'; c.fill(); c.font = '800 28px ' + FB; c.fillStyle = '#ffffff'; c.fillText(`${sc.h} - ${sc.a}`,600,cy+1); }
+        else { c.font = 'italic 700 22px ' + FB; c.fillStyle = CY; c.fillText('vs',600,cy+1); }
+        c.textAlign = 'left'; fitText(c,m.away,380,27,600,FB); c.fillStyle = '#ffffff'; c.fillText(m.away,655,cy);
         y += 39;
       });
       y += 8;
