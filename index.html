@@ -369,7 +369,7 @@ const GH = 'https://api.github.com', GFILE = 'keeper-cup-3.json', GDESC = 'Keepe
 const CLOUD_KEY = 'kc3_github_v1';
 const cloud = {c:null, busy:false, dirty:false, t:0, pendingRender:false};
 try{ const raw = localStorage.getItem(CLOUD_KEY); if(raw) cloud.c = JSON.parse(raw); }catch(e){}
-const CLOUD_LABEL = {local:'💾 Solo en este dispositivo · toca para conectar la nube', connecting:'☁️ Conectando…', pending:'☁️ Cambios pendientes…', saving:'☁️ Sincronizando…', ok:'☁️ Guardado en la nube', token:'⚠️ Token vencido · toca para reconectar', error:'⚠️ Sin conexión · reintentando'};
+const CLOUD_LABEL = {local:'💾 Solo en este dispositivo · toca para conectar la nube', connecting:'☁️ Conectando…', pending:'☁️ Cambios pendientes…', saving:'☁️ Sincronizando…', ok:'☁️ Guardado en la nube', token:'⚠️ Token vencido · toca para reconectar', perm:'⚠️ El token no tiene permiso gist · toca para ver', net:'⚠️ Sin internet o GitHub no responde · reintentando', error:'⚠️ Error de nube · toca para ver el detalle'};
 const horaNow = () => new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit',hour12:false});
 function setCloudStatus(st, extra){ const b = document.getElementById('cloudBadge'); if(b) b.textContent = (CLOUD_LABEL[st] || CLOUD_LABEL.local) + (extra ? ' ' + extra : ''); }
 function docOf(m){
@@ -400,9 +400,10 @@ async function gh(path, opts = {}){
       method: opts.method || 'GET',
       headers: Object.assign({'Authorization':'Bearer '+cloud.c.t, 'Accept':'application/vnd.github+json'}, opts.body ? {'Content-Type':'application/json'} : {}),
       body: opts.body ? JSON.stringify(opts.body) : undefined, signal: ctl.signal, cache:'no-store' });
+  }catch(err){ const e = new Error('net'); e.detail = String(err && err.message || err); throw e;
   } finally { clearTimeout(to); }
 }
-function ghFail(r){ throw new Error(r.status === 401 ? 'token' : r.status === 404 ? 'nogist' : 'http ' + r.status); }
+function ghFail(r){ const e = new Error(r.status === 401 ? 'token' : r.status === 404 ? 'nogist' : r.status === 403 ? 'perm' : 'http ' + r.status); e.status = r.status; throw e; }
 async function gistRead(){
   const r = await gh('/gists/' + cloud.c.g); if(!r.ok) ghFail(r);
   const j = await r.json(), f = j.files && j.files[GFILE];
@@ -498,6 +499,15 @@ function mergeBlob(blob){
   }
   return {changedLocal, needPush};
 }
+function cloudErrorText(e){
+  const m = (e && e.message) || '';
+  if(m === 'token') return 'GitHub rechazó el token (401): venció o fue revocado. Crea uno nuevo y pégalo de nuevo.';
+  if(m === 'perm') return 'GitHub respondió 403: el token no tiene permiso «gist» (o se superó el límite de uso). Crea uno clásico con el permiso gist.';
+  if(m === 'nogist') return 'No se encontró el archivo en tu GitHub (404). La página intentó recuperarlo o crearlo de nuevo.';
+  if(m === 'net') return 'No se pudo llegar a GitHub (sin internet, bloqueador de anuncios o GitHub caído). ' + ((e && e.detail) || '');
+  if(/^http /.test(m)) return 'GitHub respondió con error ' + m.slice(5) + '.';
+  return 'Error interno de la página: ' + m;
+}
 async function cloudSync(manual){
   if(!cloud.c) return;
   if(cloud.busy){ cloud.dirty = true; return; }
@@ -510,17 +520,29 @@ async function cloudSync(manual){
       if(r.changedLocal){
         persistLocal(); snapshotSeen();
         const ae = document.activeElement;
-        if(ae && ae.classList && ae.classList.contains('sc')) cloud.pendingRender = true; else renderAll();
+        if(ae && ae.classList && ae.classList.contains('sc')) cloud.pendingRender = true;
+        else { try{ renderAll(); }catch(err){ console.error(err); } }
       }
       if(r.needPush || !remote) await gistWrite(blobOf());
     }while(cloud.dirty);
-    setCloudStatus('ok', horaNow());
+    cloud.lastError = ''; setCloudStatus('ok', horaNow());
     if(manual) toast('Todo sincronizado');
   }catch(e){
-    const tk = e && e.message === 'token';
-    setCloudStatus(tk ? 'token' : 'error');
-    if(manual) toast(tk ? 'El token de GitHub venció. Reconecta con uno nuevo.' : 'No se pudo conectar con la nube');
-    if(!tk) setTimeout(()=>cloudSync(), 15000);
+    console.error('Nube:', e);
+    const m = (e && e.message) || '';
+    if(m === 'nogist' && Date.now() - (cloud.healedAt || 0) > 60000){   // el archivo ya no existe: se busca o se crea de nuevo
+      cloud.healedAt = Date.now();
+      try{
+        const gid = await findGist(cloud.c.t) || await createGist(cloud.c.t);
+        cloud.c.g = gid; try{ localStorage.setItem(CLOUD_KEY, JSON.stringify(cloud.c)); }catch(x){}
+        cloud.busy = false; setTimeout(()=>cloudSync(manual), 300); return;
+      }catch(e2){ e = e2; }
+    }
+    const st = e.message === 'token' ? 'token' : e.message === 'perm' ? 'perm' : e.message === 'net' ? 'net' : 'error';
+    cloud.lastError = cloudErrorText(e);
+    setCloudStatus(st);
+    if(manual) toast(cloud.lastError);
+    if(st !== 'token' && st !== 'perm') setTimeout(()=>cloudSync(), 15000);
   }finally{ cloud.busy = false; }
 }
 function saveState(){
@@ -1607,7 +1629,9 @@ function openCloudModal(){
   modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
     <h3>☁️ Nube del torneo</h3>
     ${on ? `<p class="sub">Conectada. Los datos se guardan en un gist secreto de tu GitHub y se abren iguales en todos tus dispositivos. Se sincroniza solo cada pocos segundos.</p>
-      <button class="close-btn" id="cSync" style="background:var(--gold);color:#3a2400;border-color:transparent">Sincronizar ahora</button>
+      ${cloud.lastError ? `<p class="sub twarn">⚠️ ${esc(cloud.lastError)}</p>` : ''}
+      <button class="close-btn" id="cSync" style="background:var(--gold);color:#3a2400;border-color:transparent">${cloud.lastError ? 'Reintentar ahora' : 'Sincronizar ahora'}</button>
+      <button class="close-btn" id="cReconnect">Reconectar con un token nuevo</button>
       <button class="close-btn" id="cCode">Copiar código para otro dispositivo</button>
       <button class="close-btn" id="cOff" style="color:var(--red)">Desconectar este dispositivo</button>`
     : `<p class="sub">Hoy este dispositivo guarda solo para sí. Conecta tu GitHub una vez y quedará igual en todos.</p>
@@ -1624,6 +1648,7 @@ function openCloudModal(){
       (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(()=>toast('Código copiado. Es como una contraseña: no lo compartas.'), ()=>{
         modalRoot.querySelector('#cCode').insertAdjacentHTML('afterend', `<input class="teamsel" readonly value="${code}" onclick="this.select()" style="margin-top:8px">`); });
     });
+    modalRoot.querySelector('#cReconnect').addEventListener('click', ()=>{ cloud.c = null; try{ localStorage.removeItem(CLOUD_KEY); }catch(e){} cloud.lastError = ''; setCloudStatus('local'); openCloudModal(); });
     modalRoot.querySelector('#cOff').addEventListener('click', ()=>{ cloud.c = null; try{ localStorage.removeItem(CLOUD_KEY); }catch(e){} setCloudStatus('local'); closeModal(); toast('Nube desconectada en este dispositivo'); });
   }else{
     const go = ()=>connectCloud(modalRoot.querySelector('#cTok').value);
