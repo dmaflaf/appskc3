@@ -199,6 +199,7 @@
       <span class="ttl">📋 Fechas y cruces</span>
       <span style="display:flex;gap:6px;flex-wrap:wrap"><button id="restoreBtn" class="reset-btn" hidden>↩️ Restaurar eliminados</button><button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button></span>
     </div>
+    <button class="close-btn exportPdfBtn" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 12px">📄 Exportar PDF por grupo (fixture jugado + posiciones)</button>
     <div class="tabbar" id="tabbar"></div>
     <div class="tabbar" id="groupbar"></div>
     <div id="fechas"></div>
@@ -219,6 +220,7 @@
 
   <section class="view" id="view-posiciones">
     <div class="section-title"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
+    <button class="close-btn exportPdfBtn" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 12px">📄 Exportar PDF por grupo (fixture jugado + posiciones)</button>
     <div class="counter-wrap" id="standings"></div>
   </section>
 
@@ -891,10 +893,10 @@ function renderTeamHistory(){
 
 /* ---- Standings (tabla de posiciones) ---- */
 const standingsEl = document.getElementById('standings');
-function computeStandings(g){
+function computeStandings(g, only){
   const table = {};
   roster[g].forEach(t=> table[t] = {team:t, pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0});
-  state.matches.filter(m=>m.grupo===g).forEach(m=>{
+  state.matches.filter(m=>m.grupo===g && (!only || only.has(m.fecha))).forEach(m=>{
     const s = state.scores[m.id];
     if(!s || s.h==='' || s.a==='') return;
     const h = parseInt(s.h,10), a = parseInt(s.a,10);
@@ -1218,6 +1220,158 @@ function showExport(url, blob, name){
   });
 }
 document.getElementById('exportBtn').addEventListener('click', exportPNG);
+
+/* ---- Exportar PDF: una hoja por grupo (miembros, fixture jugado con resultados y horarios, posiciones) ---- */
+const PGW = 1200, PGH = 1697, PGS = 1.25;   // hoja A4 vertical en unidades lógicas; se dibuja a 1500x2121 px
+function playedFechas(){ return Array.from(PLAYED_FECHAS).sort((a,b)=>a-b); }
+function statsPageFrame(c, first, g, hoja){
+  const bg = c.createLinearGradient(0,0,PGW,PGH); bg.addColorStop(0,'#070b2e'); bg.addColorStop(.55,'#131060'); bg.addColorStop(1,'#1c0f55');
+  c.fillStyle = bg; c.fillRect(0,0,PGW,PGH);
+  c.strokeStyle = 'rgba(120,140,255,.09)'; c.lineWidth = 1.5;
+  for(let gx=0; gx<PGW; gx+=60){ c.beginPath(); c.moveTo(gx,0); c.lineTo(gx,PGH); c.stroke(); }
+  for(let gy=0; gy<PGH; gy+=60){ c.beginPath(); c.moveTo(0,gy); c.lineTo(PGW,gy); c.stroke(); }
+  c.textBaseline = 'middle'; c.textAlign = 'left';
+  const lh = first ? 170 : 96, lw = lh * (logoImg.naturalWidth && logoImg.naturalHeight ? logoImg.naturalWidth/logoImg.naturalHeight : 0.857), lx = 60, ly = first ? 45 : 36;
+  if(logoImg.complete && logoImg.naturalWidth){
+    c.save(); rr(c,lx,ly,lw,lh,first?18:12); c.clip(); c.drawImage(logoImg,lx,ly,lw,lh); c.restore();
+    rr(c,lx,ly,lw,lh,first?18:12); c.strokeStyle = '#38d9ff'; c.lineWidth = 3; c.stroke();
+  }
+  const tx = lx + lw + 40;
+  if(first){
+    fitText(c,'KEEPER CUP 3',700,36,800,FD,'italic'); c.fillStyle = '#38d9ff'; c.fillText('KEEPER CUP 3',tx,80);
+    fitText(c,'STATS',700,128,800,FD,'italic'); c.shadowColor = 'rgba(56,140,255,.8)'; c.shadowBlur = 24; c.fillStyle = '#ffffff'; c.fillText('STATS',tx,152); c.shadowBlur = 0;
+    const sub = `HOJA ${hoja} · GRUPO ${g}`; fitText(c,sub,PGW-tx-60,46,800,FD,'italic'); c.fillStyle = '#ff9f4a'; c.fillText(sub,tx,214);
+  }else{
+    const t = `STATS · HOJA ${hoja} · GRUPO ${g} (continuación)`; fitText(c,t,PGW-tx-60,38,800,FD,'italic'); c.fillStyle = '#ffffff'; c.fillText(t,tx,84);
+  }
+  const top = first ? 255 : 160;
+  rr(c,50,top,PGW-100,PGH-top-80,40); c.fillStyle = 'rgba(18,28,92,.62)'; c.fill();
+  c.shadowColor = '#38d9ff'; c.shadowBlur = 24; c.strokeStyle = '#38d9ff'; c.lineWidth = 4; c.stroke(); c.shadowBlur = 0;
+  if(logoImg.complete && logoImg.naturalWidth){
+    c.save(); rr(c,50,top,PGW-100,PGH-top-80,40); c.clip();
+    const ph = PGH-top-80, ar = logoImg.naturalWidth/logoImg.naturalHeight, wh = Math.min(ph*0.8,(PGW-100)*0.8/ar), ww = wh*ar;
+    c.globalAlpha = 0.07; c.drawImage(logoImg,PGW/2-ww/2,top+ph/2-wh/2,ww,wh); c.restore();
+  }
+  return top + 44;
+}
+function drawStatsPages(){
+  const pages = [], fechas = playedFechas(), upto = fechas.length ? fechas[fechas.length-1] : 0;
+  const ORG = '#ff9f4a', CY = '#38d9ff', LIMIT = PGH - 80 - 30;
+  groupOrder.forEach((g, gi)=>{
+    const hoja = gi + 1; let page = null, y = 0;
+    const open = first=>{
+      const cv = document.createElement('canvas'); cv.width = PGW*PGS; cv.height = PGH*PGS;
+      const c = cv.getContext('2d'); c.scale(PGS,PGS);
+      y = statsPageFrame(c, first, g, hoja); page = {cv, c}; pages.push(page);
+    };
+    const need = h=>{ if(y + h > LIMIT) open(false); };
+    const section = (txt)=>{ need(80); const c = page.c; c.textAlign = 'left'; fitText(c,txt,PGW-240,30,800,FD,'italic'); c.fillStyle = ORG; c.fillText(txt,100,y+16); c.strokeStyle = 'rgba(56,217,255,.35)'; c.lineWidth = 2; c.beginPath(); c.moveTo(100,y+40); c.lineTo(PGW-100,y+40); c.stroke(); y += 62; };
+    open(true);
+    // Miembros
+    section('MIEMBROS DEL GRUPO');
+    { const c = page.c, names = roster[g], cw = (PGW-200)/4;
+      names.forEach((n,i)=>{ const cx = 100 + (i%4)*cw, cy = y + Math.floor(i/4)*50 + 20;
+        rr(c,cx,cy-20,cw-14,42,14); c.fillStyle = 'rgba(56,120,255,.16)'; c.fill(); c.strokeStyle = 'rgba(56,217,255,.35)'; c.lineWidth = 1.5; c.stroke();
+        c.textAlign = 'center'; fitText(c,n,cw-44,24,700,FB); c.fillStyle = '#ffffff'; c.fillText(n,cx+(cw-14)/2,cy+1); });
+      y += Math.ceil(names.length/4)*50 + 16; }
+    // Fixture jugado
+    section(`FIXTURE · FECHAS JUGADAS${upto ? ' (1 A ' + upto + ')' : ''}`);
+    if(!fechas.length){ need(60); page.c.textAlign = 'left'; page.c.font = '600 24px ' + FB; page.c.fillStyle = '#9aa6e0'; page.c.fillText('Todavía no hay fechas jugadas.',100,y+10); y += 50; }
+    fechas.forEach(f=>{
+      const games = state.matches.filter(m=>m.fecha===f && m.grupo===g).sort((a,b)=>schedKey(a).localeCompare(schedKey(b)));
+      if(!games.length) return;
+      need(34 + games.length*39 + 10);
+      let c = page.c; c.textAlign = 'left'; c.font = 'italic 800 26px ' + FD; c.fillStyle = CY; c.fillText('FECHA ' + f,100,y+14); y += 34;
+      games.forEach(m=>{
+        c = page.c; const sc = state.scores[m.id], has = sc && sc.h !== '' && sc.a !== '', cy = y + 18;
+        c.textAlign = 'left'; c.font = '600 19px ' + FB; c.fillStyle = ORG;
+        const dd = m.estadio ? `${(m.dia||'').slice(0,3)} ${m.fechaCal.replace(' de ',' ').split(' ').map((w,i)=>i?w.slice(0,3):w).join(' ')} · ${m.hora} · ${m.estadio==='San Miguel'?'S. Miguel':'Sauces'}` : 'Sin horario';
+        fitText(c,dd,330,19,600,FB); c.fillStyle = ORG; c.fillText(dd,100,cy);
+        c.textAlign = 'right'; fitText(c,m.home,270,25,600,FB); c.fillStyle = '#ffffff'; c.fillText(m.home,700,cy);
+        c.textAlign = 'center';
+        if(has){ rr(c,722,cy-17,76,34,10); c.fillStyle = 'rgba(56,217,255,.16)'; c.fill(); c.font = '800 27px ' + FB; c.fillStyle = '#ffffff'; c.fillText(`${sc.h} - ${sc.a}`,760,cy+1); }
+        else { c.font = 'italic 700 22px ' + FB; c.fillStyle = CY; c.fillText('vs',760,cy+1); }
+        c.textAlign = 'left'; fitText(c,m.away,270,25,600,FB); c.fillStyle = '#ffffff'; c.fillText(m.away,820,cy);
+        y += 39;
+      });
+      y += 8;
+    });
+    // Posiciones
+    const rows = computeStandings(g, PLAYED_FECHAS);
+    need(62 + 34 + rows.length*40 + 10);
+    section(`TABLA DE POSICIONES${upto ? ' · HASTA FECHA ' + upto : ''}`);
+    { const c = page.c, cols = [['PJ',610],['G',668],['E',726],['P',784],['GF',846],['GC',908],['DG',970],['PTS',1050]];
+      c.textAlign = 'center'; c.font = '700 18px ' + FB; c.fillStyle = CY;
+      c.fillText('#',116,y+12); c.textAlign = 'left'; c.fillText('EQUIPO',150,y+12); c.textAlign = 'center'; cols.forEach(([t,x])=>c.fillText(t,x,y+12));
+      y += 34;
+      rows.forEach((r,i)=>{
+        const cy = y + 18;
+        if(i%2===0){ rr(c,90,cy-18,PGW-180,36,10); c.fillStyle = 'rgba(255,255,255,.05)'; c.fill(); }
+        c.textAlign = 'center'; c.font = '700 22px ' + FB; c.fillStyle = ORG; c.fillText(String(i+1),116,cy+1);
+        c.textAlign = 'left'; fitText(c,r.team,400,25,700,FB); c.fillStyle = '#ffffff'; c.fillText(r.team,150,cy+1);
+        c.textAlign = 'center'; c.font = '600 23px ' + FB; c.fillStyle = '#e6ebff';
+        [r.pj,r.g,r.e,r.p,r.gf,r.gc,(r.gf-r.gc>0?'+':'')+(r.gf-r.gc)].forEach((v,k)=>c.fillText(String(v),cols[k][1],cy+1));
+        c.font = '800 26px ' + FB; c.fillStyle = '#ffffff'; c.fillText(String(r.pts),1050,cy+1);
+        y += 40;
+      });
+      y += 10; }
+  });
+  const hoy = new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'});
+  pages.forEach((p,i)=>{ const c = p.c; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '600 20px ' + FB; c.fillStyle = 'rgba(200,210,255,.7)'; c.fillText(`Keeper Cup 3 · Stats · generado el ${hoy} · página ${i+1} de ${pages.length}`,PGW/2,PGH-42); });
+  return pages.map(p=>p.cv);
+}
+async function buildPDF(pages){
+  const enc = new TextEncoder(), chunks = [], offs = []; let off = 0;
+  const push = b=>{ const u = typeof b === 'string' ? enc.encode(b) : b; chunks.push(u); off += u.length; };
+  const obj = (id, fn)=>{ offs[id] = off; push(`${id} 0 obj\n`); fn(); push('\nendobj\n'); };
+  const n = pages.length, W = 595.28, H = 841.89;
+  push('%PDF-1.4\n');
+  obj(1, ()=>push('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2, ()=>push(`<< /Type /Pages /Kids [${pages.map((_,i)=>`${3+3*i} 0 R`).join(' ')}] /Count ${n} >>`));
+  for(let i=0;i<n;i++){
+    const pid = 3+3*i, cid = 4+3*i, iid = 5+3*i, cv = pages[i];
+    const blob = await new Promise(res=>cv.toBlob(res,'image/jpeg',0.92)), bytes = new Uint8Array(await blob.arrayBuffer());
+    const content = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
+    obj(pid, ()=>push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${iid} 0 R >> >> /Contents ${cid} 0 R >>`));
+    obj(cid, ()=>push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+    obj(iid, ()=>{ push(`<< /Type /XObject /Subtype /Image /Width ${cv.width} /Height ${cv.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`); push(bytes); push('\nendstream'); });
+  }
+  const total = 3 + 3*n, xref = off; let x = `xref\n0 ${total}\n0000000000 65535 f \n`;
+  for(let id=1; id<total; id++) x += String(offs[id]).padStart(10,'0') + ' 00000 n \n';
+  push(x + `trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(chunks, {type:'application/pdf'});
+}
+async function exportPDF(){
+  toast('Generando PDF…');
+  try{
+    let fonts = [];
+    try{ if(document.fonts && document.fonts.load) fonts = [document.fonts.load('italic 800 60px Saira'), document.fonts.load('700 40px Barlow'), document.fonts.load('600 40px Barlow')]; }catch(e){}
+    await Promise.all([Promise.all(fonts).catch(()=>{}), logoReady]);
+    const pages = drawStatsPages(), blob = await buildPDF(pages), name = 'KeeperCup3_Stats_Grupos.pdf';
+    showPdfExport(pages[0].toDataURL('image/jpeg',0.8), blob, name, pages.length);
+  }catch(e){ toast('No se pudo generar el PDF'); }
+}
+function showPdfExport(url, blob, name, n){
+  let file = null; try{ file = new File([blob], name, {type:'application/pdf'}); }catch(e){}
+  const canShare = !!(file && navigator.canShare && navigator.canShare({files:[file]}));
+  const gold = 'background:var(--gold);color:#3a2400;border-color:transparent';
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" style="width:min(520px,100%)" role="dialog" aria-modal="true">
+    <h3>PDF listo</h3>
+    <p class="sub">${n} páginas · ${(blob.size/1048576).toFixed(1)} MB · vista previa de la primera hoja</p>
+    <img src="${url}" alt="Vista previa del PDF" style="display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--border);margin:0 0 12px">
+    ${canShare?`<button class="close-btn" id="pdShare" style="${gold}">Compartir</button>`:''}
+    <button class="close-btn" id="pdSave"${canShare?'':` style="${gold}"`}>Guardar PDF</button>
+    <button class="close-btn" id="pdClose">Cerrar</button></div></div>`;
+  modalRoot.querySelector('#pdClose').addEventListener('click', closeModal);
+  modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+  const sh = modalRoot.querySelector('#pdShare');
+  if(sh) sh.addEventListener('click', ()=>{ navigator.share({files:[file], title:'Keeper Cup 3 · Stats'}).catch(err=>{ if(err && err.name !== 'AbortError') toast('No se pudo abrir Compartir. Usa Guardar PDF.'); }); });
+  modalRoot.querySelector('#pdSave').addEventListener('click', ()=>{
+    try{ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('PDF guardado'); }
+    catch(e){ toast('No se pudo guardar. Prueba con Compartir.'); }
+  });
+}
+document.querySelectorAll('.exportPdfBtn').forEach(b=>b.addEventListener('click', exportPDF));
 
 /* ---- Navegación entre secciones ---- */
 const VIEWS = ['horarios','fixture','equipos','balance','posiciones'];
