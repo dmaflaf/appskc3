@@ -242,7 +242,7 @@
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Alianza Jr.","Arapaima"],["Galacticos","Huracán"],["Cordovez","Gladiadores AZ"]],[["Alianza Jr.","Barrio Fino"],["Arapaima","Corintians"],["Cordovez","Huracán"],["Galacticos","Gladiadores AZ"]],[["Alianza Jr.","Corintians"],["Arapaima","Gladiadores AZ"],["Barrio Fino","Huracán"],["Cordovez","Galacticos"]],[["Alianza Jr.","Galacticos"],["Arapaima","Huracán"],["Barrio Fino","Cordovez"],["Corintians","Gladiadores AZ"]],[["Alianza Jr.","Huracán"],["Arapaima","Galacticos"],["Barrio Fino","Gladiadores AZ"],["Cordovez","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Sub 21"],["Templo Fit","Pecezuelos"],["Leones","Jolines"],["Libert","Real Sevilla"]],[["Jolines","Libert"],["Leones","Mandela"],["Pecezuelos","Sub 21"],["Real Sevilla","Templo Fit"]],[["Jolines","Mandela"],["Leones","Templo Fit"],["Libert","Pecezuelos"],["Real Sevilla","Sub 21"]],[["Jolines","Real Sevilla"],["Leones","Pecezuelos"],["Libert","Sub 21"],["Mandela","Templo Fit"]],[["Jolines","Templo Fit"],["Leones","Sub 21"],["Libert","Mandela"],["Pecezuelos","Real Sevilla"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Barcelona","San Andres"],["Real Potosí","San Francisco"],["Vaster","Somec"],["La Banda","Cormoran"]],[["Barcelona","Cormoran"],["La Banda","Real Potosí"],["San Andres","Somec"],["San Francisco","Vaster"]],[["Barcelona","La Banda"],["Cormoran","Real Potosí"],["San Andres","Vaster"],["San Francisco","Somec"]],[["Barcelona","San Francisco"],["Cormoran","San Andres"],["La Banda","Somec"],["Real Potosí","Vaster"]],[["Barcelona","Vaster"],["Cormoran","San Francisco"],["La Banda","San Andres"],["Real Potosí","Somec"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","Xeneise"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","Xeneise"],["America","Universitarios"]],[["Universitarios","Legacy"],["Juventus","Clowiss"],["America","Randagi"],["Xeneise","Leipzig"]],[["America","Clowiss"],["Juventus","Legacy"],["Leipzig","Universitarios"],["Randagi","Xeneise"]],[["America","Juventus"],["Clowiss","Leipzig"],["Legacy","Randagi"],["Universitarios","Xeneise"]],[["America","Legacy"],["Clowiss","Xeneise"],["Juventus","Leipzig"],["Randagi","Universitarios"]],[["America","Xeneise"],["Clowiss","Universitarios"],["Juventus","Randagi"],["Legacy","Leipzig"]]]}};
+const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Alianza Jr.","Arapaima"],["Galacticos","Huracán"],["Cordovez","Gladiadores AZ"]],[["Alianza Jr.","Barrio Fino"],["Arapaima","Corintians"],["Cordovez","Huracán"],["Galacticos","Gladiadores AZ"]],[["Alianza Jr.","Corintians"],["Arapaima","Gladiadores AZ"],["Barrio Fino","Huracán"],["Cordovez","Galacticos"]],[["Alianza Jr.","Galacticos"],["Arapaima","Huracán"],["Barrio Fino","Cordovez"],["Corintians","Gladiadores AZ"]],[["Alianza Jr.","Huracán"],["Arapaima","Galacticos"],["Barrio Fino","Gladiadores AZ"],["Cordovez","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Sub 21"],["Templo Fit","Pecezuelos"],["Leones","Jolines"],["Libert","Real Sevilla"]],[["Jolines","Libert"],["Leones","Mandela"],["Pecezuelos","Sub 21"],["Real Sevilla","Templo Fit"]],[["Jolines","Mandela"],["Leones","Templo Fit"],["Libert","Pecezuelos"],["Real Sevilla","Sub 21"]],[["Jolines","Real Sevilla"],["Leones","Pecezuelos"],["Libert","Sub 21"],["Mandela","Templo Fit"]],[["Jolines","Templo Fit"],["Leones","Sub 21"],["Libert","Mandela"],["Pecezuelos","Real Sevilla"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Barcelona","San Andres"],["Real Potosí","San Francisco"],["Vaster","Somec"],["La Banda","Cormoran"]],[["Barcelona","Cormoran"],["La Banda","Real Potosí"],["San Andres","Somec"],["San Francisco","Vaster"]],[["Barcelona","La Banda"],["Cormoran","Real Potosí"],["San Andres","Vaster"],["San Francisco","Somec"]],[["Barcelona","San Francisco"],["Cormoran","San Andres"],["La Banda","Somec"],["Real Potosí","Vaster"]],[["Barcelona","Vaster"],["Cormoran","San Francisco"],["La Banda","San Andres"],["Real Potosí","Somec"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","San José"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","San José"],["America","Universitarios"]],[["Universitarios","Legacy"],["Juventus","Clowiss"],["America","Randagi"],["San José","Leipzig"]],[["America","Clowiss"],["Juventus","Legacy"],["Leipzig","Universitarios"],["Randagi","San José"]],[["America","Juventus"],["Clowiss","Leipzig"],["Legacy","Randagi"],["Universitarios","San José"]],[["America","Legacy"],["Clowiss","San José"],["Juventus","Leipzig"],["Randagi","Universitarios"]],[["America","San José"],["Clowiss","Universitarios"],["Juventus","Randagi"],["Legacy","Leipzig"]]]}};
 
 const REAL_INFO = [
   {fecha:1, home:"Cormoran", away:"Vaster", estadio:"San Miguel", dia:"Viernes", fechaCal:"18 de septiembre", hora:"19h00"},
@@ -260,7 +260,7 @@ const REAL_INFO = [
   {fecha:1, home:"San Francisco", away:"La Banda", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"18h00"},
   {fecha:1, home:"San Andres", away:"Real Potosí", estadio:"Los Sauces", dia:"Sábado", fechaCal:"19 de septiembre", hora:"20h00"},
   {fecha:1, home:"Templo Fit", away:"Libert", estadio:"Los Sauces", dia:"Domingo", fechaCal:"20 de septiembre", hora:"17h00"},
-  {fecha:1, home:"Legacy", away:"Xeneise", estadio:"Los Sauces", dia:"Domingo", fechaCal:"20 de septiembre", hora:"19h00"},
+  {fecha:1, home:"Legacy", away:"San José", estadio:"Los Sauces", dia:"Domingo", fechaCal:"20 de septiembre", hora:"19h00"},
   {fecha:2, home:"Legacy", away:"Clowiss", estadio:"San Miguel", dia:"Viernes", fechaCal:"25 de septiembre", hora:"19h00"},
   {fecha:2, home:"Vaster", away:"La Banda", estadio:"San Miguel", dia:"Viernes", fechaCal:"25 de septiembre", hora:"21h00"},
   {fecha:2, home:"Arapaima", away:"Barrio Fino", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"11h00"},
@@ -269,7 +269,7 @@ const REAL_INFO = [
   {fecha:2, home:"Huracán", away:"Gladiadores AZ", estadio:"San Miguel", dia:"Sábado", fechaCal:"26 de septiembre", hora:"20h00"},
   {fecha:2, home:"Leones", away:"Libert", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"09h00"},
   {fecha:2, home:"Cordovez", away:"Alianza Jr.", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"11h00"},
-  {fecha:2, home:"Juventus", away:"Xeneise", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"15h00"},
+  {fecha:2, home:"Juventus", away:"San José", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"15h00"},
   {fecha:2, home:"Real Potosí", away:"Barcelona", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"17h00"},
   {fecha:2, home:"Templo Fit", away:"Sub 21", estadio:"San Miguel", dia:"Domingo", fechaCal:"27 de septiembre", hora:"19h00"},
   {fecha:2, home:"San Andres", away:"San Francisco", estadio:"Los Sauces", dia:"Viernes", fechaCal:"25 de septiembre", hora:"19h00"},
@@ -291,7 +291,7 @@ const REAL_INFO = [
   {fecha:3, home:"Juventus", away:"Clowiss", estadio:"Los Sauces", dia:"Sábado", fechaCal:"3 de octubre", hora:"18h00"},
   {fecha:3, home:"Vaster", away:"Somec", estadio:"Los Sauces", dia:"Sábado", fechaCal:"3 de octubre", hora:"20h00"},
   {fecha:3, home:"America", away:"Randagi", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"14h00"},
-  {fecha:3, home:"Xeneise", away:"Leipzig", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"16h00"},
+  {fecha:3, home:"San José", away:"Leipzig", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"16h00"},
   {fecha:3, home:"La Banda", away:"Cormoran", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"18h00"}
 ];
 const PLAYED_FECHAS = new Set([1,2,3]);
@@ -459,6 +459,7 @@ async function createGist(token){
 /* Mezcla el archivo de la nube con el estado local. Gana el cambio más reciente de cada partido. */
 function mergeBlob(blob){
   let changedLocal = false, needPush = false;
+  if(blob && renameTeamsIn(blob, false)) needPush = true;   // la nube aún tenía el nombre anterior
   const local = new Map(state.matches.map(m=>[m.id, m]));
   // 1) partidos eliminados
   const rt = (blob && blob.tomb) || {};
@@ -592,6 +593,18 @@ function saveState(){
   if(cloud.c){ clearTimeout(cloud.t); setCloudStatus('pending'); cloud.t = setTimeout(()=>cloudSync(), 1200); }
 }
 let state = loadState();
+/* Cambios de nombre de equipo: se aplican también a lo ya guardado (este dispositivo y la nube). */
+const TEAM_RENAMES = {'Xeneise':'San José'};
+const renameTeam = n => (TEAM_RENAMES[n] !== undefined ? TEAM_RENAMES[n] : n);
+function renameTeamsIn(data, bump){          // data: {matches:[], cards:{}, pagos:{}}; devuelve true si cambió algo
+  let changed = false; const now = Date.now();
+  const list = Array.isArray(data.matches) ? data.matches : [];
+  list.forEach(m=>{ const h = renameTeam(m.home), a = renameTeam(m.away); if(h !== m.home || a !== m.away){ m.home = h; m.away = a; if(bump) m.ts = now; changed = true; } });
+  ['cards','pagos'].forEach(k=>Object.values(data[k] || {}).forEach(r=>{ const t = renameTeam(r.team); if(t !== r.team){ r.team = t; if(bump) r.ts = now; changed = true; } }));
+  return changed;
+}
+state.cards = state.cards || {}; state.pagos = state.pagos || {};
+if(renameTeamsIn(state, true)){ try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }catch(e){} }
 state.locks = state.locks || {};  // fechas cerradas: fecha -> {closed, ts}
 state.pagos = state.pagos || {};  // pagos de sanciones: id -> {team, amt, note, ts, del?}
 state.cards = state.cards || {};  // tarjetas: id -> {mid, team, name, t:'A'|'R', ts, del?}
