@@ -187,6 +187,7 @@
   <button data-view="equipos">🔍 Equipos</button>
   <button data-view="balance">⚖️ Balance</button>
   <button data-view="posiciones">🏆 Posiciones</button>
+  <button data-view="clubes">🏷️ Clubes</button>
 </nav>
 
 <div class="wrap">
@@ -224,6 +225,16 @@
     <div class="counter-wrap" id="balance"></div>
   </section>
 
+  <section class="view" id="view-clubes">
+    <div class="section-title"><span class="ttl">🏷️ Sancionados por club</span></div>
+    <p class="fecha-sub" style="margin:-6px 0 10px">Elige un club para ver sus sancionados por fecha y en general, y expórtalo en PDF para enviárselo.</p>
+    <select id="clubPicker" class="teamsel" style="margin-bottom:10px"></select>
+    <label class="fecha-sub" style="display:flex;align-items:center;gap:8px;margin:0 0 10px"><input type="checkbox" id="clubMoney" checked> Incluir valores a pagar (amarilla $1, roja directa $2)</label>
+    <button class="close-btn" id="clubPdfOne" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF de este club (para enviar)</button>
+    <button class="close-btn" id="clubPdfAll" style="margin:0 0 14px">📚 PDF de todos los clubes (una hoja por club)</button>
+    <div id="clubReport"></div>
+  </section>
+
   <section class="view" id="view-posiciones">
     <div class="section-title"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
     <button class="close-btn exportPdfBtn" data-mode="clubes" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para los clubes (grupos, posiciones y sancionados)</button>
@@ -231,6 +242,7 @@
     <div class="counter-wrap" id="standings"></div>
     <div class="section-title" style="margin-top:8px;"><span class="ttl">💵 Tarjetas y valores por club</span> <span class="tag">🟨 $1 · 🟥 $2</span></div>
     <div class="counter-wrap" id="clubCards"></div>
+    <button class="close-btn" id="goClubes" style="margin:0 0 12px">🏷️ Ver sancionados por club (para enviar a cada club)</button>
     <div class="section-title" style="margin-top:8px;"><span class="ttl">🟨🟥 Tabla de sanciones</span> <span class="tag">tarjetas</span></div>
     <div class="counter-wrap" id="sanctions"></div>
   </section>
@@ -1524,6 +1536,112 @@ function openPagoModal(team){
 }
 document.getElementById('clubCards').addEventListener('click', e=>{ const b = e.target.closest('[data-pago]'); if(b) openPagoModal(b.dataset.pago); });
 
+/* ---- Sancionados por club: pantalla y PDF para enviar a cada club ---- */
+const clubUI = {team:'', money:true};
+function clubGroup(team){ return groupOrder.find(g=>roster[g].includes(team)); }
+function clubReport(team){
+  const g = clubGroup(team), N = currentFecha();
+  const players = computeSanctions(g).filter(r=>r.team === team);
+  const fechas = [];
+  state.matches.filter(m=>m.home===team || m.away===team).sort((a,b)=>a.fecha-b.fecha).forEach(m=>{
+    const cards = matchCards(m.id).filter(c=>c.team===team);
+    if(!PLAYED_FECHAS.has(m.fecha) && !cards.length) return;
+    const sc = state.scores[m.id], has = sc && sc.h !== '' && sc.a !== '';
+    fechas.push({f:m.fecha, home:m.home, away:m.away, rival:m.home===team ? m.away : m.home, score:has ? `${sc.h} - ${sc.a}` : '', cards});
+  });
+  const cc = computeClubCards(g).find(r=>r.team===team) || {y:0, r:0, dobles:0, total:0, paid:0, pend:0};
+  return {team, g, N, players, fechas, cc, now:players.filter(r=>r.pend.includes(N)), total:players.reduce((a,r)=>a+r.total,0)};
+}
+function renderClubReport(){
+  const el = document.getElementById('clubReport'); if(!el) return;
+  const sel = document.getElementById('clubPicker');
+  if(!sel.options.length) sel.innerHTML = '<option value="">Selecciona un club…</option>' + groupOrder.map(g=>`<optgroup label="${groupNames[g]}">${roster[g].map(t=>`<option value="${escAttr(t)}">${esc(t)}</option>`).join('')}</optgroup>`).join('');
+  sel.value = clubUI.team;
+  document.getElementById('clubMoney').checked = clubUI.money;
+  document.getElementById('clubPdfOne').disabled = !clubUI.team;
+  if(!clubUI.team){ el.innerHTML = '<p class="fecha-sub">Elige un club para ver sus sancionados por fecha y en general.</p>'; return; }
+  const R = clubReport(clubUI.team), cc = R.cc;
+  let h = `<div class="hist-card"><h3 style="margin:0 0 8px;font-size:1rem;display:flex;align-items:center;gap:8px;"><span class="grp-dot g-${R.g}"></span>${esc(R.team)} · ${groupNames[R.g]}</h3>
+    <p class="fecha-sub" style="margin:0 0 8px">🟨 <b>${cc.y}</b> amarillas · Dobles <b>${cc.dobles}</b> · 🟥 <b>${cc.r}</b> rojas · <b>${R.total}</b> partidos de sanción${clubUI.money ? ` · Valor <b>${money(cc.total)}</b> · Pagado <b>${money(cc.paid)}</b> · Pendiente <b style="color:${cc.pend>0?'var(--red)':'var(--green)'}">${money(cc.pend)}</b>` : ''}</p></div>`;
+  h += `<div class="section-title" style="margin-top:8px"><span class="ttl">⛔ Suspendidos para la Fecha ${R.N}</span></div>`;
+  h += R.now.length ? `<div class="pend">${R.now.map(r=>`<div class="it"><span>${esc(r.name)} <small style="color:var(--sub)">· ${esc(r.motivo)}</small></span><span><b>${esc(r.pend.map(f=>'F'+f).join(', '))}</b></span></div>`).join('')}</div>` : '<p class="fecha-sub">Ningún jugador suspendido para esta fecha.</p>';
+  h += `<div class="section-title" style="margin-top:8px"><span class="ttl">📅 Detalle por fecha</span></div>`;
+  h += R.fechas.length ? R.fechas.map(f=>`<div class="hist-card" style="padding:10px 12px;margin-bottom:8px"><div style="font-weight:700;font-size:.85rem">Fecha ${f.f} · vs ${esc(f.rival)}${f.score ? ' <span style="color:var(--sub);font-weight:600">(' + esc(f.home) + ' ' + f.score + ' ' + esc(f.away) + ')</span>' : ''}</div>${
+    f.cards.length ? f.cards.map(c=>`<div style="font-size:.85rem;margin-top:3px">${c.t==='R'?'🟥':'🟨'} ${esc(c.name)}</div>`).join('') : '<div class="fecha-sub" style="margin:3px 0 0">Sin tarjetas</div>'}</div>`).join('') : '<p class="fecha-sub">Todavía no hay fechas jugadas.</p>';
+  h += `<div class="section-title" style="margin-top:8px"><span class="ttl">📋 General por jugador</span></div>`;
+  h += R.players.length ? `<div class="grp-block"><table class="standings tbal"><thead><tr><th style="text-align:left">Jugador</th><th>🟨</th><th>🟥</th><th>Partidos</th><th style="text-align:left">Estado</th></tr></thead><tbody>${R.players.map(r=>`<tr><td class="team" style="white-space:normal">${esc(r.name)}</td><td>${r.y}</td><td>${r.r}</td><td>${r.total || '—'}</td><td style="text-align:left;${(r.pend.length||r.over)?'color:var(--red);font-weight:800':''}">${esc(r.estado)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="fecha-sub">Este club no tiene sancionados.</p>';
+  h += `<p class="fecha-sub">${REGLAS_TXT}</p>`;
+  el.innerHTML = h;
+}
+function drawClubReport(pages, team, withMoney){
+  const R = clubReport(team), cc = R.cc, CY = '#38d9ff', ORG = '#ff9f4a';
+  const P = newPager(pages, `${team.toUpperCase()} · GRUPO ${R.g}`, `${team.toUpperCase()} (continuación)`);
+  // resumen
+  P.section('SANCIONADOS DEL CLUB · RESUMEN');
+  { const boxes = [['AMARILLAS', String(cc.y), '#ffd23f'], ['DOBLES', String(cc.dobles), '#ffb347'], ['ROJAS', String(cc.r), '#ff6b6b'], ['PARTIDOS DE SANCIÓN', String(R.total), '#ffffff']];
+    if(withMoney) boxes.push(['VALOR', money(cc.total), '#ffffff'], ['PENDIENTE', money(cc.pend), cc.pend > 0 ? '#ff6b6b' : '#4ade80']);
+    const bw = (1000 - (boxes.length-1)*12) / boxes.length; P.need(110); const c = P.page.c;
+    boxes.forEach(([t,v,col],i)=>{ const x = 100 + i*(bw+12); rr(c,x,P.y,bw,92,14); c.fillStyle = 'rgba(56,120,255,.16)'; c.fill(); c.strokeStyle = 'rgba(56,217,255,.35)'; c.lineWidth = 1.5; c.stroke();
+      c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '800 36px ' + FB; c.fillStyle = col; fitText(c,v,bw-16,36,800,FB); c.fillStyle = col; c.fillText(v,x+bw/2,P.y+36);
+      fitText(c,t,bw-14,15,700,FB); c.fillStyle = CY; c.fillText(t,x+bw/2,P.y+72); });
+    P.y += 112; }
+  // suspendidos para la fecha actual
+  P.section(`SUSPENDIDOS PARA LA FECHA ${R.N}`);
+  if(!R.now.length){ P.need(44); const c = P.page.c; c.textAlign = 'left'; c.font = '600 22px ' + FB; c.fillStyle = '#9aa6e0'; c.fillText('Ningún jugador suspendido para esta fecha.',100,P.y+8); P.y += 44; }
+  R.now.forEach((r,i)=>{ P.need(36); const c = P.page.c, cy = P.y + 17;
+    rr(c,90,cy-17,PGW-180,34,9); c.fillStyle = 'rgba(255,107,107,.14)'; c.fill();
+    c.textAlign = 'left'; c.textBaseline = 'middle'; fitText(c,r.name,330,23,700,FB); c.fillStyle = '#ffffff'; c.fillText(r.name,105,cy+1);
+    fitText(c,r.motivo,330,21,600,FB); c.fillStyle = '#e6ebff'; c.fillText(r.motivo,470,cy+1);
+    c.textAlign = 'right'; c.font = '800 22px ' + FB; c.fillStyle = '#ff6b6b'; c.fillText(r.pend.map(f=>'F'+f).join(', ') + ' · ' + r.total + (r.total === 1 ? ' partido' : ' partidos'),1090,cy+1); P.y += 38; });
+  P.y += 8;
+  // detalle por fecha
+  P.section('DETALLE POR FECHA');
+  if(!R.fechas.length){ P.need(44); const c = P.page.c; c.textAlign = 'left'; c.font = '600 22px ' + FB; c.fillStyle = '#9aa6e0'; c.fillText('Todavía no hay fechas jugadas.',100,P.y+8); P.y += 44; }
+  R.fechas.forEach(f=>{
+    P.need(44 + Math.max(1, f.cards.length)*32); let c = P.page.c; c.textAlign = 'left'; c.textBaseline = 'middle';
+    c.font = 'italic 800 23px ' + FD; c.fillStyle = CY; c.fillText('FECHA ' + f.f, 100, P.y+14);
+    c.font = '600 21px ' + FB; c.fillStyle = '#e6ebff'; const t = `vs ${f.rival}` + (f.score ? `   (${f.home} ${f.score} ${f.away})` : ''); fitText(c,t,820,21,600,FB); c.fillStyle = '#e6ebff'; c.fillText(t, 250, P.y+14); P.y += 34;
+    if(!f.cards.length){ c.font = '500 19px ' + FB; c.fillStyle = 'rgba(200,210,255,.6)'; c.fillText('Sin tarjetas', 130, P.y+8); P.y += 30; }
+    f.cards.forEach(card=>{ c = P.page.c; c.fillStyle = card.t === 'R' ? '#ff3b3b' : '#ffd23f'; rr(c,130,P.y-2,14,20,3); c.fill();
+      c.textAlign = 'left'; fitText(c,card.name,700,23,600,FB); c.fillStyle = '#ffffff'; c.fillText(card.name, 160, P.y+9); P.y += 32; });
+    P.y += 8;
+  });
+  // general por jugador
+  P.section('GENERAL POR JUGADOR');
+  if(!R.players.length){ P.need(44); const c = P.page.c; c.textAlign = 'left'; c.font = '600 22px ' + FB; c.fillStyle = '#9aa6e0'; c.fillText('Este club no tiene sancionados.',100,P.y+8); P.y += 44; }
+  else{
+    P.need(34 + 34); let c = P.page.c; c.textBaseline = 'middle'; c.font = '700 17px ' + FB; c.fillStyle = CY; c.textAlign = 'left'; c.fillText('JUGADOR',100,P.y+12); c.fillText('ESTADO',680,P.y+12); c.textAlign = 'center'; c.fillText('PARTIDOS',590,P.y+12);
+    c.fillStyle = '#ffd23f'; rr(c,432,P.y+2,16,22,3); c.fill(); c.fillStyle = '#ff3b3b'; rr(c,512,P.y+2,16,22,3); c.fill(); P.y += 30;
+    R.players.forEach((r,i)=>{ P.need(34); c = P.page.c; const cy = P.y + 17, susp = r.pend.length || r.over;
+      if(i%2===0){ rr(c,90,cy-17,PGW-180,34,9); c.fillStyle = 'rgba(255,255,255,.05)'; c.fill(); }
+      c.textAlign = 'left'; fitText(c,r.name,300,23,700,FB); c.fillStyle = '#ffffff'; c.fillText(r.name,100,cy+1);
+      c.textAlign = 'center'; c.font = '800 24px ' + FB; c.fillStyle = r.y ? '#ffd23f' : 'rgba(255,255,255,.3)'; c.fillText(String(r.y),440,cy+1);
+      c.fillStyle = r.r ? '#ff6b6b' : 'rgba(255,255,255,.3)'; c.fillText(String(r.r),520,cy+1);
+      c.fillStyle = r.total ? '#ffffff' : 'rgba(255,255,255,.3)'; c.fillText(r.total ? String(r.total) : '—',590,cy+1);
+      c.textAlign = 'left'; fitText(c,r.estado,400,21,700,FB); c.fillStyle = susp ? '#ff6b6b' : '#e6ebff'; c.fillText(r.estado,680,cy+1); P.y += 34; });
+    P.y += 8;
+  }
+  P.need(44); const c = P.page.c; c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = '500 17px ' + FB; c.fillStyle = 'rgba(200,210,255,.75)'; c.fillText('Reglas: ' + REGLAS_TXT,100,P.y+8);
+}
+async function exportClubPDF(all){
+  const teams = all ? groupOrder.flatMap(g=>roster[g]) : [clubUI.team]; if(!teams[0]) return;
+  toast('Generando PDF…');
+  try{
+    let fonts = []; try{ if(document.fonts && document.fonts.load) fonts = [document.fonts.load('italic 800 60px Saira'), document.fonts.load('700 40px Barlow'), document.fonts.load('600 40px Barlow')]; }catch(e){}
+    await Promise.all([Promise.all(fonts).catch(()=>{}), logoReady]);
+    const pages = []; teams.forEach(t=>drawClubReport(pages, t, clubUI.money));
+    const hoy = new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'});
+    pages.forEach((p,i)=>{ const c = p.c; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '600 20px ' + FB; c.fillStyle = 'rgba(200,210,255,.7)'; c.fillText(`Keeper Cup 3 · Sancionados · generado el ${hoy} · página ${i+1} de ${pages.length}`,PGW/2,PGH-42); });
+    const blob = await buildPDF(pages.map(p=>p.cv)), name = all ? 'KeeperCup3_Sancionados_Todos_los_clubes.pdf' : 'KeeperCup3_Sancionados_' + teams[0].replace(/[^A-Za-z0-9]+/g,'_') + '.pdf';
+    showPdfExport(pages[0].cv.toDataURL('image/jpeg',0.8), blob, name, pages.length);
+  }catch(e){ console.error(e); toast('No se pudo generar el PDF'); }
+}
+document.getElementById('clubPicker').addEventListener('change', e=>{ clubUI.team = e.target.value; renderClubReport(); });
+document.getElementById('clubMoney').addEventListener('change', e=>{ clubUI.money = e.target.checked; renderClubReport(); });
+document.getElementById('clubPdfOne').addEventListener('click', ()=>exportClubPDF(false));
+document.getElementById('clubPdfAll').addEventListener('click', ()=>exportClubPDF(true));
+document.getElementById('goClubes').addEventListener('click', ()=>showView('clubes'));
+
 /* ---- Exportar PDF: una hoja por grupo (miembros, fixture jugado con resultados y horarios, posiciones) ---- */
 const PGW = 1200, PGH = 1697, PGS = 1.25;   // hoja A4 vertical en unidades lógicas; se dibuja a 1500x2121 px
 function playedFechas(){ return Array.from(PLAYED_FECHAS).sort((a,b)=>a-b); }
@@ -1797,7 +1915,7 @@ function showPdfExport(url, blob, name, n){
 document.querySelectorAll('.exportPdfBtn').forEach(b=>b.addEventListener('click', ()=>exportPDF(b.dataset.mode)));
 
 /* ---- Navegación entre secciones ---- */
-const VIEWS = ['horarios','fixture','equipos','balance','posiciones'];
+const VIEWS = ['horarios','fixture','equipos','balance','posiciones','clubes'];
 let activeView = 'horarios';
 try{ const v = localStorage.getItem('kc3_view'); if(VIEWS.includes(v)) activeView = v; }catch(e){}
 function showView(v){
@@ -1808,7 +1926,7 @@ function showView(v){
   window.scrollTo(0,0);
 }
 document.getElementById('viewbar').addEventListener('click', e=>{ const b = e.target.closest('button'); if(b) showView(b.dataset.view); });
-function renderAll(){ renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); renderRestore(); renderSanctions(); renderClubCards(); }
+function renderAll(){ renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); renderRestore(); renderSanctions(); renderClubCards(); renderClubReport(); }
 
 populateTeamPicker();
 renderGroupbar();
