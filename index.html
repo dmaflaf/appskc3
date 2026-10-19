@@ -205,7 +205,8 @@
       <span class="ttl">📋 Fechas y cruces</span>
       <span style="display:flex;gap:6px;flex-wrap:wrap"><button id="restoreBtn" class="reset-btn" hidden>↩️ Restaurar eliminados</button><button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button></span>
     </div>
-    <button class="close-btn exportPdfBtn" data-mode="clubes" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para los clubes (grupos, posiciones y sancionados)</button>
+    <button class="close-btn exportPdfBtn" data-mode="resultados" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para clubes: resultados y posiciones</button>
+    <button class="close-btn exportPdfBtn" data-mode="sancionados" style="margin:0 0 8px">🟨 PDF para clubes: sancionados</button>
     <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 12px">💵 PDF interno: tarjetas y valores a pagar</button>
     <div class="tabbar" id="tabbar"></div>
     <div class="tabbar" id="groupbar"></div>
@@ -237,7 +238,8 @@
 
   <section class="view" id="view-posiciones">
     <div class="section-title"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
-    <button class="close-btn exportPdfBtn" data-mode="clubes" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para los clubes (grupos, posiciones y sancionados)</button>
+    <button class="close-btn exportPdfBtn" data-mode="resultados" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para clubes: resultados y posiciones</button>
+    <button class="close-btn exportPdfBtn" data-mode="sancionados" style="margin:0 0 8px">🟨 PDF para clubes: sancionados</button>
     <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 12px">💵 PDF interno: tarjetas y valores a pagar</button>
     <div class="counter-wrap" id="standings"></div>
     <div class="section-title" style="margin-top:8px;"><span class="ttl">💵 Tarjetas y valores por club</span> <span class="tag">🟨 $1 · 🟥 $2</span></div>
@@ -1399,7 +1401,7 @@ function computeSanctions(g, only){
       let start = tf.findIndex(f=>f>ev.fecha); if(start < 0) start = tf.length; start = Math.max(start, idx);
       for(let k=0;k<ev.n;k++){
         r.total++; const f = tf[start+k];
-        if(f === undefined) r.over++; else if(PLAYED_FECHAS.has(f)) r.served++; else r.pend.push(f);
+        if(f === undefined) r.over++; else if(f <= reportUpto()) r.served++; else r.pend.push(f);
       }
       idx = start + ev.n;
     });
@@ -1477,7 +1479,11 @@ function renderSanctions(){
 /* ---- Tarjetas por club y valores a pagar (amarilla $1, roja directa $2) ---- */
 const PRECIO_AMARILLA = 1, PRECIO_ROJA = 2;
 const money = n => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
-function currentFecha(){ for(let f=1; f<=7; f++) if(!PLAYED_FECHAS.has(f)) return f; return 7; }
+/* Última fecha con resultados subidos (si todavía no hay ninguno, la última marcada como jugada). */
+function lastUploaded(){ let m = 0; state.matches.forEach(x=>{ const s = state.scores[x.id]; if(s && s.h !== '' && s.a !== '' && x.fecha > m) m = x.fecha; }); return m; }
+function reportUpto(){ return lastUploaded() || Math.max(...PLAYED_FECHAS); }
+function reportFechas(){ return Array.from({length:reportUpto()}, (_,i)=>i+1); }
+function currentFecha(){ return Math.min(7, reportUpto() + 1); }
 function paidBy(team){ return Object.values(state.pagos).filter(p=>p.team===team && !p.del).reduce((a,p)=>a+p.amt, 0); }
 function computeClubCards(g){
   const byId = new Map(state.matches.map(m=>[m.id, m])), t = {};
@@ -1545,7 +1551,7 @@ function clubReport(team){
   const fechas = [];
   state.matches.filter(m=>m.home===team || m.away===team).sort((a,b)=>a.fecha-b.fecha).forEach(m=>{
     const cards = matchCards(m.id).filter(c=>c.team===team);
-    if(!PLAYED_FECHAS.has(m.fecha) && !cards.length) return;
+    if(m.fecha > reportUpto() && !cards.length) return;
     const sc = state.scores[m.id], has = sc && sc.h !== '' && sc.a !== '';
     fechas.push({f:m.fecha, home:m.home, away:m.away, rival:m.home===team ? m.away : m.home, score:has ? `${sc.h} - ${sc.a}` : '', cards});
   });
@@ -1644,7 +1650,7 @@ document.getElementById('goClubes').addEventListener('click', ()=>showView('club
 
 /* ---- Exportar PDF: una hoja por grupo (miembros, fixture jugado con resultados y horarios, posiciones) ---- */
 const PGW = 1200, PGH = 1697, PGS = 1.25;   // hoja A4 vertical en unidades lógicas; se dibuja a 1500x2121 px
-function playedFechas(){ return Array.from(PLAYED_FECHAS).sort((a,b)=>a-b); }
+function playedFechas(){ return reportFechas(); }
 function statsPageFrame(c, first, g, hoja, custom){
   const bg = c.createLinearGradient(0,0,PGW,PGH); bg.addColorStop(0,'#070b2e'); bg.addColorStop(.55,'#131060'); bg.addColorStop(1,'#1c0f55');
   c.fillStyle = bg; c.fillRect(0,0,PGW,PGH);
@@ -1775,7 +1781,7 @@ function drawSuspendedPages(pages){
 function drawStatsPages(mode){
   const pages = [], fechas = playedFechas(), upto = fechas.length ? fechas[fechas.length-1] : 0;
   const ORG = '#ff9f4a', CY = '#38d9ff', LIMIT = PGH - 80 - 30;
-  (mode === 'clubes' ? groupOrder : []).forEach((g, gi)=>{
+  (mode === 'resultados' ? groupOrder : []).forEach((g, gi)=>{
     const hoja = gi + 1; let page = null, y = 0;
     const open = first=>{
       const cv = document.createElement('canvas'); cv.width = PGW*PGS; cv.height = PGH*PGS;
@@ -1785,16 +1791,9 @@ function drawStatsPages(mode){
     const need = h=>{ if(y + h > LIMIT) open(false); };
     const section = (txt)=>{ need(70); const c = page.c; c.textAlign = 'left'; fitText(c,txt,PGW-240,30,800,FD,'italic'); c.fillStyle = ORG; c.fillText(txt,100,y+16); c.strokeStyle = 'rgba(56,217,255,.35)'; c.lineWidth = 2; c.beginPath(); c.moveTo(100,y+40); c.lineTo(PGW-100,y+40); c.stroke(); y += 54; };
     open(true);
-    // Miembros
-    section('MIEMBROS DEL GRUPO');
-    { const c = page.c, names = roster[g], cw = (PGW-200)/4;
-      names.forEach((n,i)=>{ const cx = 100 + (i%4)*cw, cy = y + Math.floor(i/4)*50 + 20;
-        rr(c,cx,cy-20,cw-14,42,14); c.fillStyle = 'rgba(56,120,255,.16)'; c.fill(); c.strokeStyle = 'rgba(56,217,255,.35)'; c.lineWidth = 1.5; c.stroke();
-        c.textAlign = 'center'; fitText(c,n,cw-44,24,700,FB); c.fillStyle = '#ffffff'; c.fillText(n,cx+(cw-14)/2,cy+1); });
-      y += Math.ceil(names.length/4)*50 + 16; }
     // Fixture jugado (dos fechas por fila para ahorrar espacio)
-    section(`FIXTURE · FECHAS JUGADAS${upto ? ' (1 A ' + upto + ')' : ''}`);
-    if(!fechas.length){ need(60); page.c.textAlign = 'left'; page.c.font = '600 24px ' + FB; page.c.fillStyle = '#9aa6e0'; page.c.fillText('Todavía no hay fechas jugadas.',100,y+10); y += 50; }
+    section(`FIXTURE · RESULTADOS${upto ? ' (FECHAS 1 A ' + upto + ')' : ''}`);
+    if(!fechas.length){ need(60); page.c.textAlign = 'left'; page.c.font = '600 24px ' + FB; page.c.fillStyle = '#9aa6e0'; page.c.fillText('Todavía no hay resultados subidos.',100,y+10); y += 50; }
     const blocks = fechas.map(f=>({f, games:state.matches.filter(m=>m.fecha===f && m.grupo===g).sort((a,b)=>schedKey(a).localeCompare(schedKey(b)))})).filter(b=>b.games.length);
     for(let bi=0; bi<blocks.length; bi+=2){
       const pair = blocks.slice(bi, bi+2), bh = 32 + Math.max(...pair.map(b=>b.games.length))*36 + 10;
@@ -1813,7 +1812,7 @@ function drawStatsPages(mode){
       y += bh;
     }
     // Posiciones
-    const rows = computeStandings(g, PLAYED_FECHAS);
+    const rows = computeStandings(g, new Set(reportFechas()));
     need(54 + 34 + rows.length*40 + 10);
     section(`TABLA DE POSICIONES${upto ? ' · HASTA FECHA ' + upto : ''}`);
     { const c = page.c, cols = [['PJ',610],['G',668],['E',726],['P',784],['GF',846],['GC',908],['DG',970],['PTS',1050]];
@@ -1831,33 +1830,10 @@ function drawStatsPages(mode){
         y += 40;
       });
       y += 10; }
-    // Sanciones
-    { const sr = computeSanctions(g, PLAYED_FECHAS), SH = sr.length ? 34 + sr.length*34 + 34 : 40 + 34;
-      need(54 + SH); section('TABLA DE SANCIONES · TARJETAS');
-      const c = page.c;
-      if(!sr.length){ c.textAlign = 'left'; c.font = '600 22px ' + FB; c.fillStyle = '#9aa6e0'; c.fillText('Sin tarjetas registradas.',100,y+8); y += 40; }
-      else{
-        c.textAlign = 'left'; c.font = '700 18px ' + FB; c.fillStyle = CY; c.fillText('JUGADOR',100,y+12); c.fillText('EQUIPO',370,y+12); c.fillText('ESTADO',820,y+12); c.textAlign = 'center'; c.fillText('PARTIDOS',745,y+12);
-        c.fillStyle = '#ffd23f'; rr(c,579,y+3,16,22,3); c.fill(); c.fillStyle = '#ff3b3b'; rr(c,649,y+3,16,22,3); c.fill();
-        y += 30;
-        sr.forEach((r,i)=>{
-          const cy = y + 17, susp = r.pend.length || r.over;
-          if(i%2===0){ rr(c,90,cy-17,PGW-180,34,9); c.fillStyle = 'rgba(255,255,255,.05)'; c.fill(); }
-          c.textAlign = 'left'; fitText(c,r.name,260,22,700,FB); c.fillStyle = '#ffffff'; c.fillText(r.name,100,cy+1);
-          fitText(c,r.team,190,21,600,FB); c.fillStyle = '#e6ebff'; c.fillText(r.team,370,cy+1);
-          c.textAlign = 'center'; c.font = '800 24px ' + FB; c.fillStyle = r.y ? '#ffd23f' : 'rgba(255,255,255,.3)'; c.fillText(String(r.y),587,cy+1);
-          c.fillStyle = r.r ? '#ff6b6b' : 'rgba(255,255,255,.3)'; c.fillText(String(r.r),657,cy+1);
-          c.fillStyle = r.total ? '#ffffff' : 'rgba(255,255,255,.3)'; c.fillText(r.total ? String(r.total) : '—',745,cy+1);
-          c.textAlign = 'left'; fitText(c,r.estado,270,20,700,FB); c.fillStyle = susp ? '#ff6b6b' : '#e6ebff'; c.fillText(r.estado,820,cy+1);
-          y += 34;
-        });
-        y += 4;
-      }
-      c.textAlign = 'left'; fitText(c,'Reglas: ' + REGLAS_TXT,1000,17,500,FB); c.fillStyle = 'rgba(200,210,255,.75)'; c.fillText('Reglas: ' + REGLAS_TXT,100,y+12); y += 30; }
   });
-  if(mode === 'clubes') drawSuspendedPages(pages); else drawClubPages(pages);
+  if(mode === 'sancionados') drawSuspendedPages(pages); else if(mode === 'interno') drawClubPages(pages);
   const hoy = new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'2-digit',year:'numeric'});
-  pages.forEach((p,i)=>{ const c = p.c; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '600 20px ' + FB; c.fillStyle = 'rgba(200,210,255,.7)'; c.fillText(`Keeper Cup 3 · ${mode === 'clubes' ? 'Stats' : 'USO INTERNO · Tarjetas y valores'} · generado el ${hoy} · página ${i+1} de ${pages.length}`,PGW/2,PGH-42); });
+  pages.forEach((p,i)=>{ const c = p.c; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '600 20px ' + FB; c.fillStyle = 'rgba(200,210,255,.7)'; c.fillText(`Keeper Cup 3 · ${mode === 'interno' ? 'USO INTERNO · Tarjetas y valores' : mode === 'sancionados' ? 'Sancionados' : 'Resultados y posiciones'} · generado el ${hoy} · página ${i+1} de ${pages.length}`,PGW/2,PGH-42); });
   return pages.map(p=>p.cv);
 }
 async function buildPDF(pages){
@@ -1882,13 +1858,13 @@ async function buildPDF(pages){
   return new Blob(chunks, {type:'application/pdf'});
 }
 async function exportPDF(mode){
-  mode = mode === 'interno' ? 'interno' : 'clubes';
+  mode = ['resultados','sancionados','interno'].includes(mode) ? mode : 'resultados';
   toast('Generando PDF…');
   try{
     let fonts = [];
     try{ if(document.fonts && document.fonts.load) fonts = [document.fonts.load('italic 800 60px Saira'), document.fonts.load('700 40px Barlow'), document.fonts.load('600 40px Barlow')]; }catch(e){}
     await Promise.all([Promise.all(fonts).catch(()=>{}), logoReady]);
-    const pages = drawStatsPages(mode), blob = await buildPDF(pages), name = mode === 'clubes' ? 'KeeperCup3_Stats_Clubes.pdf' : 'KeeperCup3_Tarjetas_Valores_INTERNO.pdf';
+    const pages = drawStatsPages(mode), blob = await buildPDF(pages), name = mode === 'resultados' ? 'KeeperCup3_Resultados_y_Posiciones.pdf' : mode === 'sancionados' ? 'KeeperCup3_Sancionados.pdf' : 'KeeperCup3_Tarjetas_Valores_INTERNO.pdf';
     showPdfExport(pages[0].toDataURL('image/jpeg',0.8), blob, name, pages.length);
   }catch(e){ toast('No se pudo generar el PDF'); }
 }
