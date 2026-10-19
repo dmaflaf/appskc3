@@ -172,11 +172,11 @@
 
 <div class="hero">
   <h1>⚽ Keeper Cup 3</h1>
-  <p>Todo el torneo en un solo lugar: horarios por estadio, fixture por grupo con resultados, historial por equipo, balance San Miguel / Los Sauces y tabla de posiciones. Fechas 1 a 3 jugadas (datos reales); Fechas 4 a 7 por programar.</p>
+  <p id="heroTxt"></p>
   <div class="badge-row">
     <div class="badge">4 grupos · 8 equipos c/u</div>
     <div class="badge">28 partidos por grupo</div>
-    <div class="badge">7 fechas · Fechas 1 a 3 jugadas</div>
+    <div class="badge" id="heroBadge"></div>
     <div class="badge" id="cloudBadge" role="button" tabindex="0" style="cursor:pointer">💾 Solo en este dispositivo</div>
   </div>
 </div>
@@ -200,7 +200,7 @@
   </section>
 
   <section class="view" id="view-fixture">
-    <div class="note"><b>Fixture:</b> cada partido tiene dos casillas para el marcador — anota el resultado apenas se juegue (se guarda en este dispositivo). En fechas por jugar (4-7) toca el <b>nombre de un equipo</b> para cambiarle el rival, o «Programar» para asignar estadio, día y hora.</div>
+    <div class="note"><b>Fixture:</b> cada partido tiene dos casillas para el marcador — anota el resultado apenas se juegue (se guarda en este dispositivo). En fechas por jugar toca el <b>nombre de un equipo</b> para cambiarle el rival, o «Programar» para asignar estadio, día y hora.</div>
     <div class="section-title">
       <span class="ttl">📋 Fechas y cruces</span>
       <span style="display:flex;gap:6px;flex-wrap:wrap"><button id="restoreBtn" class="reset-btn" hidden>↩️ Restaurar eliminados</button><button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button></span>
@@ -249,7 +249,7 @@
     <div class="counter-wrap" id="sanctions"></div>
   </section>
 
-  <footer>Fixture por rotación circular (round-robin) a partir de los cruces reales de las Fechas 1 a 3. Todo se guarda en este dispositivo.</footer>
+  <footer>Fixture por rotación circular (round-robin) a partir de los cruces reales ya jugados. Todo se guarda en este dispositivo.</footer>
 </div>
 
 <div id="modal-root"></div>
@@ -308,7 +308,9 @@ const REAL_INFO = [
   {fecha:3, home:"San José", away:"Leipzig", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"16h00"},
   {fecha:3, home:"La Banda", away:"Cormoran", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"18h00"}
 ];
-const PLAYED_FECHAS = new Set([1,2,3]);
+const PLAYED_FECHAS = new Set([1,2,3]);   // con horario real publicado (historial fijo)
+const ULTIMA_JUGADA = 5;                  // última fecha ya jugada, aunque aún no haya resultados cargados en este dispositivo
+const DEFAULT_CLOSED = new Set([1,2,3,4,5]);  // fechas cerradas de entrada; se reabren con «Editar»
 
 const groupNames = {A:"Grupo A", B:"Grupo B", C:"Grupo C", D:"Grupo D"};
 const groupOrder = ["A","B","C","D"];
@@ -833,7 +835,7 @@ document.getElementById('resetFixtureBtn').addEventListener('click', ()=>{
 /* ---- Tabs de fecha ---- */
 const tabbar = document.getElementById('tabbar');
 const hTabbar = document.getElementById('hTabbar');
-let activeFecha = [1,2,3,4,5,6,7].find(f=>!PLAYED_FECHAS.has(f)) || 7;
+let activeFecha = Math.min(7, reportUpto() + 1);
 function renderTabs(){
   const html = [1,2,3,4,5,6,7].map(f=>{
     const games = gamesInFecha(f);
@@ -876,7 +878,7 @@ function scoreBoxes(m){
   </div>`;
 }
 /* ---- Cerrar / editar fecha: una fecha cerrada no se puede modificar hasta pulsar «Editar» ---- */
-const isClosed = f => !!(state.locks[f] && state.locks[f].closed);
+const isClosed = f => state.locks[f] ? !!state.locks[f].closed : DEFAULT_CLOSED.has(f);
 function guardClosed(f){
   if(!isClosed(f)) return false;
   toast('🔒 La Fecha ' + f + ' está cerrada. Pulsa «Editar» para modificarla.');
@@ -930,7 +932,7 @@ function renderFecha(){
   let html = `<div class="fecha-card">
     <div class="fecha-head">
       <div class="t">Fecha ${activeFecha}</div>
-      <div class="status ${isPlayed?'played':'pending'}">${isPlayed?'✓ Jugada':'Por jugar'}</div>
+      <div class="status ${(isPlayed || activeFecha<=reportUpto())?'played':'pending'}">${(isPlayed || activeFecha<=reportUpto())?'✓ Jugada':'Por jugar'}</div>
     </div>
     <p class="fecha-sub">${isPlayed ? 'Cruces, locales y horarios tal cual el horario publicado. Ya no se pueden editar.' : 'Toca el nombre de un equipo para cambiarle el rival, o «Programar» para asignar estadio, día y hora.'}</p>`;
   html += lockBar(activeFecha);
@@ -1481,7 +1483,7 @@ const PRECIO_AMARILLA = 1, PRECIO_ROJA = 2;
 const money = n => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
 /* Última fecha con resultados subidos (si todavía no hay ninguno, la última marcada como jugada). */
 function lastUploaded(){ let m = 0; state.matches.forEach(x=>{ const s = state.scores[x.id]; if(s && s.h !== '' && s.a !== '' && x.fecha > m) m = x.fecha; }); return m; }
-function reportUpto(){ return lastUploaded() || Math.max(...PLAYED_FECHAS); }
+function reportUpto(){ return lastUploaded() || ULTIMA_JUGADA; }
 function reportFechas(){ return Array.from({length:reportUpto()}, (_,i)=>i+1); }
 function currentFecha(){ return Math.min(7, reportUpto() + 1); }
 function paidBy(team){ return Object.values(state.pagos).filter(p=>p.team===team && !p.del).reduce((a,p)=>a+p.amt, 0); }
@@ -1902,7 +1904,12 @@ function showView(v){
   window.scrollTo(0,0);
 }
 document.getElementById('viewbar').addEventListener('click', e=>{ const b = e.target.closest('button'); if(b) showView(b.dataset.view); });
-function renderAll(){ renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); renderRestore(); renderSanctions(); renderClubCards(); renderClubReport(); }
+function renderHero(){
+  const n = reportUpto();
+  document.getElementById('heroTxt').textContent = `Todo el torneo en un solo lugar: horarios por estadio, fixture por grupo con resultados, historial por equipo, balance San Miguel / Los Sauces y tabla de posiciones. Fechas 1 a ${n} jugadas${n < 7 ? '; Fechas ' + (n+1) + ' a 7 por programar' : ''}.`;
+  document.getElementById('heroBadge').textContent = `7 fechas · Fechas 1 a ${n} jugadas`;
+}
+function renderAll(){ renderHero(); renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); renderRestore(); renderSanctions(); renderClubCards(); renderClubReport(); }
 
 populateTeamPicker();
 renderGroupbar();
