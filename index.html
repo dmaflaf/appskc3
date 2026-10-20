@@ -207,7 +207,8 @@
     </div>
     <button class="close-btn exportPdfBtn" data-mode="resultados" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para clubes: resultados y posiciones</button>
     <button class="close-btn exportPdfBtn" data-mode="sancionados" style="margin:0 0 8px">🟨 PDF para clubes: sancionados</button>
-    <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 12px">💵 PDF interno: tarjetas y valores a pagar</button>
+    <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 8px">💵 PDF interno: tarjetas y valores a pagar</button>
+    <button class="close-btn exportDataBtn" style="margin:0 0 12px">📦 Descargar todos los datos (JSON + CSV, para importar a otro sistema)</button>
     <div class="tabbar" id="tabbar"></div>
     <div class="tabbar" id="groupbar"></div>
     <div id="fechas"></div>
@@ -240,7 +241,8 @@
     <div class="section-title"><span class="ttl">🏆 Tabla de posiciones</span> <span class="tag">en vivo</span></div>
     <button class="close-btn exportPdfBtn" data-mode="resultados" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para clubes: resultados y posiciones</button>
     <button class="close-btn exportPdfBtn" data-mode="sancionados" style="margin:0 0 8px">🟨 PDF para clubes: sancionados</button>
-    <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 12px">💵 PDF interno: tarjetas y valores a pagar</button>
+    <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 8px">💵 PDF interno: tarjetas y valores a pagar</button>
+    <button class="close-btn exportDataBtn" style="margin:0 0 12px">📦 Descargar todos los datos (JSON + CSV, para importar a otro sistema)</button>
     <div class="counter-wrap" id="standings"></div>
     <div class="section-title" style="margin-top:8px;"><span class="ttl">💵 Tarjetas y valores por club</span> <span class="tag">🟨 $1 · 🟥 $2</span></div>
     <div class="counter-wrap" id="clubCards"></div>
@@ -1891,6 +1893,133 @@ function showPdfExport(url, blob, name, n){
   });
 }
 document.querySelectorAll('.exportPdfBtn').forEach(b=>b.addEventListener('click', ()=>exportPDF(b.dataset.mode)));
+
+/* ---- Exportar todos los datos (JSON + CSV en un ZIP) para importarlos en otro sistema ---- */
+const FORMATO = {nombre:'keeper-cup-3/export', version:1};
+function hora24(h){ return h ? h.replace('h',':') : ''; }
+function buildExport(){
+  const upto = reportUpto(), hasta = f => new Set(Array.from({length:f}, (_,i)=>i+1));
+  const byId = new Map(state.matches.map(m=>[m.id, m]));
+  const partidos = state.matches.slice().sort((a,b)=>a.fecha-b.fecha || a.grupo.localeCompare(b.grupo) || a.id.localeCompare(b.id)).map(m=>{
+    const sc = state.scores[m.id], has = !!(sc && sc.h !== '' && sc.a !== '');
+    return {id:m.id, fecha:m.fecha, grupo:m.grupo, local:m.home, visitante:m.away, estadio:m.estadio || null, dia_semana:m.dia || null,
+      fecha_texto:m.fechaCal || null, fecha_iso:m.fechaCal ? isoOf(m) : null, hora:m.hora || null, hora_24h:m.hora ? hora24(m.hora) : null,
+      goles_local:has ? Number(sc.h) : null, goles_visitante:has ? Number(sc.a) : null, resultado_cargado:has,
+      estado:has ? 'jugado' : (m.estadio ? 'programado' : 'sin_programar'), modificado_ms:m.ts || 0};
+  });
+  const tarjetas = Object.values(state.cards).filter(c=>!c.del && byId.has(c.mid)).sort((a,b)=>a.ts-b.ts).map(c=>{ const m = byId.get(c.mid);
+    return {id:c.id, partido_id:c.mid, fecha:m.fecha, grupo:m.grupo, equipo:c.team, jugador:c.name, tipo:c.t === 'R' ? 'roja_directa' : 'amarilla', registrada_ms:c.ts}; });
+  const pagos = Object.values(state.pagos).filter(p=>!p.del).sort((a,b)=>a.ts-b.ts).map(p=>({id:p.id, equipo:p.team, monto_usd:p.amt, nota:p.note || '', registrado_ms:p.ts}));
+  const posicionesDe = only => { const o = {}; groupOrder.forEach(g=>{ o[g] = computeStandings(g, only).map((r,i)=>({pos:i+1, equipo:r.team, pj:r.pj, g:r.g, e:r.e, p:r.p, gf:r.gf, gc:r.gc, dg:r.gf-r.gc, pts:r.pts})); }); return o; };
+  const posicionesFecha = {}; for(let f=1; f<=upto; f++) posicionesFecha[f] = posicionesDe(hasta(f));
+  const sanciones = []; groupOrder.forEach(g=>computeSanctions(g).forEach(r=>sanciones.push({jugador:r.name, equipo:r.team, grupo:g, amarillas:r.y, rojas_directas:r.r, partidos_de_sancion:r.total, partidos_cumplidos:r.served,
+    fechas_pendientes:r.pend, partidos_fuera_de_la_fase:r.over, amarillas_acumuladas_sueltas:r.acum, motivo:r.motivo, estado:r.estado, fechas_con_tarjeta:Array.from(r.fechas).sort((a,b)=>a-b)})));
+  const N = currentFecha();
+  const valores = []; groupOrder.forEach(g=>computeClubCards(g).forEach(r=>valores.push({equipo:r.team, grupo:g, amarillas:r.y, dobles_amarillas:r.dobles, rojas_directas:r.r, total_usd:r.total, pagado_usd:r.paid, pendiente_usd:r.pend})));
+  const fechas = []; for(let f=1; f<=7; f++) fechas.push({fecha:f, con_resultados:f <= upto, cerrada:isClosed(f), partidos:state.matches.filter(m=>m.fecha===f).length});
+  return {
+    formato:FORMATO.nombre, version_formato:FORMATO.version, exportado:new Date().toISOString(), origen:'https://dmaflaf.github.io/appskc3/',
+    torneo:{nombre:'Keeper Cup 3', fase:'Fase de grupos (todos contra todos)', grupos:groupOrder.map(g=>({id:g, nombre:groupNames[g], equipos:roster[g].slice()})), estadios:STADIUMS.slice(), total_fechas:7,
+      ultima_fecha_con_resultados:upto, fecha_actual:N, precios_usd:{amarilla:PRECIO_AMARILLA, roja_directa:PRECIO_ROJA},
+      reglas_suspension:{tres_amarillas_acumuladas:1, doble_amarilla_en_un_partido:1, roja_directa:2, texto:REGLAS_TXT}},
+    equipos:groupOrder.flatMap(g=>roster[g].map(n=>({nombre:n, grupo:g}))),
+    fechas, partidos, tarjetas, pagos, posiciones:posicionesDe(hasta(upto)), posiciones_por_fecha:posicionesFecha, sanciones,
+    suspendidos_fecha_actual:sanciones.filter(s=>s.fechas_pendientes.includes(N)), valores_por_club:valores,
+    estado_crudo:{nota:'Estado interno de la app, por si se quiere restaurar tal cual.', matches:state.matches, scores:state.scores, cards:state.cards, pagos:state.pagos, locks:state.locks, rows:state.rows, tomb:state.tomb}
+  };
+}
+function csvText(rows, cols){
+  const q = v => { v = v === null || v === undefined ? '' : Array.isArray(v) ? v.join(' ') : String(v); return /[",\n\r;]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
+  return '﻿' + [cols.join(',')].concat(rows.map(r=>cols.map(c=>q(r[c])).join(','))).join('\r\n') + '\r\n';
+}
+const CRC_T = (()=>{ const t = new Uint32Array(256); for(let n=0; n<256; n++){ let c = n; for(let k=0; k<8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = u8 => { let c = 0xFFFFFFFF; for(let i=0; i<u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function makeZip(files){     // ZIP sin compresión (método "store"), nombres UTF-8
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const d = new Date(), dosT = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), dosD = ((d.getFullYear()-1980) << 9) | ((d.getMonth()+1) << 5) | d.getDate();
+  files.forEach(f=>{
+    const name = enc.encode(f.name), data = f.data, crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30)); lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true); lh.setUint16(10,dosT,true); lh.setUint16(12,dosD,true);
+    lh.setUint32(14,crc,true); lh.setUint32(18,data.length,true); lh.setUint32(22,data.length,true); lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46)); ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true); ch.setUint16(12,dosT,true); ch.setUint16(14,dosD,true);
+    ch.setUint32(16,crc,true); ch.setUint32(20,data.length,true); ch.setUint32(24,data.length,true); ch.setUint16(28,name.length,true); ch.setUint32(42,off,true);
+    central.push(new Uint8Array(ch.buffer), name);
+    off += 30 + name.length + data.length;
+  });
+  const csize = central.reduce((a,u)=>a+u.length,0), end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true); end.setUint32(12,csize,true); end.setUint32(16,off,true);
+  return new Blob(parts.concat(central, [new Uint8Array(end.buffer)]), {type:'application/zip'});
+}
+function leemeText(x){
+  return `KEEPER CUP 3 · EXPORTACIÓN COMPLETA DE DATOS
+Generado: ${x.exportado}
+Origen: ${x.origen}
+
+CONTENIDO DEL PAQUETE
+- datos.json ............ TODO en un solo archivo (formato "${x.formato}", versión ${x.version_formato}). Es la fuente recomendada para importar.
+- equipos.csv ........... 32 equipos con su grupo.
+- partidos.csv .......... todos los partidos (7 fechas x 16): fecha, grupo, local, visitante, estadio, día, fecha, hora, goles y estado.
+- posiciones.csv ........ tabla de posiciones por grupo hasta la fecha ${x.torneo.ultima_fecha_con_resultados} (última con resultados).
+- tarjetas.csv .......... cada tarjeta amarilla / roja directa con jugador, equipo, partido y fecha.
+- sanciones.csv ......... por jugador: tarjetas, partidos de suspensión, cumplidos, fechas pendientes y estado.
+- valores_por_club.csv .. por club: amarillas, dobles, rojas, total a pagar (amarilla $${x.torneo.precios_usd.amarilla}, roja directa $${x.torneo.precios_usd.roja_directa}), pagado y pendiente.
+- pagos.csv ............. pagos registrados por club.
+Los CSV van en UTF-8 con separador coma y se abren bien en Excel / Google Sheets.
+
+CLAVES Y REGLAS PARA IMPORTAR
+- Partido: "id" estable con formato f{fecha}-{grupo}-{n}, por ejemplo f4-A-0. "estado" = jugado | programado | sin_programar.
+- Un partido "jugado" tiene goles_local y goles_visitante (null si no se ha cargado resultado).
+- Fecha y hora: fecha_iso (YYYY-MM-DD), hora_24h (HH:MM), estadio (San Miguel | Los Sauces). Pueden ser null en partidos sin programar.
+- Tarjetas: tipo = amarilla | roja_directa. Se relacionan con el partido por partido_id y con el equipo por nombre.
+- Los nombres de equipo son únicos y se usan como clave en equipos, tarjetas, pagos y tablas.
+- Suspensión: ${x.torneo.reglas_suspension.texto}. Los partidos de sanción se cumplen en los siguientes partidos del equipo; "fechas_pendientes" lista cuáles.
+- Posiciones: 3 puntos por victoria, 1 por empate; orden por puntos, diferencia de gol, goles a favor y nombre.
+- "posiciones_por_fecha" trae la tabla acumulada tras cada fecha con resultados.
+- "estado_crudo" es el estado interno de la app (matches, scores, cards, pagos, locks) por si se quiere restaurar tal cual; los campos *_ms son marcas de tiempo en milisegundos.
+
+INSTRUCCIÓN SUGERIDA PARA EL OTRO SISTEMA (copiar y pegar a Claude)
+"Importa los datos de Keeper Cup 3 desde datos.json (formato ${x.formato} v${x.version_formato}). Crea los equipos y grupos a partir de torneo.grupos, los partidos desde partidos (usa id como clave única, sin duplicar si ya existe), las tarjetas desde tarjetas, los pagos desde pagos y deriva las posiciones y sanciones de esos datos; compáralas con posiciones y sanciones del archivo para validar la importación."
+`;
+}
+async function exportDatos(){
+  try{
+    const x = buildExport(), enc = new TextEncoder(), hoy = new Date().toISOString().slice(0,10);
+    const posRows = []; groupOrder.forEach(g=>x.posiciones[g].forEach(r=>posRows.push(Object.assign({grupo:g}, r))));
+    const files = [
+      {name:'datos.json', data:enc.encode(JSON.stringify(x, null, 2))},
+      {name:'equipos.csv', data:enc.encode(csvText(x.equipos, ['nombre','grupo']))},
+      {name:'partidos.csv', data:enc.encode(csvText(x.partidos, ['id','fecha','grupo','local','visitante','estadio','dia_semana','fecha_texto','fecha_iso','hora','hora_24h','goles_local','goles_visitante','resultado_cargado','estado']))},
+      {name:'posiciones.csv', data:enc.encode(csvText(posRows, ['grupo','pos','equipo','pj','g','e','p','gf','gc','dg','pts']))},
+      {name:'tarjetas.csv', data:enc.encode(csvText(x.tarjetas, ['id','partido_id','fecha','grupo','equipo','jugador','tipo']))},
+      {name:'sanciones.csv', data:enc.encode(csvText(x.sanciones, ['jugador','equipo','grupo','amarillas','rojas_directas','partidos_de_sancion','partidos_cumplidos','fechas_pendientes','motivo','estado']))},
+      {name:'valores_por_club.csv', data:enc.encode(csvText(x.valores_por_club, ['equipo','grupo','amarillas','dobles_amarillas','rojas_directas','total_usd','pagado_usd','pendiente_usd']))},
+      {name:'pagos.csv', data:enc.encode(csvText(x.pagos, ['id','equipo','monto_usd','nota']))},
+      {name:'LEEME.txt', data:enc.encode(leemeText(x))}
+    ];
+    showDatosExport(makeZip(files), new Blob([files[0].data], {type:'application/json'}), `KeeperCup3_datos_${hoy}`, x);
+  }catch(e){ console.error(e); toast('No se pudo preparar la descarga'); }
+}
+function showDatosExport(zip, json, base, x){
+  const files = [new File([zip], base + '.zip', {type:'application/zip'}), new File([json], base + '.json', {type:'application/json'})];
+  const canShare = !!(navigator.canShare && navigator.canShare({files:[files[0]]}));
+  const gold = 'background:var(--gold);color:#3a2400;border-color:transparent';
+  const save = (blob, name)=>{ try{ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('Descarga iniciada'); }catch(e){ toast('No se pudo descargar. Prueba con Compartir.'); } };
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
+    <h3>📦 Datos completos</h3>
+    <p class="sub">${x.partidos.length} partidos · ${x.equipos.length} equipos · ${x.tarjetas.length} tarjetas · ${x.pagos.length} pagos · resultados hasta la Fecha ${x.torneo.ultima_fecha_con_resultados}.<br>El ZIP trae <b>datos.json</b> (todo en uno), 7 archivos CSV y un <b>LEEME.txt</b> con las instrucciones para importarlos.</p>
+    <button class="close-btn" id="dlZip" style="${gold}">Descargar ZIP (JSON + CSV + LEEME) · ${(zip.size/1024).toFixed(0)} KB</button>
+    <button class="close-btn" id="dlJson">Descargar solo datos.json</button>
+    ${canShare ? '<button class="close-btn" id="dlShare">Compartir el ZIP</button>' : ''}
+    <button class="close-btn" id="dlClose">Cerrar</button></div></div>`;
+  const q = s=>modalRoot.querySelector(s);
+  q('#dlZip').addEventListener('click', ()=>save(zip, base + '.zip'));
+  q('#dlJson').addEventListener('click', ()=>save(json, base + '.json'));
+  const sh = q('#dlShare'); if(sh) sh.addEventListener('click', ()=>{ navigator.share({files:[files[0]], title:'Keeper Cup 3 · datos'}).catch(err=>{ if(err && err.name !== 'AbortError') toast('No se pudo compartir. Usa Descargar.'); }); });
+  q('#dlClose').addEventListener('click', closeModal);
+  q('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+}
+document.querySelectorAll('.exportDataBtn').forEach(b=>b.addEventListener('click', exportDatos));
 
 /* ---- Navegación entre secciones ---- */
 const VIEWS = ['horarios','fixture','equipos','balance','posiciones','clubes'];
