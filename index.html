@@ -309,9 +309,41 @@ const REAL_INFO = [
   {fecha:3, home:"Vaster", away:"Somec", estadio:"Los Sauces", dia:"Sábado", fechaCal:"3 de octubre", hora:"20h00"},
   {fecha:3, home:"America", away:"Randagi", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"14h00"},
   {fecha:3, home:"San José", away:"Leipzig", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"16h00"},
-  {fecha:3, home:"La Banda", away:"Cormoran", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"18h00"}
+  {fecha:3, home:"La Banda", away:"Cormoran", estadio:"Los Sauces", dia:"Domingo", fechaCal:"4 de octubre", hora:"18h00"},
+  {fecha:4, home:"San Francisco", away:"Vaster", estadio:"San Miguel", dia:"Viernes", fechaCal:"9 de octubre", hora:"16h00"},
+  {fecha:4, home:"Pecezuelos", away:"Sub 21", estadio:"San Miguel", dia:"Viernes", fechaCal:"9 de octubre", hora:"18h00"},
+  {fecha:4, home:"Jolines", away:"Libert", estadio:"San Miguel", dia:"Viernes", fechaCal:"9 de octubre", hora:"20h00"},
+  {fecha:4, home:"Juventus", away:"Legacy", estadio:"San Miguel", dia:"Sábado", fechaCal:"10 de octubre", hora:"14h00"},
+  {fecha:4, home:"San Andres", away:"Somec", estadio:"San Miguel", dia:"Sábado", fechaCal:"10 de octubre", hora:"16h00"},
+  {fecha:4, home:"Barcelona", away:"Cormoran", estadio:"San Miguel", dia:"Sábado", fechaCal:"10 de octubre", hora:"18h00"},
+  {fecha:4, home:"America", away:"Clowiss", estadio:"San Miguel", dia:"Sábado", fechaCal:"10 de octubre", hora:"20h00"},
+  {fecha:4, home:"Alianza Jr.", away:"Barrio Fino", estadio:"San Miguel", dia:"Domingo", fechaCal:"11 de octubre", hora:"09h00"},
+  {fecha:4, home:"Randagi", away:"San José", estadio:"San Miguel", dia:"Domingo", fechaCal:"11 de octubre", hora:"11h00"},
+  {fecha:4, home:"Cordovez", away:"Huracán", estadio:"San Miguel", dia:"Domingo", fechaCal:"11 de octubre", hora:"17h00"},
+  {fecha:4, home:"Leones", away:"Mandela", estadio:"San Miguel", dia:"Domingo", fechaCal:"11 de octubre", hora:"19h00"},
+  {fecha:4, home:"La Banda", away:"Real Potosí", estadio:"Los Sauces", dia:"Viernes", fechaCal:"9 de octubre", hora:"18h00"},
+  {fecha:4, home:"Real Sevilla", away:"Templo Fit", estadio:"Los Sauces", dia:"Viernes", fechaCal:"9 de octubre", hora:"20h00"},
+  {fecha:4, home:"Galacticos", away:"Gladiadores AZ", estadio:"Los Sauces", dia:"Sábado", fechaCal:"10 de octubre", hora:"18h00"},
+  {fecha:4, home:"Arapaima", away:"Corintians", estadio:"Los Sauces", dia:"Sábado", fechaCal:"10 de octubre", hora:"20h00"},
+  {fecha:4, home:"Leipzig", away:"Universitarios", estadio:"Los Sauces", dia:"Domingo", fechaCal:"11 de octubre", hora:"17h00"},
+  {fecha:5, home:"Real Sevilla", away:"Sub 21", estadio:"San Miguel", dia:"Viernes", fechaCal:"16 de octubre", hora:"19h00"},
+  {fecha:5, home:"Cormoran", away:"Real Potosí", estadio:"San Miguel", dia:"Viernes", fechaCal:"16 de octubre", hora:"21h00"},
+  {fecha:5, home:"America", away:"Juventus", estadio:"San Miguel", dia:"Sábado", fechaCal:"17 de octubre", hora:"14h00"},
+  {fecha:5, home:"Libert", away:"Pecezuelos", estadio:"San Miguel", dia:"Sábado", fechaCal:"17 de octubre", hora:"16h00"},
+  {fecha:5, home:"Barcelona", away:"La Banda", estadio:"San Miguel", dia:"Sábado", fechaCal:"17 de octubre", hora:"18h00"},
+  {fecha:5, home:"Legacy", away:"Randagi", estadio:"San Miguel", dia:"Domingo", fechaCal:"18 de octubre", hora:"09h00"},
+  {fecha:5, home:"Arapaima", away:"Gladiadores AZ", estadio:"San Miguel", dia:"Domingo", fechaCal:"18 de octubre", hora:"11h00"},
+  {fecha:5, home:"Universitarios", away:"San José", estadio:"San Miguel", dia:"Domingo", fechaCal:"18 de octubre", hora:"13h00"},
+  {fecha:5, home:"Clowiss", away:"Leipzig", estadio:"San Miguel", dia:"Domingo", fechaCal:"18 de octubre", hora:"15h00"},
+  {fecha:5, home:"Leones", away:"Templo Fit", estadio:"San Miguel", dia:"Domingo", fechaCal:"18 de octubre", hora:"17h00"},
+  {fecha:5, home:"Cordovez", away:"Galacticos", estadio:"Los Sauces", dia:"Viernes", fechaCal:"16 de octubre", hora:"21h00"},
+  {fecha:5, home:"San Andres", away:"Vaster", estadio:"Los Sauces", dia:"Sábado", fechaCal:"17 de octubre", hora:"16h00"},
+  {fecha:5, home:"Barrio Fino", away:"Huracán", estadio:"Los Sauces", dia:"Sábado", fechaCal:"17 de octubre", hora:"18h00"},
+  {fecha:5, home:"San Francisco", away:"Somec", estadio:"Los Sauces", dia:"Domingo", fechaCal:"18 de octubre", hora:"13h00"},
+  {fecha:5, home:"Jolines", away:"Mandela", estadio:"Los Sauces", dia:"Domingo", fechaCal:"18 de octubre", hora:"15h00"},
+  {fecha:5, home:"Alianza Jr.", away:"Corintians", estadio:"Los Sauces", dia:"Domingo", fechaCal:"18 de octubre", hora:"17h00"}
 ];
-const PLAYED_FECHAS = new Set([1,2,3]);   // con horario real publicado (historial fijo)
+const PLAYED_FECHAS = new Set([1,2,3,4,5]);   // con horario oficial publicado (historial fijo)
 const ULTIMA_JUGADA = 5;                  // última fecha ya jugada, aunque aún no haya resultados cargados en este dispositivo
 const DEFAULT_CLOSED = new Set([1,2,3,4,5]);  // fechas cerradas de entrada; se reabren con «Editar»
 
@@ -390,7 +422,7 @@ function loadState(){
    así dos dispositivos pueden editar partidos distintos sin pisarse. */
 const GH = 'https://api.github.com', GFILE = 'keeper-cup-3.json', GDESC = 'Keeper Cup 3 datos';
 const CLOUD_KEY = 'kc3_github_v1';
-const cloud = {c:null, busy:false, dirty:false, t:0, pendingRender:false};
+const cloud = {c:null, busy:false, dirty:false, t:0, pendingRender:false, syncedOnce:false};
 try{ const raw = localStorage.getItem(CLOUD_KEY); if(raw) cloud.c = JSON.parse(raw); }catch(e){}
 const CLOUD_LABEL = {local:'💾 Solo en este dispositivo · toca para conectar la nube', connecting:'☁️ Conectando…', pending:'☁️ Cambios pendientes…', saving:'☁️ Sincronizando…', ok:'☁️ Guardado en la nube', token:'⚠️ Token vencido · toca para reconectar', perm:'⚠️ El token no tiene permiso gist · toca para ver', rate:'⏳ GitHub pidió esperar (límite de uso) · se reintenta solo', net:'⚠️ Sin internet o GitHub no responde · reintentando', error:'⚠️ Error de nube · toca para ver el detalle'};
 const horaNow = () => new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit',hour12:false});
@@ -582,6 +614,7 @@ async function cloudSync(manual){
       if(r.needPush || !remote) await gistWrite(blobOf());
     }while(cloud.dirty);
     cloud.lastError = ''; cloud.fails = 0; clearTimeout(cloud.retryT); cloud.retryT = 0; setCloudStatus('ok', horaNow());
+    cloud.syncedOnce = true; officialSync();
     if(manual) toast('Todo sincronizado');
   }catch(e){
     console.error('Nube:', e);
@@ -2247,6 +2280,48 @@ function showView(v){
   window.scrollTo(0,0);
 }
 document.getElementById('viewbar').addEventListener('click', e=>{ const b = e.target.closest('button'); if(b) showView(b.dataset.view); });
+
+/* ---- Corrección única contra los horarios oficiales de las Fechas 4 y 5 ---- */
+const OFFICIAL_FLAG = 'kc3_official45_v1', OFFICIAL_REPORT = 'kc3_official45_report';
+const describeMatch = m => `${m.home} vs ${m.away}` + (m.estadio ? ` · ${m.estadio} ${m.dia} ${m.fechaCal} ${m.hora}` : ' · sin horario');
+function officialSync(){
+  let done = false; try{ done = localStorage.getItem(OFFICIAL_FLAG) === '1'; }catch(e){}
+  if(done) return;
+  if(cloud.c && !cloud.syncedOnce) return;            // si hay nube, primero se lee para corregir también lo que venga de ella
+  const fixes = [], now = Date.now();
+  buildBaseline().filter(b=>b.fecha >= 4 && b.fecha <= 5).forEach(b=>{
+    let m = state.matches.find(x=>x.id === b.id), antes = '';
+    if(!m){ m = Object.assign({}, b); state.matches.push(m); delete state.tomb[b.id]; antes = '(partido eliminado)'; }
+    else{
+      const rivalDif = m.home !== b.home || m.away !== b.away;
+      const horDif = !!m.estadio && ['estadio','dia','fechaCal','hora'].some(k=>(m[k] || '') !== (b[k] || ''));
+      const sinHorario = !m.estadio;
+      if(!rivalDif && !horDif && !sinHorario) return;
+      if(!rivalDif && !horDif){ Object.assign(m, {estadio:b.estadio, dia:b.dia, fechaCal:b.fechaCal, hora:b.hora, ts:now}); return; }   // solo faltaba el horario: se completa sin avisar
+      antes = describeMatch(m);
+    }
+    const sc = state.scores[b.id];
+    ['estadio','dia','fechaCal','hora'].forEach(k=>delete m[k]);
+    Object.assign(m, {home:b.home, away:b.away, estadio:b.estadio, dia:b.dia, fechaCal:b.fechaCal, hora:b.hora, ts:now});
+    fixes.push({fecha:b.fecha, grupo:b.grupo, antes, despues:describeMatch(b), resultado:(sc && sc.h !== '') ? `${sc.h}-${sc.a}` : ''});
+  });
+  try{ localStorage.setItem(OFFICIAL_FLAG, '1'); localStorage.setItem(OFFICIAL_REPORT, JSON.stringify(fixes)); }catch(e){}
+  if(fixes.length){
+    const idx = id => Number(id.split('-')[2]);
+    state.matches.sort((x,y)=> x.fecha-y.fecha || x.grupo.localeCompare(y.grupo) || idx(x.id)-idx(y.id));
+    saveState(); renderAll(); showOfficialFixes(fixes);
+  }
+}
+function showOfficialFixes(fixes){
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" style="width:min(560px,100%)" role="dialog" aria-modal="true">
+    <h3>🛠️ Fixture corregido</h3>
+    <p class="sub">Comparé tus datos con los horarios oficiales publicados de las Fechas 4 y 5 y corregí <b>${fixes.length}</b> partido${fixes.length>1?'s':''} que no coincidían. Ya quedaron guardados en la nube.</p>
+    ${fixes.map(f=>`<div class="pend" style="margin:0 0 6px"><b>Fecha ${f.fecha} · ${groupNames[f.grupo]}</b><div class="it" style="display:block;border:0;padding:3px 0"><span class="twarn">❌ Estaba: ${esc(f.antes)}</span></div><div class="it" style="display:block;border:0;padding:0"><span style="color:var(--green);font-weight:700">✅ Oficial: ${esc(f.despues)}</span></div>${f.resultado ? `<div class="sub" style="margin:4px 0 0">⚠️ Tenía el resultado ${esc(f.resultado)} cargado: revísalo.</div>` : ''}</div>`).join('')}
+    <button class="close-btn" id="ofCopy" style="background:var(--gold);color:#3a2400;border-color:transparent">Copiar lista</button>
+    <button class="close-btn" id="ofClose">Entendido</button></div></div>`;
+  modalRoot.querySelector('#ofClose').addEventListener('click', closeModal);
+  modalRoot.querySelector('#ofCopy').addEventListener('click', ()=>{ const t = fixes.map(f=>`F${f.fecha} ${groupNames[f.grupo]}: estaba «${f.antes}» → oficial «${f.despues}»${f.resultado ? ' (tenía resultado ' + f.resultado + ')' : ''}`).join('\n'); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast('Lista copiada'), ()=>toast('No se pudo copiar')); });
+}
 function renderHero(){
   const n = reportUpto();
   document.getElementById('heroTxt').textContent = `Todo el torneo en un solo lugar: horarios por estadio, fixture por grupo con resultados, historial por equipo, balance San Miguel / Los Sauces y tabla de posiciones. Fechas 1 a ${n} jugadas${n < 7 ? '; Fechas ' + (n+1) + ' a 7 por programar' : ''}.`;
@@ -2319,7 +2394,7 @@ function openCloudModal(){
 }
 document.getElementById('cloudBadge').addEventListener('click', openCloudModal);
 document.getElementById('restoreBtn').addEventListener('click', restoreDeleted);
-if(cloud.c){ setCloudStatus('connecting'); cloudSync(); } else setCloudStatus('local');
+if(cloud.c){ setCloudStatus('connecting'); cloudSync(); } else { setCloudStatus('local'); officialSync(); }
 setInterval(()=>{ if(cloud.c && !document.hidden && !cloud.t && !cloud.retryT) cloudSync(); }, 60000);
 document.addEventListener('visibilitychange', ()=>{ if(cloud.c && !document.hidden && !cloud.retryT) cloudSync(); });
 </script>
