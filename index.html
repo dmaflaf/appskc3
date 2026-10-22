@@ -200,7 +200,7 @@
   </section>
 
   <section class="view" id="view-fixture">
-    <div class="note"><b>Fixture:</b> cada partido tiene dos casillas para el marcador — anota el resultado apenas se juegue (se guarda en este dispositivo). En fechas por jugar toca el <b>nombre de un equipo</b> para cambiarle el rival, o «Programar» para asignar estadio, día y hora.</div>
+    <div class="note"><b>Fixture:</b> cada partido tiene dos casillas para el marcador — anota el resultado apenas se juegue (se guarda en este dispositivo). En fechas por jugar toca <b>✏️</b> en un partido para cambiar el rival, o «Programar» para asignar estadio, día y hora.</div>
     <div class="section-title">
       <span class="ttl">📋 Fechas y cruces</span>
       <span style="display:flex;gap:6px;flex-wrap:wrap"><button id="restoreBtn" class="reset-btn" hidden>↩️ Restaurar eliminados</button><button id="resetFixtureBtn" class="reset-btn">↺ Restablecer</button></span>
@@ -783,7 +783,7 @@ function openScheduleModal(id){
 let toastTimer;
 function toast(msg){
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('on');
+  t.textContent = msg; t.style.pointerEvents = ''; t.classList.add('on');
   clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('on'), 2400);
 }
 
@@ -896,6 +896,146 @@ function lockBar(f){
     ? `<div class="lockbar closed"><span>🔒 <b>Fecha ${f} cerrada y guardada</b></span><button type="button" class="lockbtn" data-lock="open" data-f="${f}">✏️ Editar</button></div>`
     : `<div class="lockbar open"><span>✏️ <b>Fecha ${f} en edición</b></span><button type="button" class="lockbtn" data-lock="close" data-f="${f}">💾 Guardar y cerrar</button></div>`;
 }
+/* ---- Editar rival de un partido: vista previa, avisos y arreglo automático de las fechas siguientes ---- */
+const pairKey = (a,b)=>[a,b].sort().join('|');
+function rowEditable(m){ const s = state.scores[m.id]; return !(s && (s.h !== '' || s.a !== '')) && !matchCards(m.id).length; }
+function editBlockReason(m){
+  if(PLAYED_FECHAS.has(m.fecha)) return 'La Fecha ' + m.fecha + ' ya se jugó: su cruce no se puede cambiar.';
+  if(isClosed(m.fecha)) return '🔒 La Fecha ' + m.fecha + ' está cerrada. Pulsa «Editar» en la fecha para cambiar rivales.';
+  if(!rowEditable(m)) return 'Este partido ya tiene resultado o tarjetas cargadas: no se puede cambiar el rival.';
+  return '';
+}
+function groupFixture(g, over){
+  return state.matches.filter(m=>m.grupo===g).map(m=>{ const o = over && over.get(m.id); return {id:m.id, fecha:m.fecha, home:o ? o.home : m.home, away:o ? o.away : m.away}; });
+}
+function fixtureStats(g, over){
+  const cnt = {}, T = roster[g], rep = [], miss = [];
+  groupFixture(g, over).forEach(m=>{ const k = pairKey(m.home, m.away); cnt[k] = (cnt[k] || 0) + 1; });
+  for(let i=0;i<T.length;i++) for(let j=i+1;j<T.length;j++){ const c = cnt[pairKey(T[i],T[j])] || 0; if(c > 1) rep.push(T[i] + ' – ' + T[j]); if(c === 0) miss.push(T[i] + ' – ' + T[j]); }
+  return {rep, miss};
+}
+function proposeSwap(f, g, A, B){          // lo mismo que swapRival, pero sin tocar el estado
+  const games = state.matches.filter(m=>m.fecha===f && m.grupo===g), over = new Map();
+  const mA = games.find(m=>m.home===A || m.away===A), mB = games.find(m=>m.home===B || m.away===B);
+  if(!mA || !mB || mA.id === mB.id) return over;
+  const pA = mA.home === A ? mA.away : mA.home, pB = mB.home === B ? mB.away : mB.home;
+  over.set(mA.id, mA.home === A ? {home:A, away:B} : {home:B, away:A});
+  over.set(mB.id, {home:pA, away:pB});
+  return over;
+}
+function perfectMatchings(edges, left){
+  if(!left.length) return [[]];
+  const a = left[0], res = [];
+  for(const e of edges){ if(!e.includes(a)) continue; const b = e[0] === a ? e[1] : e[0]; if(!left.includes(b)) continue;
+    for(const rest of perfectMatchings(edges, left.filter(x=>x!==a && x!==b))) res.push([e, ...rest]); }
+  return res;
+}
+const freeFechas = g => [1,2,3,4,5,6,7].filter(f=>!PLAYED_FECHAS.has(f) && !isClosed(f) && state.matches.filter(m=>m.fecha===f && m.grupo===g).every(rowEditable));
+/* Busca cómo repartir los cruces que faltan entre las fechas libres sin repetir ninguno, incluyendo A–B en la fecha f.
+   Devuelve el arreglo que cambia menos partidos. */
+function findFix(g, f, A, B){
+  const E = freeFechas(g); if(!E.includes(f)) return null;
+  const T = roster[g], fixed = new Set(state.matches.filter(m=>m.grupo===g && !E.includes(m.fecha)).map(m=>pairKey(m.home, m.away)));
+  const pending = []; for(let i=0;i<T.length;i++) for(let j=i+1;j<T.length;j++) if(!fixed.has(pairKey(T[i],T[j]))) pending.push([T[i],T[j]]);
+  if(pending.length !== E.length * (T.length/2)) return null;   // el fixture ya jugado tiene repetidos: no hay arreglo posible
+  const target = pairKey(A,B), sols = []; let cap = 400;
+  (function rec(idx, remaining, acc){
+    if(cap <= 0) return;
+    if(idx === E.length){ sols.push(acc.slice()); cap--; return; }
+    for(const M of perfectMatchings(remaining, T.slice())){
+      if(E[idx] === f && !M.some(e=>pairKey(...e) === target)) continue;
+      const used = new Set(M.map(e=>pairKey(...e)));
+      acc.push(M); rec(idx+1, remaining.filter(e=>!used.has(pairKey(...e))), acc); acc.pop();
+      if(cap <= 0) return;
+    }
+  })(0, pending, []);
+  if(!sols.length) return {count:0};
+  const rows = fe => state.matches.filter(m=>m.fecha===fe && m.grupo===g).sort((a,b)=>a.id.localeCompare(b.id));
+  const perms = arr => arr.length <= 1 ? [arr] : arr.flatMap((x,i)=>perms([...arr.slice(0,i), ...arr.slice(i+1)]).map(p=>[x, ...p]));
+  const build = sol=>{
+    const over = new Map(); let changed = 0;
+    sol.forEach((M, k)=>{
+      const R = rows(E[k]); let best = null;
+      perms(M.map((_,i)=>i)).forEach(p=>{   // p[r] = índice del cruce que ocupa la casilla r (continuidad de equipos y de cruce)
+        let sc = 0; R.forEach((row,r)=>{ const e = M[p[r]]; sc += (e.includes(row.home) ? 1 : 0) + (e.includes(row.away) ? 1 : 0); });
+        if(!best || sc > best.sc) best = {p, sc};
+      });
+      R.forEach((row,r)=>{
+        const e = M[best.p[r]];
+        let home, away; if(e.includes(row.home)){ home = row.home; away = e[0] === home ? e[1] : e[0]; } else if(e.includes(row.away)){ away = row.away; home = e[0] === away ? e[1] : e[0]; } else { home = e[0]; away = e[1]; }
+        if(pairKey(home, away) !== pairKey(row.home, row.away)) changed++;
+        if(home !== row.home || away !== row.away) over.set(row.id, {home, away});
+      });
+    });
+    return {over, changed};
+  };
+  let bestSol = null; sols.forEach(sol=>{ const b = build(sol); if(!bestSol || b.changed < bestSol.changed) bestSol = b; });
+  return {count:sols.length, capped:cap <= 0, over:bestSol.over, changed:bestSol.changed, fechas:E};
+}
+function toastAction(msg, label, fn){
+  const t = document.getElementById('toast');
+  t.innerHTML = esc(msg) + ' <button id="toastAct" type="button" style="margin-left:8px;background:none;border:0;color:var(--gold);font-weight:800;font:inherit;cursor:pointer">' + esc(label) + '</button>';
+  t.style.pointerEvents = 'auto'; t.classList.add('on');
+  document.getElementById('toastAct').onclick = ()=>{ t.classList.remove('on'); t.style.pointerEvents = ''; fn(); };
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>{ t.classList.remove('on'); t.style.pointerEvents = ''; }, 9000);
+}
+function applyRivalChange(over, msg){
+  if(!over.size) return;
+  const snap = new Map(); over.forEach((v, id)=>{ const m = state.matches.find(x=>x.id===id); snap.set(id, {home:m.home, away:m.away}); m.home = v.home; m.away = v.away; });
+  saveState(); renderAll();
+  toastAction(msg, 'Deshacer', ()=>{ snap.forEach((v, id)=>{ const m = state.matches.find(x=>x.id===id); if(m){ m.home = v.home; m.away = v.away; } }); saveState(); renderAll(); toast('Cambio deshecho'); });
+}
+function openEditRival(id){
+  const m = state.matches.find(x=>x.id===id); if(!m) return;
+  const why = editBlockReason(m); if(why){ toast(why); return; }
+  const f = m.fecha, g = m.grupo, T = roster[g];
+  const schedTxt = m.estadio ? `🏟️ ${m.estadio} · ${m.dia} ${m.fechaCal} · ${m.hora}` : 'Sin horario asignado';
+  let A = null, B = null;
+  const names = over => groupFixture(g, over).filter(x=>x.fecha===f).sort((a,b)=>a.id.localeCompare(b.id));
+  const draw = ()=>{
+    let h = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true"><h3>✏️ Editar partido</h3>
+      <p class="sub">Fecha ${f} · ${groupNames[g]} · <b>${esc(m.home)}</b> vs <b>${esc(m.away)}</b><br>${esc(schedTxt)} <i>(el horario se queda en este casillero)</i></p>
+      <h4>1 · ¿A quién le cambias el rival?</h4><div class="qchips">${[m.home, m.away].map(t=>`<button type="button" class="qchip${A===t?' on':''}" data-rA="${escAttr(t)}">${esc(t)}</button>`).join('')}</div>`;
+    if(A){
+      const cur = m.home === A ? m.away : m.home;
+      h += `<h4>2 · Nuevo rival de ${esc(A)} <span style="text-transform:none;font-weight:500">(hoy: ${esc(cur)})</span></h4>`;
+      T.filter(t=>t!==A && t!==cur).forEach(t=>{
+        const pl = state.matches.find(x=>x.grupo===g && x.id!==m.id && x.fecha!==f && pairKey(x.home,x.away) === pairKey(A,t) && x.fecha < f);
+        const pm = state.matches.find(x=>x.fecha===f && x.grupo===g && (x.home===t || x.away===t));
+        h += `<button type="button" class="rival-opt${B===t?'" style="outline:2px solid var(--gold)':''}" data-rB="${escAttr(t)}"><span>${esc(t)}<br><small style="font-weight:400;color:var(--sub)">hoy juega vs ${esc(pm.home===t ? pm.away : pm.home)}</small></span><span class="warn" style="color:${pl?'var(--red)':'var(--green)'}">${pl ? 'ya jugaron en F' + pl.fecha : 'le falta jugar'}</span></button>`;
+      });
+    }
+    if(A && B){
+      const over = proposeSwap(f, g, A, B), now = names(null), after = names(over);
+      const mB = state.matches.find(x=>x.fecha===f && x.grupo===g && (x.home===B || x.away===B)), okB = mB && rowEditable(mB);
+      const st = fixtureStats(g, over), bad = st.rep.length || st.miss.length, fix = okB ? findFix(g, f, A, B) : null;
+      h += `<h4>3 · Así quedaría la Fecha ${f}</h4><div class="tbal" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--bg);border-radius:10px;padding:8px 10px;font-size:.78rem"><b style="display:block;font-size:.66rem;text-transform:uppercase;color:var(--sub)">Hoy</b>${now.map(x=>esc(x.home)+' – '+esc(x.away)).join('<br>')}</div>
+        <div style="background:var(--bg);border-radius:10px;padding:8px 10px;font-size:.78rem"><b style="display:block;font-size:.66rem;text-transform:uppercase;color:var(--sub)">Después</b>${after.map((x,i)=>`<span${now[i].home===x.home && now[i].away===x.away ? '' : ' style="background:var(--blue-bg);border-radius:6px;padding:0 3px"'}>${esc(x.home)} – ${esc(x.away)}</span>`).join('<br>')}</div></div>`;
+      if(!okB) h += `<div class="pend" style="border-color:var(--red)">⚠️ El partido de ${esc(B)} en esta fecha ya tiene resultado o tarjetas: no se puede mover.</div>`;
+      else if(bad) h += `<div class="pend" style="border-color:var(--red);background:var(--red-bg,var(--amber-bg))">⚠️ <b>Solo en esta fecha</b> el fixture quedaría mal:<br>${st.rep.length ? 'Cruces repetidos: ' + esc(st.rep.join(', ')) + '<br>' : ''}${st.miss.length ? 'Cruces que nunca se jugarían: ' + esc(st.miss.join(', ')) : ''}</div>`;
+      else h += `<div class="pend" style="border-color:var(--green);background:var(--green-bg)">✅ El fixture completo sigue sin repetidos ni cruces faltantes.</div>`;
+      if(okB && fix && fix.count){
+        const E = fix.fechas;
+        h += `<div class="pend" style="border-color:var(--green);background:var(--green-bg)">💡 <b>Arreglo válido encontrado</b>${fix.count > 1 ? ` (${fix.capped ? 'más de ' : ''}${fix.count} posibles; te muestro el que cambia menos partidos)` : ''}:${E.map(fe=>{
+          const rows = groupFixture(g, fix.over).filter(x=>x.fecha===fe).sort((a,b)=>a.id.localeCompare(b.id)); return `<br><b>F${fe}:</b> ${rows.map(x=>esc(x.home)+' – '+esc(x.away)).join(' · ')}`; }).join('')}<br><span style="color:var(--sub);font-size:.74rem">Cada partido nuevo toma el horario de la casilla donde ya jugaba alguno de sus equipos. Se cambian ${fix.changed} partidos.</span></div>
+          <button type="button" class="close-btn" id="rvFix" style="background:var(--gold);color:#3a2400;border-color:transparent">Aplicar arreglo válido (${E.map(x=>'F'+x).join(', ')})</button>`;
+      }else if(okB && bad) h += `<div class="pend" style="border-color:var(--red)">No existe ningún reparto de las fechas libres que cumpla ese cambio sin repetir cruces.</div>`;
+      if(okB) h += `<button type="button" class="close-btn" id="rvOne"${(bad && fix && fix.count) ? '' : ' style="background:var(--gold);color:#3a2400;border-color:transparent"'}>${bad ? 'Aplicar solo esta fecha (con las advertencias)' : 'Aplicar cambio'}</button>`;
+    }
+    h += `<button type="button" class="close-btn" id="rvCancel">Cancelar</button></div></div>`;
+    modalRoot.innerHTML = h;
+    modalRoot.querySelectorAll('[data-rA]').forEach(b=>b.addEventListener('click', ()=>{ A = b.dataset.ra; B = null; draw(); }));
+    modalRoot.querySelectorAll('[data-rB]').forEach(b=>b.addEventListener('click', ()=>{ B = b.dataset.rb; draw(); }));
+    modalRoot.querySelector('#rvCancel').addEventListener('click', closeModal);
+    modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+    const one = modalRoot.querySelector('#rvOne'), fixBtn = modalRoot.querySelector('#rvFix');
+    if(one) one.addEventListener('click', ()=>{ const over = proposeSwap(f, g, A, B); closeModal(); applyRivalChange(over, `${A} ahora juega con ${B} en la Fecha ${f}`); });
+    if(fixBtn) fixBtn.addEventListener('click', ()=>{ const fx = findFix(g, f, A, B); closeModal(); if(fx && fx.count) applyRivalChange(fx.over, 'Fixture reacomodado: ' + fx.fechas.map(x=>'F'+x).join(', ')); });
+  };
+  draw();
+}
+
 /* ---- Eliminar y restaurar ---- */
 function deleteMatches(ids, msg){
   const now = Date.now(), set = new Set(ids);
@@ -950,12 +1090,8 @@ function renderFecha(){
       const metaTxt = m.estadio ? `🏟️ ${m.estadio} · ${m.dia} ${m.fechaCal} · ${m.hora}` : 'Sin estadio/horario asignado aún';
       const meta = locked ? (m.estadio ? `<div class="match-meta">${metaTxt}</div>` : '')
         : `<button class="match-meta sched-btn${m.estadio?'':' muted'}" data-sched="${m.id}">${m.estadio ? metaTxt : '📅 Programar estadio y horario'}</button>`;
-      const home = locked
-        ? `<span class="t1">${m.home}</span>`
-        : `<button class="teamname-btn t1" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.home)}">${m.home}</button>`;
-      const away = locked
-        ? `<span class="t2">${m.away}</span>`
-        : `<button class="teamname-btn t2" data-fecha="${m.fecha}" data-grupo="${m.grupo}" data-team="${escAttr(m.away)}">${m.away}</button>`;
+      const home = `<span class="t1">${m.home}</span>`;
+      const away = `<span class="t2">${m.away}</span>`;
       html += `<div class="match-row${done?' done':''}">
         <div class="teams">
           ${home}
@@ -965,6 +1101,7 @@ function renderFecha(){
           ${cardSummary(m.id)}
         </div>
         ${scoreBoxes(m)}
+        ${isPlayed ? '' : `<button class="delx" data-editmatch="${m.id}" aria-label="Editar rival" title="Editar rival" style="opacity:${locked?'.35':'1'}">✏️</button>`}
         <button class="delx" data-cards="${m.id}" aria-label="Tarjetas" title="Tarjetas amarillas y rojas">🟨🟥</button>
         ${locked?'':`<button class="delx" data-delmatch="${m.id}" aria-label="Eliminar partido" title="Eliminar partido">🗑</button>`}
       </div>`;
@@ -976,6 +1113,7 @@ function renderFecha(){
 fechasEl.addEventListener('click', e=>{
   const sb = e.target.closest('.sched-btn'); if(sb){ openScheduleModal(sb.dataset.sched); return; }
   const lk = e.target.closest('[data-lock]'); if(lk){ setClosed(Number(lk.dataset.f), lk.dataset.lock === 'close'); return; }
+  const em = e.target.closest('[data-editmatch]'); if(em){ openEditRival(em.dataset.editmatch); return; }
   const cd = e.target.closest('[data-cards]'); if(cd){ openCardsModal(cd.dataset.cards); return; }
   const dm = e.target.closest('[data-delmatch]'); if(dm){ deleteMatch(dm.dataset.delmatch); return; }
   const df = e.target.closest('[data-delfecha]'); if(df){ deleteFecha(Number(df.dataset.delfecha)); return; }
@@ -1226,12 +1364,13 @@ function openSlotModal(f, est0, iso0, hora0){
     document.getElementById('slBody').innerHTML = `
       <p class="sub" style="margin-bottom:8px">${occ?`En ${est} ${dia3} ${hora} juega ahora: <b>${occ.home} vs ${occ.away}</b>`:`${est} ${dia3} ${hora}: libre`}</p>
       ${moveBtn}
-      ${editing?'<button class="close-btn" id="slClear" style="margin-bottom:8px">Quitar este partido del horario</button><button class="close-btn" id="slDel" style="margin-bottom:8px;color:var(--red)">🗑 Eliminar este partido del torneo</button>':''}
+      ${editing?'<button class="close-btn" id="slClear" style="margin-bottom:8px">Quitar este partido del horario</button><button class="close-btn" id="slRival" style="margin-bottom:8px">✏️ Cambiar rival de este partido</button><button class="close-btn" id="slDel" style="margin-bottom:8px;color:var(--red)">🗑 Eliminar este partido del torneo</button>':''}
       <h4>Por programar (${free.length})</h4>${free.map(opt).join('') || '<p class="sub">No quedan partidos sin horario.</p>'}
       ${others.length?`<h4>Ya programados (mover aquí)</h4>${others.map(opt).join('')}`:''}`;
     const body = document.getElementById('slBody');
     body.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click', ()=>place(state.matches.find(x=>x.id===b.dataset.pick))));
     const mv = body.querySelector('#slMove'); if(mv) mv.addEventListener('click', ()=>place(editing));
+    const rv = body.querySelector('#slRival'); if(rv) rv.addEventListener('click', ()=>{ closeModal(); openEditRival(editing.id); });
     const dl = body.querySelector('#slDel'); if(dl) dl.addEventListener('click', ()=>deleteMatch(editing.id));
     const cl = body.querySelector('#slClear'); if(cl) cl.addEventListener('click', ()=>{ delete editing.estadio; delete editing.dia; delete editing.fechaCal; delete editing.hora; finish('Horario liberado'); });
   }
