@@ -259,7 +259,7 @@
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Alianza Jr.","Arapaima"],["Galacticos","Huracán"],["Cordovez","Gladiadores AZ"]],[["Alianza Jr.","Barrio Fino"],["Arapaima","Corintians"],["Cordovez","Huracán"],["Galacticos","Gladiadores AZ"]],[["Alianza Jr.","Corintians"],["Arapaima","Gladiadores AZ"],["Barrio Fino","Huracán"],["Cordovez","Galacticos"]],[["Alianza Jr.","Galacticos"],["Arapaima","Huracán"],["Barrio Fino","Cordovez"],["Corintians","Gladiadores AZ"]],[["Alianza Jr.","Huracán"],["Arapaima","Galacticos"],["Barrio Fino","Gladiadores AZ"],["Cordovez","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Sub 21"],["Templo Fit","Pecezuelos"],["Leones","Jolines"],["Libert","Real Sevilla"]],[["Jolines","Libert"],["Leones","Mandela"],["Pecezuelos","Sub 21"],["Real Sevilla","Templo Fit"]],[["Jolines","Mandela"],["Leones","Templo Fit"],["Libert","Pecezuelos"],["Real Sevilla","Sub 21"]],[["Jolines","Real Sevilla"],["Leones","Pecezuelos"],["Libert","Sub 21"],["Mandela","Templo Fit"]],[["Jolines","Templo Fit"],["Leones","Sub 21"],["Libert","Mandela"],["Pecezuelos","Real Sevilla"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Barcelona","San Andres"],["Real Potosí","San Francisco"],["Vaster","Somec"],["La Banda","Cormoran"]],[["Barcelona","Cormoran"],["La Banda","Real Potosí"],["San Andres","Somec"],["San Francisco","Vaster"]],[["Barcelona","La Banda"],["Cormoran","Real Potosí"],["San Andres","Vaster"],["San Francisco","Somec"]],[["Barcelona","San Francisco"],["Cormoran","San Andres"],["La Banda","Somec"],["Real Potosí","Vaster"]],[["Barcelona","Vaster"],["Cormoran","San Francisco"],["La Banda","San Andres"],["Real Potosí","Somec"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","San José"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","San José"],["America","Universitarios"]],[["Universitarios","Legacy"],["Juventus","Clowiss"],["America","Randagi"],["San José","Leipzig"]],[["America","Clowiss"],["Juventus","Legacy"],["Leipzig","Universitarios"],["Randagi","San José"]],[["America","Juventus"],["Clowiss","Leipzig"],["Legacy","Randagi"],["Universitarios","San José"]],[["America","Legacy"],["Clowiss","San José"],["Juventus","Leipzig"],["Randagi","Universitarios"]],[["America","San José"],["Clowiss","Universitarios"],["Juventus","Randagi"],["Legacy","Leipzig"]]]}};
+const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Alianza Jr.","Arapaima"],["Galacticos","Huracán"],["Cordovez","Gladiadores AZ"]],[["Alianza Jr.","Barrio Fino"],["Arapaima","Corintians"],["Cordovez","Huracán"],["Galacticos","Gladiadores AZ"]],[["Alianza Jr.","Corintians"],["Arapaima","Gladiadores AZ"],["Barrio Fino","Huracán"],["Cordovez","Galacticos"]],[["Alianza Jr.","Galacticos"],["Arapaima","Huracán"],["Barrio Fino","Cordovez"],["Corintians","Gladiadores AZ"]],[["Alianza Jr.","Huracán"],["Arapaima","Galacticos"],["Barrio Fino","Gladiadores AZ"],["Cordovez","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Sub 21"],["Templo Fit","Pecezuelos"],["Leones","Jolines"],["Libert","Real Sevilla"]],[["Jolines","Libert"],["Leones","Mandela"],["Pecezuelos","Sub 21"],["Real Sevilla","Templo Fit"]],[["Jolines","Mandela"],["Leones","Templo Fit"],["Libert","Pecezuelos"],["Real Sevilla","Sub 21"]],[["Jolines","Templo Fit"],["Leones","Sub 21"],["Libert","Mandela"],["Pecezuelos","Real Sevilla"]],[["Jolines","Real Sevilla"],["Leones","Pecezuelos"],["Libert","Sub 21"],["Mandela","Templo Fit"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Barcelona","San Andres"],["Real Potosí","San Francisco"],["Vaster","Somec"],["La Banda","Cormoran"]],[["Barcelona","Cormoran"],["La Banda","Real Potosí"],["San Andres","Somec"],["San Francisco","Vaster"]],[["Barcelona","La Banda"],["Cormoran","Real Potosí"],["San Andres","Vaster"],["San Francisco","Somec"]],[["Barcelona","San Francisco"],["Cormoran","San Andres"],["La Banda","Somec"],["Real Potosí","Vaster"]],[["Barcelona","Vaster"],["Cormoran","San Francisco"],["La Banda","San Andres"],["Real Potosí","Somec"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","San José"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","San José"],["America","Universitarios"]],[["Universitarios","Legacy"],["Juventus","Clowiss"],["America","Randagi"],["San José","Leipzig"]],[["America","Clowiss"],["Juventus","Legacy"],["Leipzig","Universitarios"],["Randagi","San José"]],[["America","Juventus"],["Clowiss","Leipzig"],["Legacy","Randagi"],["Universitarios","San José"]],[["America","Legacy"],["Clowiss","San José"],["Juventus","Leipzig"],["Randagi","Universitarios"]],[["America","San José"],["Clowiss","Universitarios"],["Juventus","Randagi"],["Legacy","Leipzig"]]]}};
 
 const REAL_INFO = [
   {fecha:1, home:"Cormoran", away:"Vaster", estadio:"San Miguel", dia:"Viernes", fechaCal:"18 de septiembre", hora:"19h00"},
@@ -614,7 +614,7 @@ async function cloudSync(manual){
       if(r.needPush || !remote) await gistWrite(blobOf());
     }while(cloud.dirty);
     cloud.lastError = ''; cloud.fails = 0; clearTimeout(cloud.retryT); cloud.retryT = 0; setCloudStatus('ok', horaNow());
-    cloud.syncedOnce = true; officialSync(); repairCheck();
+    cloud.syncedOnce = true; officialSync(); swapB67(); repairCheck();
     if(manual) toast('Todo sincronizado');
   }catch(e){
     console.error('Nube:', e);
@@ -1146,6 +1146,26 @@ function openDiagnostico(){
   });
 }
 document.querySelectorAll('.diagBtn').forEach(b=>b.addEventListener('click', openDiagnostico));
+
+/* ---- Cambio único: el Grupo B juega en la Fecha 6 lo que tenía en la 7, y viceversa ---- */
+const SWAP67_FLAG = 'kc3_swapB67_v1';
+function swapB67(){
+  let done = false; try{ done = localStorage.getItem(SWAP67_FLAG) === '1'; }catch(e){}
+  if(done) return;
+  if(cloud.c && !cloud.syncedOnce) return;
+  const want = {6:FIXTURE.B.fechas_2_7[4], 7:FIXTURE.B.fechas_2_7[5]}, now = Date.now(); let n = 0, blocked = false;
+  [6,7].forEach(f=>{
+    const rows = state.matches.filter(m=>m.fecha===f && m.grupo==='B').sort((x,y)=>x.id.localeCompare(y.id));
+    rows.forEach((m,i)=>{
+      const w = want[f][i]; if(!w || (m.home === w[0] && m.away === w[1])) return;
+      if(!rowEditable(m)){ blocked = true; return; }
+      m.home = w[0]; m.away = w[1]; m.ts = now; n++;
+    });
+  });
+  if(blocked) return;                      // hay resultados o tarjetas cargados: no se toca nada y se reintenta luego
+  try{ localStorage.setItem(SWAP67_FLAG, '1'); }catch(e){}
+  if(n){ saveState(); renderAll(); toast('Grupo B: partidos de la Fecha 6 y 7 intercambiados'); }
+}
 
 /* ---- Reparar cruces repetidos o faltantes (fechas por jugar, sin resultados) ---- */
 function repairPlan(){
@@ -2423,7 +2443,7 @@ function openCloudModal(){
 }
 document.getElementById('cloudBadge').addEventListener('click', openCloudModal);
 document.getElementById('restoreBtn').addEventListener('click', restoreDeleted);
-if(cloud.c){ setCloudStatus('connecting'); cloudSync(); } else { setCloudStatus('local'); officialSync(); repairCheck(); }
+if(cloud.c){ setCloudStatus('connecting'); cloudSync(); } else { setCloudStatus('local'); officialSync(); swapB67(); repairCheck(); }
 setInterval(()=>{ if(cloud.c && !document.hidden && !cloud.t && !cloud.retryT) cloudSync(); }, 60000);
 document.addEventListener('visibilitychange', ()=>{ if(cloud.c && !document.hidden && !cloud.retryT) cloudSync(); });
 </script>
