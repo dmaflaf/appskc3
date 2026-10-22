@@ -614,7 +614,7 @@ async function cloudSync(manual){
       if(r.needPush || !remote) await gistWrite(blobOf());
     }while(cloud.dirty);
     cloud.lastError = ''; cloud.fails = 0; clearTimeout(cloud.retryT); cloud.retryT = 0; setCloudStatus('ok', horaNow());
-    cloud.syncedOnce = true; officialSync();
+    cloud.syncedOnce = true; officialSync(); repairCheck();
     if(manual) toast('Todo sincronizado');
   }catch(e){
     console.error('Nube:', e);
@@ -967,17 +967,18 @@ function perfectMatchings(edges, left){
 const freeFechas = g => [1,2,3,4,5,6,7].filter(f=>!PLAYED_FECHAS.has(f) && !isClosed(f) && state.matches.filter(m=>m.fecha===f && m.grupo===g).every(rowEditable));
 /* Busca cómo repartir los cruces que faltan entre las fechas libres sin repetir ninguno, incluyendo A–B en la fecha f.
    Devuelve el arreglo que cambia menos partidos. */
-function findFix(g, f, A, B){
-  const E = freeFechas(g); if(!E.includes(f)) return null;
+function findFix(g, f, A, B, repair){
+  const E = repair ? [1,2,3,4,5,6,7].filter(x=>!PLAYED_FECHAS.has(x) && state.matches.filter(m=>m.fecha===x && m.grupo===g).every(rowEditable)) : freeFechas(g);
+  if(!repair && !E.includes(f)) return null;
   const T = roster[g], fixed = new Set(state.matches.filter(m=>m.grupo===g && !E.includes(m.fecha)).map(m=>pairKey(m.home, m.away)));
   const pending = []; for(let i=0;i<T.length;i++) for(let j=i+1;j<T.length;j++) if(!fixed.has(pairKey(T[i],T[j]))) pending.push([T[i],T[j]]);
   if(pending.length !== E.length * (T.length/2)) return null;   // el fixture ya jugado tiene repetidos: no hay arreglo posible
-  const target = pairKey(A,B), sols = []; let cap = 400;
+  const target = repair ? null : pairKey(A,B), sols = []; let cap = 400;
   (function rec(idx, remaining, acc){
     if(cap <= 0) return;
     if(idx === E.length){ sols.push(acc.slice()); cap--; return; }
     for(const M of perfectMatchings(remaining, T.slice())){
-      if(E[idx] === f && !M.some(e=>pairKey(...e) === target)) continue;
+      if(!repair && E[idx] === f && !M.some(e=>pairKey(...e) === target)) continue;
       const used = new Set(M.map(e=>pairKey(...e)));
       acc.push(M); rec(idx+1, remaining.filter(e=>!used.has(pairKey(...e))), acc); acc.pop();
       if(cap <= 0) return;
@@ -1134,15 +1135,43 @@ function openDiagnostico(){
     ${d.general.map(x=>`<p class="sub twarn">${esc(x)}</p>`).join('')}
     ${groupOrder.map(g=>{ const P = d.groups[g]; return `<h4>${groupNames[g]} ${P.errores.length ? '· ❌' : '· ✅'}</h4>${P.errores.map(x=>`<p class="sub twarn" style="margin:0 0 4px">❌ ${esc(x)}</p>`).join('')}${P.avisos.map(x=>`<p class="sub" style="margin:0 0 4px">⚠️ ${esc(x)}</p>`).join('')}<details><summary class="sub" style="cursor:pointer">Partidos por jugar de cada equipo</summary>${roster[g].map(t=>`<p class="sub" style="margin:0 0 3px"><b>${esc(t)}</b>: ${esc(P.pendientes[t].join(', ') || 'ninguno')}</p>`).join('')}</details>`; }).join('')}
     ${d.horarios.length ? `<h4>Horarios</h4>${d.horarios.map(x=>`<p class="sub" style="margin:0 0 4px">⚠️ ${esc(x)}</p>`).join('')}` : ''}
+    ${nErr ? '<button class="close-btn" id="dgRepair" style="background:var(--gold);color:#3a2400;border-color:transparent;margin-top:10px">🔧 Reparar cruces repetidos</button>' : ''}
     <button class="close-btn" id="dgCopy" style="background:var(--gold);color:#3a2400;border-color:transparent;margin-top:10px">Copiar diagnóstico (para enviármelo)</button>
     <button class="close-btn" id="dgClose">Cerrar</button></div></div>`;
   modalRoot.querySelector('#dgClose').addEventListener('click', closeModal);
+  const dgR = modalRoot.querySelector('#dgRepair'); if(dgR) dgR.addEventListener('click', openRepair);
   modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
   modalRoot.querySelector('#dgCopy').addEventListener('click', ()=>{
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>toast('Diagnóstico copiado'), ()=>{ modalRoot.querySelector('#dgCopy').insertAdjacentHTML('afterend', `<textarea class="teamsel" readonly style="height:140px;margin-top:8px" onclick="this.select()">${esc(txt)}</textarea>`); });
   });
 }
 document.querySelectorAll('.diagBtn').forEach(b=>b.addEventListener('click', openDiagnostico));
+
+/* ---- Reparar cruces repetidos o faltantes (fechas por jugar, sin resultados) ---- */
+function repairPlan(){
+  const plans = [];
+  groupOrder.forEach(g=>{
+    const st = fixtureStats(g); if(!st.rep.length && !st.miss.length) return;
+    plans.push({g, st, fx:findFix(g, null, null, null, true)});
+  });
+  return plans;
+}
+function openRepair(){
+  const plans = repairPlan();
+  if(!plans.length){ toast('✅ No hay cruces repetidos ni faltantes'); return; }
+  const rowsTxt = (g, over, fe)=>groupFixture(g, over).filter(x=>x.fecha===fe).sort((a,b)=>a.id.localeCompare(b.id)).map(x=>esc(x.home)+' – '+esc(x.away)).join(' · ');
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" style="width:min(560px,100%)" role="dialog" aria-modal="true">
+    <h3>🔧 Cruces repetidos o faltantes</h3>
+    <p class="sub">Encontré partidos mal cruzados en tus datos. Solo se tocan fechas por jugar y sin resultados ni tarjetas; el horario se queda en cada casillero.</p>
+    ${plans.map(({g, st, fx})=>`<div class="pend" style="border-color:var(--red)"><b>${groupNames[g]}</b><br>${st.rep.length ? '❌ Repetidos: ' + esc(st.rep.join(', ')) + '<br>' : ''}${st.miss.length ? '❌ Nunca se jugarían: ' + esc(st.miss.join(', ')) : ''}
+      ${fx && fx.count ? `<div style="margin-top:6px;color:var(--green)"><b>✅ Arreglo (${fx.changed} partido${fx.changed===1?'':'s'}):</b>${fx.fechas.map(fe=>`<br><b>F${fe}:</b> ${rowsTxt(g, fx.over, fe)}`).join('')}</div>` : '<div style="margin-top:6px">No hay un reparto válido automático: el error está en una fecha ya jugada o con resultados.</div>'}</div>`).join('')}
+    ${plans.some(p=>p.fx && p.fx.count) ? '<button type="button" class="close-btn" id="rpApply" style="background:var(--gold);color:#3a2400;border-color:transparent">Aplicar arreglo</button>' : ''}
+    <button type="button" class="close-btn" id="rpClose">Ahora no</button></div></div>`;
+  modalRoot.querySelector('#rpClose').addEventListener('click', closeModal);
+  const ap = modalRoot.querySelector('#rpApply');
+  if(ap) ap.addEventListener('click', ()=>{ const all = new Map(); plans.forEach(p=>{ if(p.fx && p.fx.count) p.fx.over.forEach((v,k)=>all.set(k,v)); }); closeModal(); applyRivalChange(all, 'Cruces reparados en ' + plans.filter(p=>p.fx&&p.fx.count).map(p=>groupNames[p.g]).join(', ')); });
+}
+function repairCheck(){ if(modalRoot.innerHTML.trim()) return; if(repairPlan().length) openRepair(); }
 
 /* ---- Eliminar y restaurar ---- */
 function deleteMatches(ids, msg){
@@ -2394,7 +2423,7 @@ function openCloudModal(){
 }
 document.getElementById('cloudBadge').addEventListener('click', openCloudModal);
 document.getElementById('restoreBtn').addEventListener('click', restoreDeleted);
-if(cloud.c){ setCloudStatus('connecting'); cloudSync(); } else { setCloudStatus('local'); officialSync(); }
+if(cloud.c){ setCloudStatus('connecting'); cloudSync(); } else { setCloudStatus('local'); officialSync(); repairCheck(); }
 setInterval(()=>{ if(cloud.c && !document.hidden && !cloud.t && !cloud.retryT) cloudSync(); }, 60000);
 document.addEventListener('visibilitychange', ()=>{ if(cloud.c && !document.hidden && !cloud.retryT) cloudSync(); });
 </script>
