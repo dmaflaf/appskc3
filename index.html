@@ -208,7 +208,8 @@
     <button class="close-btn exportPdfBtn" data-mode="resultados" style="background:var(--gold);color:#3a2400;border-color:transparent;margin:0 0 8px">📄 PDF para clubes: resultados y posiciones</button>
     <button class="close-btn exportPdfBtn" data-mode="sancionados" style="margin:0 0 8px">🟨 PDF para clubes: sancionados</button>
     <button class="close-btn exportPdfBtn" data-mode="interno" style="margin:0 0 8px">💵 PDF interno: tarjetas y valores a pagar</button>
-    <button class="close-btn exportDataBtn" style="margin:0 0 12px">📦 Descargar todos los datos (JSON + CSV, para importar a otro sistema)</button>
+    <button class="close-btn exportDataBtn" style="margin:0 0 8px">📦 Descargar todos los datos (JSON + CSV, para importar a otro sistema)</button>
+    <button class="close-btn diagBtn" style="margin:0 0 12px">🩺 Diagnóstico del fixture (rivales, partidos por jugar y horarios)</button>
     <div class="tabbar" id="tabbar"></div>
     <div class="tabbar" id="groupbar"></div>
     <div id="fechas"></div>
@@ -1035,6 +1036,80 @@ function openEditRival(id){
   };
   draw();
 }
+
+/* ---- Diagnóstico del fixture: revisa rivales, partidos pendientes, cruces y horarios sobre los datos reales ---- */
+function diagnoseFixture(){
+  const upto = reportUpto(), out = {upto, groups:{}, general:[], horarios:[]};
+  const realPairs = new Map(); REAL_INFO.forEach(r=>realPairs.set(r.fecha + '|' + pairKey(r.home, r.away), r));
+  groupOrder.forEach(g=>{
+    const T = roster[g], ms = state.matches.filter(m=>m.grupo===g), P = {g, errores:[], avisos:[], pendientes:{}, faltantes:[]};
+    const tf = n=>`Fecha ${n}`;
+    // 1) estructura por fecha
+    for(let f=1; f<=7; f++){
+      const fm = ms.filter(m=>m.fecha===f), cnt = {};
+      fm.forEach(m=>{ cnt[m.home] = (cnt[m.home]||0)+1; cnt[m.away] = (cnt[m.away]||0)+1; if(m.home === m.away) P.errores.push(`${tf(f)}: ${m.home} juega contra sí mismo`); });
+      if(fm.length !== T.length/2) P.errores.push(`${tf(f)}: tiene ${fm.length} partidos y debería tener ${T.length/2}`);
+      T.forEach(t=>{ if((cnt[t]||0) > 1) P.errores.push(`${tf(f)}: ${t} aparece en ${cnt[t]} partidos a la vez`); if(!cnt[t] && fm.length) P.errores.push(`${tf(f)}: ${t} no tiene partido`); });
+      fm.forEach(m=>{ [m.home, m.away].forEach(n=>{ if(!T.includes(n)) P.errores.push(`${tf(f)}: «${n}» no pertenece al ${groupNames[g]}`); }); });
+    }
+    // 2) cruces repetidos y faltantes
+    const seen = {}; ms.forEach(m=>{ (seen[pairKey(m.home,m.away)] = seen[pairKey(m.home,m.away)] || []).push(m); });
+    Object.values(seen).forEach(list=>{ if(list.length > 1) P.errores.push(`Cruce repetido: ${list[0].home} – ${list[0].away} en ${list.map(m=>'F'+m.fecha).join(' y ')}`); });
+    for(let i=0;i<T.length;i++) for(let j=i+1;j<T.length;j++) if(!seen[pairKey(T[i],T[j])]) P.faltantes.push(`${T[i]} – ${T[j]}`);
+    if(P.faltantes.length) P.errores.push(`Cruces que nunca se jugarían (${P.faltantes.length}): ${P.faltantes.join(', ')}`);
+    // 3) contra el horario real publicado (fechas 1 a 3)
+    ms.filter(m=>PLAYED_FECHAS.has(m.fecha)).forEach(m=>{ if(!realPairs.has(m.fecha + '|' + pairKey(m.home,m.away))) P.errores.push(`F${m.fecha}: ${m.home} – ${m.away} no coincide con el horario publicado`); });
+    // 4) resultados y horarios pendientes en fechas ya jugadas
+    const sinRes = ms.filter(m=>m.fecha <= upto && !(state.scores[m.id] && state.scores[m.id].h !== '' && state.scores[m.id].a !== ''));
+    if(sinRes.length) P.avisos.push(`Sin resultado en fechas ya jugadas (${sinRes.length}): ${sinRes.map(m=>`F${m.fecha} ${m.home}–${m.away}`).join(', ')}`);
+    const conRes = ms.filter(m=>m.fecha > upto && state.scores[m.id] && state.scores[m.id].h !== '');
+    if(conRes.length) P.errores.push(`Resultados cargados en fechas posteriores a la última subida: ${conRes.map(m=>`F${m.fecha} ${m.home}–${m.away}`).join(', ')}`);
+    const sinHor = ms.filter(m=>m.fecha <= upto && !m.estadio);
+    if(sinHor.length) P.avisos.push(`Fechas jugadas sin horario asignado (${sinHor.length}): ${sinHor.map(m=>`F${m.fecha} ${m.home}–${m.away}`).join(', ')}`);
+    // 5) partidos que le faltan a cada equipo (fechas después de la última subida)
+    T.forEach(t=>{ P.pendientes[t] = ms.filter(m=>m.fecha > upto && (m.home===t || m.away===t)).sort((a,b)=>a.fecha-b.fecha).map(m=>`F${m.fecha} vs ${m.home===t ? m.away : m.home}`); });
+    out.groups[g] = P;
+  });
+  // horarios: choques
+  const prog = state.matches.filter(m=>m.estadio), slot = {}, team = {}, day = {};
+  prog.forEach(m=>{ const k = [m.estadio, m.fechaCal, m.hora].join(' · '); (slot[k] = slot[k] || []).push(m);
+    [m.home, m.away].forEach(t=>{ (team[t + '|' + m.fechaCal + '|' + m.hora] = team[t + '|' + m.fechaCal + '|' + m.hora] || []).push(m); (day[t + '|' + m.fechaCal] = day[t + '|' + m.fechaCal] || []).push(m); }); });
+  Object.entries(slot).forEach(([k,l])=>{ if(l.length > 1) out.horarios.push(`Dos partidos en la misma cancha y hora (${k}): ${l.map(m=>m.home+'–'+m.away).join(' y ')}`); });
+  Object.entries(team).forEach(([k,l])=>{ if(l.length > 1) out.horarios.push(`${k.split('|')[0]} juega dos partidos a la vez (${k.split('|')[1]} ${k.split('|')[2]})`); });
+  Object.entries(day).forEach(([k,l])=>{ if(l.length > 1 && new Set(l.map(m=>m.hora)).size > 1) out.horarios.push(`${k.split('|')[0]} juega ${l.length} partidos el ${k.split('|')[1]}: ${l.map(m=>m.hora).join(', ')}`); });
+  // general
+  if(state.matches.length !== 112) out.general.push(`Hay ${state.matches.length} partidos y deberían ser 112 (4 grupos × 28).`);
+  const orphan = Object.keys(state.scores).filter(id=>!state.matches.some(m=>m.id===id)); if(orphan.length) out.general.push(`Resultados huérfanos (sin partido): ${orphan.length}`);
+  const tombs = Object.keys(state.tomb).filter(id=>!state.matches.some(m=>m.id===id)); if(tombs.length) out.general.push(`Partidos eliminados sin restaurar: ${tombs.join(', ')}`);
+  return out;
+}
+function diagnosisText(d){
+  const L = [`DIAGNÓSTICO DEL FIXTURE · ${new Date().toLocaleString('es-EC')} · última fecha con resultados: ${d.upto}`];
+  d.general.forEach(x=>L.push('GENERAL: ' + x));
+  groupOrder.forEach(g=>{ const P = d.groups[g]; L.push('', groupNames[g].toUpperCase() + (P.errores.length ? ' · ❌ ' + P.errores.length + ' error(es)' : ' · ✅ sin errores de cruces'));
+    P.errores.forEach(x=>L.push('  ❌ ' + x)); P.avisos.forEach(x=>L.push('  ⚠️ ' + x));
+    L.push('  Partidos por jugar:'); roster[g].forEach(t=>L.push(`   - ${t}: ${P.pendientes[t].join(', ') || 'ninguno'}`)); });
+  L.push('', 'HORARIOS ' + (d.horarios.length ? '· ⚠️ ' + d.horarios.length : '· ✅ sin choques')); d.horarios.forEach(x=>L.push('  ⚠️ ' + x));
+  return L.join('\n');
+}
+function openDiagnostico(){
+  const d = diagnoseFixture(), txt = diagnosisText(d), nErr = groupOrder.reduce((a,g)=>a + d.groups[g].errores.length, 0) + d.general.length;
+  modalRoot.innerHTML = `<div class="scrim"><div class="sheet" style="width:min(560px,100%)" role="dialog" aria-modal="true">
+    <h3>🩺 Diagnóstico del fixture</h3>
+    <p class="sub">Revisa los datos reales de tu nube: rivales, cruces repetidos o faltantes, partidos por jugar y horarios. Última fecha con resultados: <b>${d.upto}</b>.</p>
+    <div class="pend" style="border-color:${nErr ? 'var(--red)' : 'var(--green)'};background:${nErr ? 'var(--amber-bg)' : 'var(--green-bg)'}"><b>${nErr ? '❌ ' + nErr + ' problema(s) en cruces' : '✅ Los cruces están bien'}</b>${d.horarios.length ? ' · ⚠️ ' + d.horarios.length + ' aviso(s) de horarios' : ''}</div>
+    ${d.general.map(x=>`<p class="sub twarn">${esc(x)}</p>`).join('')}
+    ${groupOrder.map(g=>{ const P = d.groups[g]; return `<h4>${groupNames[g]} ${P.errores.length ? '· ❌' : '· ✅'}</h4>${P.errores.map(x=>`<p class="sub twarn" style="margin:0 0 4px">❌ ${esc(x)}</p>`).join('')}${P.avisos.map(x=>`<p class="sub" style="margin:0 0 4px">⚠️ ${esc(x)}</p>`).join('')}<details><summary class="sub" style="cursor:pointer">Partidos por jugar de cada equipo</summary>${roster[g].map(t=>`<p class="sub" style="margin:0 0 3px"><b>${esc(t)}</b>: ${esc(P.pendientes[t].join(', ') || 'ninguno')}</p>`).join('')}</details>`; }).join('')}
+    ${d.horarios.length ? `<h4>Horarios</h4>${d.horarios.map(x=>`<p class="sub" style="margin:0 0 4px">⚠️ ${esc(x)}</p>`).join('')}` : ''}
+    <button class="close-btn" id="dgCopy" style="background:var(--gold);color:#3a2400;border-color:transparent;margin-top:10px">Copiar diagnóstico (para enviármelo)</button>
+    <button class="close-btn" id="dgClose">Cerrar</button></div></div>`;
+  modalRoot.querySelector('#dgClose').addEventListener('click', closeModal);
+  modalRoot.querySelector('.scrim').addEventListener('click', ev=>{ if(ev.target.classList.contains('scrim')) closeModal(); });
+  modalRoot.querySelector('#dgCopy').addEventListener('click', ()=>{
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>toast('Diagnóstico copiado'), ()=>{ modalRoot.querySelector('#dgCopy').insertAdjacentHTML('afterend', `<textarea class="teamsel" readonly style="height:140px;margin-top:8px" onclick="this.select()">${esc(txt)}</textarea>`); });
+  });
+}
+document.querySelectorAll('.diagBtn').forEach(b=>b.addEventListener('click', openDiagnostico));
 
 /* ---- Eliminar y restaurar ---- */
 function deleteMatches(ids, msg){
