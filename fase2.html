@@ -1,0 +1,1483 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sorteo Keeper Cup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@1,700;1,800&display=swap">
+<style>
+  /* Layout: una columna. Cabecera, barra de sorteo, restricciones, pestañas (Fecha 1-3, Equipo, Control)
+     y debajo la lista de partidos por día y estadio, como en el flyer de horarios. */
+  :root {
+    --bg: #EEF2F9;
+    --surface: #FFFFFF;
+    --surface-2: #E3E9F5;
+    --ink: #0B1B3F;
+    --muted: #51618A;
+    --line: #CBD5EA;
+    --accent: #1B4FE0;
+    --accent-ink: #FFFFFF;
+    --day: #BE5600;
+    --sm: #1B4FE0;
+    --sm-bg: #DCE5FF;
+    --sa: #0A7F5B;
+    --sa-bg: #D4F2E7;
+    --oro: #9A6A00;
+    --plata: #5A6783;
+    --ok: #0A7F5B;
+    --ok-bg: #D4F2E7;
+    --bad: #B3261E;
+    --bad-bg: #FBDAD7;
+    --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0A1330;
+      --surface: #111C44;
+      --surface-2: #1A2759;
+      --ink: #E8EEFF;
+      --muted: #9DB0DD;
+      --line: #26356E;
+      --accent: #4DB8FF;
+      --accent-ink: #04122E;
+      --day: #FFA24A;
+      --sm: #8FB0FF;
+      --sm-bg: #1C2E6B;
+      --sa: #3FD9A0;
+      --sa-bg: #0F3B33;
+      --oro: #F2C14E;
+      --plata: #B5C0D8;
+      --ok: #3FD9A0;
+      --ok-bg: #0F3B33;
+      --bad: #FF8A80;
+      --bad-bg: #4A1B1B;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0A1330;
+    --surface: #111C44;
+    --surface-2: #1A2759;
+    --ink: #E8EEFF;
+    --muted: #9DB0DD;
+    --line: #26356E;
+    --accent: #4DB8FF;
+    --accent-ink: #04122E;
+    --day: #FFA24A;
+    --sm: #8FB0FF;
+    --sm-bg: #1C2E6B;
+    --sa: #3FD9A0;
+    --sa-bg: #0F3B33;
+    --oro: #F2C14E;
+    --plata: #B5C0D8;
+    --ok: #3FD9A0;
+    --ok-bg: #0F3B33;
+    --bad: #FF8A80;
+    --bad-bg: #4A1B1B;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 15px/1.45 var(--body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 22px 56px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .muted { color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .eyebrow { font: italic 700 1rem var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0; }
+  h1 { font: italic 800 clamp(2.6rem, 10vw, 4rem)/.92 var(--display); text-transform: uppercase; margin: 6px 0 12px; text-wrap: balance; }
+  .lede { color: var(--muted); max-width: 62ch; margin: 0; }
+
+  /* barra de sorteo */
+  .draw { display: grid; gap: 12px; margin-top: 22px; }
+  #go, .btn1 {
+    font: italic 800 1.5rem/1 var(--display); text-transform: uppercase; letter-spacing: .05em;
+    background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px;
+    min-height: 54px; padding: 12px 26px; cursor: pointer;
+  }
+  #go:disabled, .btn1:disabled { opacity: .6; cursor: progress; }
+  .seedrow { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+  .seedrow .f { flex: 1 1 160px; min-width: 0; display: grid; gap: 4px; }
+  label, .lbl { font: 600 .75rem var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  input, select {
+    font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; min-height: 44px; width: 100%; min-width: 0;
+  }
+  #seed { font-variant-numeric: tabular-nums; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
+  .btn2 {
+    font: 600 .95rem var(--body); color: var(--accent); background: transparent;
+    border: 1px solid var(--accent); border-radius: 6px; min-height: 44px; padding: 8px 16px; cursor: pointer;
+  }
+  .hint { color: var(--muted); font-size: .85rem; margin: 0; max-width: 62ch; }
+  .sw { display: flex; gap: 12px; align-items: flex-start; text-transform: none; letter-spacing: 0; font: inherit; color: var(--ink); cursor: pointer; max-width: 62ch; }
+  .sw input { width: 22px; height: 22px; min-height: 0; padding: 0; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+  .sw b { font-weight: 600; }
+  .sw small { display: block; color: var(--muted); font-size: .85rem; }
+  #status { margin: 0; font-weight: 600; min-height: 1.4em; }
+  #status.err { color: var(--bad); }
+
+  /* detalles plegables */
+  details { border-top: 1px solid var(--line); padding: 10px 0; margin-top: 18px; }
+  details + details { margin-top: 0; }
+  summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+  details > :not(summary) { margin-top: 10px; }
+  .rlist { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .rchip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 4px 3px 12px; font-size: .88rem; }
+  .rchip button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 4px 8px; }
+  .rform { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; align-items: end; }
+  .rform .f { display: grid; gap: 4px; min-width: 0; }
+  .rmsg { color: var(--bad); font-weight: 600; margin: 0; min-height: 1.2em; }
+  ol.how { padding-left: 1.2em; display: grid; gap: 6px; max-width: 64ch; }
+
+  /* vista DT */
+  .seg { display: flex; gap: 2px; margin: 22px 0 0; border-bottom: 1px solid var(--line); }
+  .seg button { flex: 1; font: 600 .95rem var(--body); padding: 11px 8px; min-height: 44px; background: none; border: 0; border-bottom: 3px solid transparent; color: var(--muted); cursor: pointer; margin-bottom: -1px; }
+  .seg button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .dt-sub { color: var(--muted); max-width: 62ch; margin: 18px 0 0; }
+  .step { display: flex; align-items: baseline; gap: 12px; font: italic 800 1.8rem/1 var(--display); text-transform: uppercase; margin: 30px 0 10px; }
+  .step .n { font: 700 .75rem var(--body); font-style: normal; letter-spacing: .1em; color: var(--accent); }
+  .pick { margin: 18px 0 0; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .pick p { margin: 0; }
+  .pick .big { font: italic 800 3.2rem/1 var(--display); text-transform: uppercase; margin: 2px 0 6px; }
+  .bh { font: italic 800 1.4rem/1 var(--display); text-transform: uppercase; margin: 24px 0 8px; }
+  .gboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 18px; }
+  .gcard h4 { margin: 0 0 4px; font: 700 .75rem var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .gcard ol { list-style: none; margin: 0; padding: 0; }
+  .gcard li { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; border-top: 1px solid var(--line); font-size: .9rem; }
+  .gcard .gp { width: 2.6em; flex: none; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .gcard li.me b { color: var(--accent); }
+  .gcard small { margin-left: auto; color: var(--day); font-size: .72rem; white-space: nowrap; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .ti .btn2 { justify-self: start; margin-top: 4px; }
+  .in { animation: rise .4s ease-out both; }
+  @media (prefers-reduced-motion: reduce) { .in { animation: none; } }
+
+  /* acceso, rueda y bolillero */
+  .who { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 22px; }
+  .who p { margin: 0; }
+  .club { font: italic 800 2.9rem/1 var(--display); text-transform: uppercase; margin: 2px 0 4px; text-wrap: balance; }
+  .linkbtn { background: none; border: 0; color: var(--accent); font: 600 .9rem var(--body); cursor: pointer; padding: 8px 0 8px 12px; min-height: 44px; }
+  .btn1.go2 { min-height: 46px; font-size: 1.2rem; padding: 8px 22px; }
+  .ti.locked { opacity: .55; }
+  .drawbox { margin-top: 12px; padding: 14px 0 6px; border-top: 1px dashed var(--line); text-align: center; }
+  .drawbox .hint { margin: 12px auto 0; }
+  .seg2 { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg2 button { padding: 8px 18px; min-height: 40px; background: none; border: 0; color: var(--muted); font: 600 .9rem var(--body); cursor: pointer; }
+  .seg2 button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+  .stage { position: relative; margin: 20px auto 0; width: min(100%, 340px); }
+  .wheel { position: relative; width: 100%; aspect-ratio: 1; }
+  .wheel svg { width: 100%; height: 100%; display: block; will-change: transform; }
+  .wheel .ptr { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); border-left: 13px solid transparent; border-right: 13px solid transparent; border-top: 26px solid var(--day); z-index: 2; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .35)); }
+  .hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 88px; height: 88px; border-radius: 50%; border: 5px solid var(--surface); background: var(--accent); color: var(--accent-ink); font: italic 800 1.35rem/1 var(--display); text-transform: uppercase; cursor: pointer; z-index: 2; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+  .hub:disabled { opacity: .75; cursor: progress; }
+  .sec { stroke: var(--surface); stroke-width: 2; }
+  .sec.SM { fill: var(--sm-bg); }
+  .sec.SA { fill: var(--sa-bg); }
+  .sec.win { fill: var(--accent); }
+  .lab { font: 700 11px var(--body); fill: var(--ink); pointer-events: none; }
+  .lab.win { fill: var(--accent-ink); }
+  .rim { fill: none; stroke: var(--ink); stroke-width: 4; }
+  .cv { display: block; width: 100%; height: auto; }
+  .cf { position: absolute; left: 50%; top: 46%; width: 8px; height: 12px; border-radius: 2px; pointer-events: none; animation: cf 1.2s ease-out forwards; }
+  @keyframes cf { from { transform: translate(0, 0) rotate(0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
+  .resbox { text-align: left; margin-top: 16px; border-top: 1px solid var(--line); }
+  .legend2 { display: flex; justify-content: center; gap: 16px; margin: 10px 0 0; font-size: .85rem; color: var(--muted); }
+  .legend2 i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .clist { list-style: none; margin: 0; padding: 0; }
+  .clist li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+  .clist code { font: 600 .95rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+  .clist small { display: block; color: var(--muted); }
+  .clist .btn2 { padding: 6px 10px; min-height: 40px; font-size: .85rem; }
+  .cmsg { grid-column: 1 / -1; font-size: .85rem; color: var(--muted); word-break: break-word; }
+  @media (prefers-reduced-motion: reduce) { .cf { animation: none; display: none; } }
+
+  /* panel en vivo */
+  .liveh { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+  .liveh .big { font: italic 800 3.4rem/1 var(--display); font-variant-numeric: tabular-nums; }
+  .liveh .big small { font-size: 1.4rem; color: var(--muted); font-style: normal; font-weight: 600; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; font: 600 .85rem var(--body); color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.on { background: var(--sa); animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .bars { display: grid; gap: 8px; margin: 14px 0 6px; }
+  .bar { display: grid; grid-template-columns: 4.6rem 1fr 3rem; gap: 10px; align-items: center; font-size: .9rem; }
+  .bar .tr { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .bar .tr i { display: block; height: 100%; background: var(--accent); border-radius: 5px; transition: width .5s; }
+  .bar b { font-variant-numeric: tabular-nums; text-align: right; }
+  .lday { margin: 18px 0 4px; font: italic 800 1.5rem/1 var(--display); text-transform: uppercase; }
+  .ls { display: grid; grid-template-columns: 3.4rem auto minmax(0, 1fr); gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+  .ls .t { font: italic 700 1.25rem/1 var(--display); font-variant-numeric: tabular-nums; }
+  .ls .free { color: var(--muted); font-size: .9rem; }
+  .ls .cupt { font-size: .75rem; font-weight: 600; margin-left: 6px; }
+  .ls .cupt.Oro { color: var(--oro); }
+  .ls .cupt.Plata { color: var(--plata); }
+  .ls.pop { animation: pop .9s ease-out; }
+  @keyframes pop { from { background: var(--sa-bg); } to { background: transparent; } }
+  .feed { list-style: none; margin: 0; padding: 0; }
+  .feed li { padding: 8px 0; border-top: 1px solid var(--line); font-size: .92rem; }
+  .feed time { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 8px; }
+  .syncnote { margin: 10px 0 0; padding: 8px 12px; border-left: 3px solid var(--day); background: var(--surface); font-size: .88rem; }
+  @media (prefers-reduced-motion: reduce) { .dot.on, .ls.pop { animation: none; } }
+
+  /* mapa por horario */
+  .mapctl { display: grid; gap: 10px; margin-top: 18px; }
+  .mapctl select { font: 500 1rem var(--body); min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+  .mapctl label.chk2 { display: flex; gap: 10px; align-items: center; font: 500 .92rem var(--body); text-transform: none; letter-spacing: 0; color: var(--ink); min-height: 44px; }
+  .mapctl label.chk2 input { width: 20px; height: 20px; min-height: 0; flex: none; }
+  .mrow { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+  .mrow > b { font: italic 700 1.1rem/1.6 var(--display); color: var(--muted); }
+  .ml { display: flex; gap: 8px; align-items: center; padding: 3px 6px; margin: 1px -6px; border-radius: 4px; font-size: .92rem; }
+  .ml .chip { flex: none; }
+  .ml.hl { background: var(--sm-bg); font-weight: 700; }
+  .ml .free { color: var(--muted); }
+
+  /* pestañas */
+  .tabs { display: flex; gap: 2px; overflow-x: auto; margin: 22px 0 0; border-bottom: 1px solid var(--line); }
+  .tabs button {
+    flex: 1 0 auto; font: 600 .9rem var(--body); padding: 11px 8px; min-height: 44px; background: none; border: 0;
+    border-bottom: 3px solid transparent; color: var(--muted); cursor: pointer; margin-bottom: -1px; white-space: nowrap;
+  }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  #panel { padding-top: 6px; }
+
+  /* fechas */
+  .sum { margin: 14px 0 0; }
+  .day h3 {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font: italic 800 1.9rem/1 var(--display); text-transform: uppercase; color: var(--day); margin: 26px 0 0;
+  }
+  .day h3 span { font: 500 .85rem var(--body); text-transform: none; color: var(--muted); }
+  .stads { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 0 32px; }
+  .stad h4 { display: flex; align-items: center; gap: 8px; font: 700 .78rem var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 2px; }
+  .stad h4::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--sm); }
+  .stad.SA h4::before { background: var(--sa); }
+  ol.list { list-style: none; margin: 0; padding: 0; }
+  .m { display: grid; grid-template-columns: 3.7rem minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--line); }
+  .m .t { font: italic 700 1.3rem/1 var(--display); font-variant-numeric: tabular-nums; }
+  .vs b { font-weight: 600; }
+  .vs i { font-style: normal; color: var(--muted); margin: 0 .3em; font-size: .85em; }
+  .cup { font: 600 .7rem var(--body); letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+  .cup.Oro { color: var(--oro); }
+  .cup.Plata { color: var(--plata); }
+  .rs::after { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--day); margin-left: 4px; vertical-align: middle; }
+  .legend { color: var(--muted); font-size: .85rem; margin: 18px 0 0; }
+  .legend .rs-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--day); margin-right: 6px; vertical-align: middle; }
+  .reveal .m { animation: rise .4s ease-out both; animation-delay: calc(var(--i) * 30ms); }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .reveal .m { animation: none; } }
+
+  /* equipo */
+  .tsel { display: grid; gap: 4px; margin-top: 16px; max-width: 360px; }
+  .tname { font: italic 800 2.6rem/1 var(--display); text-transform: uppercase; margin: 22px 0 4px; }
+  .tmeta { color: var(--muted); margin: 0; }
+  .tlist { list-style: none; margin: 16px 0 0; padding: 0; }
+  .ti { padding: 14px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+  .th { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .tf { font: 600 .75rem var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .td { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .td .dd { font: italic 800 1.5rem/1 var(--display); text-transform: uppercase; color: var(--day); }
+  .td .tt { font: italic 700 1.5rem/1 var(--display); font-variant-numeric: tabular-nums; }
+  .chip { font: 600 .75rem var(--body); padding: 3px 9px; border-radius: 4px; white-space: nowrap; }
+  .chip.SM { background: var(--sm-bg); color: var(--sm); }
+  .chip.SA { background: var(--sa-bg); color: var(--sa); }
+  .tr { color: var(--muted); }
+  .tr b { color: var(--ink); font-weight: 600; }
+  .note { background: var(--surface-2); border-radius: 6px; padding: 10px 12px; margin: 14px 0 0; font-size: .9rem; }
+
+  /* control */
+  .ctl h2 { font: italic 800 1.6rem/1 var(--display); text-transform: uppercase; margin: 24px 0 4px; }
+  .ctl p.sub { color: var(--muted); margin: 0 0 8px; max-width: 62ch; }
+  .chk { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); list-style: none; }
+  .chk .mark { font: 700 .7rem var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; background: var(--ok-bg); color: var(--ok); }
+  .chk.bad .mark { background: var(--bad-bg); color: var(--bad); }
+  .chk .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .chk small { display: block; color: var(--muted); }
+  ul.chks { margin: 0; padding: 0; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 8px 8px 0; border-top: 1px solid var(--line); font-size: .88rem; white-space: nowrap; }
+  th { font: 600 .72rem var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  tbody th { color: var(--ink); font-size: .88rem; letter-spacing: 0; text-transform: none; font-weight: 600; }
+  td .d { color: var(--day); font-weight: 600; }
+  td .s { font-size: .72rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-left: 2px; }
+  td .s.SM { background: var(--sm-bg); color: var(--sm); }
+  td .s.SA { background: var(--sa-bg); color: var(--sa); }
+  tr.sep th, tr.sep td { border-top: 2px solid var(--line); }
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <header>
+    <p class="eyebrow">Keeper Cup 3 · Simulación</p>
+    <h1>Sorteo de horarios</h1>
+    <p class="lede">Equipos reales de la tabla de la fase de grupos. Los 4 primeros de cada grupo van a Copa Oro y los 4 últimos a Copa Plata, en 4 grupos nuevos como en la pizarra. Cada DT saca de una vez su rival y su día, hora y estadio de cada fecha. Ya están cargados los pedidos de Legacy, Clowiss, Barcelona y Leones.</p>
+  </header>
+
+  <div class="seg" role="tablist" aria-label="Vista">
+    <button type="button" role="tab" data-mode="dt" aria-selected="true">Vista DT</button>
+    <button type="button" role="tab" data-mode="live" aria-selected="false">En vivo</button>
+    <button type="button" role="tab" data-mode="map" aria-selected="false">Mapa</button>
+    <button type="button" role="tab" data-mode="adm" aria-selected="false">Organizador</button>
+  </div>
+  <p class="syncnote" id="simbar" hidden>Simulación de prueba: nada de esto es el sorteo real. <button type="button" class="linkbtn" id="simStop">Detener</button></p>
+  <div id="dtView"></div>
+  <div id="liveView" hidden></div>
+  <div id="mapView" hidden>
+    <h2 class="step">Quién juega en cada horario</h2>
+    <p class="dt-sub" style="margin-top:0">Cada horario con los partidos de las 3 fechas, en los dos estadios. Se llena a medida que los DT sacan su sorteo.</p>
+    <div class="mapctl"><select id="mapClub" aria-label="Resaltar un club"></select><label class="chk2" id="mapAllLbl" hidden><input type="checkbox" id="mapAll"> Mostrar también los partidos sin sortear</label></div>
+    <div id="mapBody"></div>
+  </div>
+
+  <div id="admView" hidden>
+  <section class="draw" aria-label="Sorteo">
+    <button type="button" id="go">Sortear</button>
+    <form id="seedForm" class="seedrow" autocomplete="off">
+      <div class="f">
+        <label for="seed">Semilla del sorteo</label>
+        <input id="seed" name="seed" maxlength="12" spellcheck="false" autocapitalize="characters">
+      </div>
+      <button type="submit" class="btn2">Repetir</button>
+    </form>
+    <p class="hint">Con la misma semilla sale siempre el mismo resultado, así cualquiera puede comprobar que el sorteo no se manipuló.</p>
+    <label class="sw" for="variety"><input type="checkbox" id="variety" checked><span><b>Repartir los días</b><small>Copa Oro: todos juegan un viernes. Copa Plata: solo los 5º y 6º de la tabla; los 7º y 8º no. Nadie juega los 3 partidos en domingo.</small></span></label>
+    <p id="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <details id="rdet">
+    <summary id="rsum">Restricciones declaradas</summary>
+    <p class="hint">Cada equipo puede avisar antes del sorteo un día o franja en que no puede jugar. Máximo una por equipo; si agregas otra al mismo equipo, reemplaza la anterior.</p>
+    <ul class="rlist" id="rlist"></ul>
+    <form id="rForm" class="rform">
+      <div class="f"><label for="rTeam">Equipo</label><select id="rTeam"></select></div>
+      <div class="f"><label for="rType">No puede</label><select id="rType"></select></div>
+      <button type="submit" class="btn2">Agregar</button>
+    </form>
+    <p class="rmsg" id="rmsg" role="alert"></p>
+    <button type="button" class="btn2" id="rclear">Quitar todas</button>
+  </details>
+
+  <details id="sdet">
+    <summary>Simulador de sorteo (demo)</summary>
+    <p class="hint">Llena los horarios como si los DT estuvieran sorteando, solo en esta pantalla y sin tocar los sorteos reales. Abre las pestañas En vivo y Mapa para verlos llenarse.</p>
+    <div class="row"><button type="button" class="btn2" id="simStep">Sacar 1 partido</button><button type="button" class="btn2" id="simAuto">Llenar en vivo</button><button type="button" class="btn2" id="simAll">Llenar todo</button><button type="button" class="btn2" id="simReset">Detener y borrar simulación</button></div>
+  </details>
+
+  <details id="cdet">
+    <summary>Códigos de acceso de los clubes (32)</summary>
+    <p class="hint">Cada código son las 3 primeras letras del club y el puesto en que terminó la fase de grupos (por ejemplo Legacy, 2º: LEG2). Se escribe en mayúscula o minúscula. Entrega a cada DT su mensaje por WhatsApp con el link y su código.</p>
+    <div class="row"><button type="button" class="btn2" id="copyAll">Copiar todos los mensajes</button><button type="button" class="btn2" id="csvBtn">Descargar lista (CSV)</button></div>
+    <ul class="clist" id="clist"></ul>
+  </details>
+
+  <div class="tabs" role="tablist" aria-label="Resultados del sorteo">
+    <button type="button" role="tab" data-tab="0" aria-selected="true">Fecha 1</button>
+    <button type="button" role="tab" data-tab="1" aria-selected="false">Fecha 2</button>
+    <button type="button" role="tab" data-tab="2" aria-selected="false">Fecha 3</button>
+    <button type="button" role="tab" data-tab="t" aria-selected="false">Equipo</button>
+    <button type="button" role="tab" data-tab="c" aria-selected="false">Control</button>
+  </div>
+  <div id="panel" role="tabpanel"></div>
+
+  <details>
+    <summary>Cómo funciona el sorteo</summary>
+    <ol class="how">
+      <li>Los grupos salen de la tabla. Grupo 1 = 1º de A, 2º de B, 3º de C y 4º de D; Grupo 2 = 1º de B, 2º de C, 3º de D y 4º de A; y así. Copa Plata usa el mismo reparto con los puestos 5 al 8.</li>
+      <li>Dentro de cada grupo todos juegan contra todos una vez. Se sortea en qué fecha va cada cruce, así cada DT descubre su rival junto con su horario.</li>
+      <li>Se sortea el estadio. En Copa Oro cada equipo juega 2 veces en San Miguel y 1 en Los Sauces. En Copa Plata, 12 equipos juegan igual y 4 juegan 2 veces en Los Sauces, nunca en fechas seguidas.</li>
+      <li>Con «Repartir los días» activado se sortea el día de cada partido: un viernes para cada equipo de Oro, un viernes para los 5º y 6º de Plata, y los sábados se repiten lo menos posible.</li>
+      <li>Cada partido recibe al azar uno de los horarios libres que le quedan. Ningún equipo repite día y hora. Los pedidos declarados se respetan.</li>
+    </ol>
+  </details>
+  </div>
+</main>
+
+<script>
+//#LOGIC-START
+const DAYS = ['Viernes', 'Sábado', 'Domingo'];
+const ST_NAME = { SM: 'San Miguel', SA: 'Los Sauces' };
+const SLOTS = [
+  ['Viernes', '19h00', 19, 'SM'], ['Viernes', '21h00', 21, 'SM'], ['Viernes', '19h00', 19, 'SA'], ['Viernes', '21h00', 21, 'SA'],
+  ['Sábado', '15h00', 15, 'SM'], ['Sábado', '17h00', 17, 'SM'], ['Sábado', '19h00', 19, 'SM'], ['Sábado', '17h00', 17, 'SA'], ['Sábado', '19h00', 19, 'SA'],
+  ['Domingo', '9h00', 9, 'SM'], ['Domingo', '11h00', 11, 'SM'], ['Domingo', '13h00', 13, 'SM'], ['Domingo', '15h00', 15, 'SM'], ['Domingo', '17h00', 17, 'SM'],
+  ['Domingo', '15h00', 15, 'SA'], ['Domingo', '17h00', 17, 'SA']
+].map((s, i) => ({ id: i, day: s[0], dayIdx: DAYS.indexOf(s[0]), time: s[1], hour: s[2], st: s[3] }));
+
+const RESTR = {
+  noVie: 'Sin viernes',
+  noSab: 'Sin sábado',
+  noDom: 'Sin domingo',
+  noMan: 'Sin domingo temprano',
+  sab19: 'Sábado solo 19h',
+  sab17: 'Sábado desde las 17h',
+  fixDVS: 'Fechas fijas'
+};
+const RESTR_LONG = {
+  noVie: 'Ningún partido el viernes',
+  noSab: 'Ningún partido el sábado',
+  noDom: 'Ningún partido el domingo',
+  noMan: 'Ningún partido el domingo antes de las 13h00',
+  sab19: 'Si juega el sábado, solo a las 19h00',
+  sab17: 'Ningún partido el sábado antes de las 17h00',
+  fixDVS: 'Fecha 1 domingo, fecha 2 viernes y fecha 3 sábado'
+};
+
+/* Tabla de la fase de grupos (puestos 1 a 8 de cada grupo). */
+const ORIG = {
+  A: ['Barrio Fino', 'Cordovez', 'Huracán', 'Gladiadores AZ', 'Galacticos', 'Alianza Jr', 'Arapaima', 'Corinthians'],
+  B: ['Leones', 'Sub21', 'Mandela', 'Templo Fit', 'Libert S.C.', 'Real Sevilla', 'Jolines', 'Pecezuelos'],
+  C: ['Vaster', 'Somec', 'Barcelona', 'La banda', 'Real Potosí', 'Cormorán', 'San Francisco', 'San Andrés'],
+  D: ['Leipzig RB', 'Legacy', 'Clowiss', 'Randagi', 'America', 'Universitarios', 'San José', 'Juventus']
+};
+/* Grupo 1 = 1º de A, 2º de B, 3º de C, 4º de D; Grupo 2 = 1º de B, 2º de C, 3º de D, 4º de A; y así.
+   Copa Plata usa el mismo reparto con los puestos 5 al 8. */
+const TEAMS = [];
+['Oro', 'Plata'].forEach(cup => {
+  for (let g = 0; g < 4; g++) for (let p = 0; p < 4; p++) {
+    const from = 'ABCD'[(g + p) % 4];
+    const rank = (cup === 'Oro' ? 1 : 5) + p;
+    TEAMS.push({ id: TEAMS.length, cup, g, p, from, rank, name: ORIG[from][rank - 1] });
+  }
+});
+/* Pedidos reales de clubes. Legacy: viernes + 2 domingos (sin sábado; el viernes lo da la regla de Oro). */
+const DEFAULT_RESTR = {};
+[['Legacy', 'noSab'], ['Clowiss', 'sab19'], ['Barcelona', 'sab17'], ['Leones', 'fixDVS']].forEach(([n, c]) => { DEFAULT_RESTR[TEAMS.find(t => t.name === n).id] = c; });
+const tid = (cup, g, p) => (cup === 'Oro' ? 0 : 16) + g * 4 + p;
+const MATCHINGS = [[[0, 1], [2, 3]], [[0, 2], [1, 3]], [[0, 3], [1, 2]]];
+
+function xmur3(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  return function () { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return (h ^= h >>> 16) >>> 0; };
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const makeRng = seed => mulberry32(xmur3(String(seed))());
+function shuffle(arr, r) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const x = a[i]; a[i] = a[j]; a[j] = x; }
+  return a;
+}
+
+function allowed(code, slot, j) {
+  switch (code) {
+    case 'sab19': return slot.dayIdx !== 1 || slot.hour === 19;
+    case 'sab17': return slot.dayIdx !== 1 || slot.hour >= 17;
+    case 'fixDVS': return j === undefined || slot.dayIdx === [2, 0, 1][j];
+    case 'noVie': return slot.dayIdx !== 0;
+    case 'noSab': return slot.dayIdx !== 1;
+    case 'noDom': return slot.dayIdx !== 2;
+    case 'noMan': return !(slot.dayIdx === 2 && slot.hour < 13);
+    default: return true;
+  }
+}
+const okMatch = (m, slot, restr) => allowed(restr[m.a], slot, m.j) && allowed(restr[m.b], slot, m.j);
+
+/* Con la regla de viernes (todo Oro y las 2 primeras posiciones de Plata) cada fecha necesita
+   4 partidos de viernes, 2 en cada estadio. Esto revisa si el reparto de estadios lo permite. */
+function fridayOk(matches) {
+  const q = [0, 0, 0], qs = [0, 0, 0], saF = [0, 0, 0, 0];
+  matches.forEach(m => {
+    if (m.cup === 'Plata' && m.pa < 2 && m.pb < 2) { q[m.j]++; if (m.st === 'SA') qs[m.j]++; }
+    if (m.cup === 'Oro' && m.st === 'SA') saF[m.g] = m.j;
+  });
+  for (let code = 0; code < 81; code++) {
+    const k = [0, 0, 0], ks = [0, 0, 0];
+    let c = code;
+    for (let g = 0; g < 4; g++) { const f = c % 3; c = Math.floor(c / 3); k[f]++; if (f === saF[g]) ks[f]++; }
+    let ok = true;
+    for (let j = 0; j < 3; j++) if (2 * k[j] + q[j] !== 4 || 2 * ks[j] + qs[j] !== 2) { ok = false; break; }
+    if (ok) return true;
+  }
+  return false;
+}
+
+/* Paso 1: orden de las fechas por grupo y estadio de cada partido. */
+function planStadiums(rnd, needFriday) {
+  for (let tries = 0; tries < 40000; tries++) {
+    const matches = [];
+    const plataPaths = new Set(shuffle([0, 1, 2, 3], rnd).slice(0, 2));
+    for (const cup of ['Oro', 'Plata']) {
+      const base = cup === 'Oro' ? 0 : 16;
+      for (let g = 0; g < 4; g++) {
+        const order = shuffle([0, 1, 2], rnd); /* se sortea en qué fecha va cada cruce */
+        const gm = [];
+        MATCHINGS.forEach((mm, k) => mm.forEach(([a, b]) => {
+          gm.push({ cup, g, a: base + g * 4 + a, b: base + g * 4 + b, pa: a, pb: b, k, j: order[k], st: 'SM', slot: null });
+        }));
+        if (cup === 'Oro' || !plataPaths.has(g)) {
+          const kk = Math.floor(rnd() * 3);
+          gm.forEach(m => { if (m.k === kk) m.st = 'SA'; });
+        } else {
+          const path = shuffle([0, 1, 2, 3], rnd);
+          const edges = [[path[0], path[1]], [path[1], path[2]], [path[2], path[3]]];
+          gm.forEach(m => {
+            if (edges.some(e => (e[0] === m.pa && e[1] === m.pb) || (e[0] === m.pb && e[1] === m.pa))) m.st = 'SA';
+          });
+        }
+        for (const m of gm) matches.push(m);
+      }
+    }
+    const perJ = [0, 0, 0];
+    matches.forEach(m => { if (m.st === 'SA') perJ[m.j]++; });
+    if (perJ.some(x => x !== 6)) continue;
+    const saJ = {};
+    matches.forEach(m => {
+      if (m.st === 'SA') { (saJ[m.a] = saJ[m.a] || []).push(m.j); (saJ[m.b] = saJ[m.b] || []).push(m.j); }
+    });
+    let bad = false;
+    for (const id in saJ) { const js = saJ[id].slice().sort(); if (js.length > 1 && js[1] - js[0] === 1) bad = true; }
+    if (bad) continue;
+    if (needFriday && !fridayOk(matches)) continue;
+    return matches;
+  }
+  return null;
+}
+
+/* Emparejamiento válido partido-horario (si existe), con orden aleatorio. */
+function kuhn(ms, slots, restr, rnd, used) {
+  const n = ms.length;
+  const owner = new Array(n).fill(-1);
+  const adj = ms.map(m => shuffle(slots.map((_, i) => i).filter(i => okMatch(m, slots[i], restr) && free(used, m, slots[i])), rnd));
+  function tryK(i, seen) {
+    for (const s of adj[i]) {
+      if (seen[s]) continue;
+      seen[s] = true;
+      if (owner[s] < 0 || tryK(owner[s], seen)) { owner[s] = i; return true; }
+    }
+    return false;
+  }
+  for (const i of shuffle(ms.map((_, i) => i), rnd)) {
+    if (!tryK(i, new Array(n).fill(false))) return null;
+  }
+  const res = new Array(n);
+  owner.forEach((i, s) => { res[i] = slots[s]; });
+  return res;
+}
+
+/* Rellena una clase (misma fecha, estadio y día) con horarios al azar. */
+const hkey = s => s.dayIdx + '-' + s.hour;
+const free = (used, m, s) => !used || (!used[m.a].has(hkey(s)) && !used[m.b].has(hkey(s)));
+function markUsed(used, ms) { if (used) ms.forEach(m => { used[m.a].add(hkey(m.slot)); used[m.b].add(hkey(m.slot)); }); }
+function fillClass(ms, sl, restr, rnd, used) {
+  if (ms.length !== sl.length) return false;
+  const fallback = kuhn(ms, sl, restr, rnd, used);
+  if (!fallback) return false;
+  let pick = null;
+  for (let t = 0; t < 400 && !pick; t++) {
+    const perm = shuffle(sl, rnd);
+    if (ms.every((m, i) => okMatch(m, perm[i], restr) && free(used, m, perm[i]))) pick = perm;
+  }
+  (pick || fallback).forEach((s, i) => { ms[i].slot = s; });
+  markUsed(used, ms);
+  return true;
+}
+
+/* Paso 2 sin regla de variedad: horario al azar dentro de cada estadio. */
+function assignSlots(matches, restr, rnd) {
+  const used = TEAMS.map(() => new Set());
+  for (let j = 0; j < 3; j++) {
+    for (const st of ['SM', 'SA']) {
+      if (!fillClass(matches.filter(m => m.j === j && m.st === st), SLOTS.filter(s => s.st === st), restr, rnd, used)) return false;
+    }
+  }
+  return true;
+}
+
+/* Paso 2 con variedad: primero el día de cada partido, después la hora. */
+const DAY_COUNTS = { SM: [2, 3, 5], SA: [2, 2, 2] };
+function assignDays(matches, restr, rnd) {
+  const cls = [];
+  for (let j = 0; j < 3; j++) for (const st of ['SM', 'SA']) cls.push(matches.filter(m => m.j === j && m.st === st));
+  const nf = TEAMS.map(t => t.cup === 'Plata' && t.p >= 2);
+  const pen = (c, r, id) => {
+    let p = 0;
+    if (nf[id]) p += 1000 * c[0];
+    if (c[0] > 1) p += 100 * (c[0] - 1);
+    if (c[1] > 1) p += 4 * (c[1] - 1);
+    if (c[2] === 3) p += 100;
+    if (r === 'noVie') p += 1000 * c[0]; else if (r === 'noSab') p += 1000 * c[1]; else if (r === 'noDom') p += 1000 * c[2];
+    return p;
+  };
+  matches.forEach(m => {
+    m.pin = undefined;
+    [m.a, m.b].forEach(id => { if (restr[id] === 'fixDVS') m.pin = [2, 0, 1][m.j]; });
+  });
+  let bestDays = null, bestScore = Infinity, pinFail = false;
+  for (let rs = 0; rs < 12 && bestScore > 4; rs++) {
+    cls.forEach(ms => {
+      let pool = [].concat(...DAY_COUNTS[ms[0].st].map((c, d) => new Array(c).fill(d)));
+      const rest = [];
+      ms.forEach(m => {
+        if (m.pin === undefined) { rest.push(m); return; }
+        const ix = pool.indexOf(m.pin);
+        if (ix < 0) pinFail = true; else { pool.splice(ix, 1); m.day = m.pin; }
+      });
+      pool = shuffle(pool, rnd);
+      rest.forEach((m, i) => { m.day = pool[i]; });
+    });
+    const C = TEAMS.map(() => [0, 0, 0]);
+    matches.forEach(m => { C[m.a][m.day]++; C[m.b][m.day]++; });
+    let total = 0;
+    TEAMS.forEach(t => { total += pen(C[t.id], restr[t.id], t.id); });
+    if (total < bestScore) { bestScore = total; bestDays = matches.map(m => m.day); }
+    for (let it = 0; it < 3000 && total > 4; it++) {
+      const ms = cls[Math.floor(rnd() * cls.length)];
+      const x = ms[Math.floor(rnd() * ms.length)], y = ms[Math.floor(rnd() * ms.length)];
+      if (x.day === y.day || x.pin !== undefined || y.pin !== undefined) continue;
+      const ids = [x.a, x.b, y.a, y.b];
+      let before = 0; ids.forEach(id => { before += pen(C[id], restr[id], id); });
+      const swap = () => {
+        C[x.a][x.day]--; C[x.b][x.day]--; C[y.a][y.day]--; C[y.b][y.day]--;
+        const d = x.day; x.day = y.day; y.day = d;
+        C[x.a][x.day]++; C[x.b][x.day]++; C[y.a][y.day]++; C[y.b][y.day]++;
+      };
+      swap();
+      let after = 0; ids.forEach(id => { after += pen(C[id], restr[id], id); });
+      if (after <= before || rnd() < 0.03) {
+        total += after - before;
+        if (total < bestScore) { bestScore = total; bestDays = matches.map(m => m.day); }
+      } else swap();
+    }
+  }
+  if (pinFail || bestScore >= 100) return false;
+  matches.forEach((m, i) => { m.day = bestDays[i]; });
+  return true;
+}
+function assignWithVariety(matches, restr, rnd) {
+  if (!assignDays(matches, restr, rnd)) return false;
+  const used = TEAMS.map(() => new Set());
+  for (let j = 0; j < 3; j++) for (const st of ['SM', 'SA']) for (let d = 0; d < 3; d++) {
+    const ms = matches.filter(m => m.j === j && m.st === st && m.day === d);
+    const sl = SLOTS.filter(s => s.st === st && s.dayIdx === d);
+    if (!fillClass(ms, sl, restr, rnd, used)) return false;
+  }
+  return true;
+}
+
+function satRepeats(matches) {
+  const c = new Array(32).fill(0);
+  matches.forEach(m => { if (m.day === 1) { c[m.a]++; c[m.b]++; } });
+  return c.filter(x => x > 1).length;
+}
+
+function runDraw(seed, restr, variety) {
+  if (variety === undefined) variety = true;
+  const rnd = makeRng(seed);
+  if (!variety) {
+    for (let t = 0; t < 60; t++) {
+      const matches = planStadiums(rnd, false);
+      if (!matches) return null;
+      if (assignSlots(matches, restr, rnd)) return { seed: String(seed), matches, variety };
+    }
+    return null;
+  }
+  /* Con variedad se prueban varios repartos y se queda el que menos repite sábado. */
+  let best = null, bestScore = Infinity, wins = 0;
+  for (let t = 0; t < 40 && bestScore > 1 && wins < 6; t++) {
+    const matches = planStadiums(rnd, true);
+    if (!matches) break;
+    if (!assignWithVariety(matches, restr, rnd)) continue;
+    wins++;
+    const sc = satRepeats(matches);
+    if (sc < bestScore) { bestScore = sc; best = matches; }
+  }
+  return best ? { seed: String(seed), matches: best, variety } : null;
+}
+
+/* Cuántos equipos juegan 0, 1, 2 o 3 veces cada día. */
+function dayStats(res) {
+  const C = TEAMS.map(() => [0, 0, 0]);
+  res.matches.forEach(m => { C[m.a][m.slot.dayIdx]++; C[m.b][m.slot.dayIdx]++; });
+  const table = [0, 1, 2].map(d => [0, 1, 2, 3].map(k => C.filter(c => c[d] === k).length));
+  return { C, table };
+}
+
+function verify(res, restr, variety) {
+  const M = res.matches;
+  const checks = [];
+  let a = 0;
+  for (let j = 0; j < 3; j++) {
+    const c = new Array(32).fill(0);
+    M.filter(m => m.j === j).forEach(m => { c[m.a]++; c[m.b]++; });
+    a += c.filter(x => x === 1).length;
+  }
+  checks.push({ t: 'Cada equipo juega una sola vez por fecha', got: a, of: 96 });
+  let b = 0;
+  for (let j = 0; j < 3; j++) b += new Set(M.filter(m => m.j === j).map(m => m.slot.id)).size;
+  checks.push({ t: 'Cada horario se usa una sola vez por fecha', got: b, of: 48 });
+  let rv = 0;
+  TEAMS.forEach(t => { const rs = teamMatches(res, t.id).map(m => (m.a === t.id ? m.b : m.a)); if (new Set(rs).size === 3) rv++; });
+  checks.push({ t: 'Cada equipo enfrenta a sus 3 rivales una sola vez', got: rv, of: 32 });
+  let nr = 0;
+  TEAMS.forEach(t => { const hs = teamMatches(res, t.id).map(m => hkey(m.slot)); if (new Set(hs).size === hs.length) nr++; });
+  checks.push({ t: 'Nadie repite día y hora (aunque sea en el otro estadio)', got: nr, of: 32 });
+  const sa = new Array(32).fill(0), sm = new Array(32).fill(0);
+  M.forEach(m => { const k = m.st === 'SA' ? sa : sm; k[m.a]++; k[m.b]++; });
+  const oro = TEAMS.filter(t => t.cup === 'Oro' && sm[t.id] === 2 && sa[t.id] === 1).length;
+  checks.push({ t: 'Copa Oro: 2 partidos en San Miguel y 1 en Los Sauces', got: oro, of: 16 });
+  const pl = TEAMS.filter(t => t.cup === 'Plata' && (sa[t.id] === 1 || sa[t.id] === 2)).length;
+  const dbl = TEAMS.filter(t => t.cup === 'Plata' && sa[t.id] === 2).length;
+  checks.push({ t: 'Copa Plata: 1 o 2 partidos en Los Sauces, nunca 0 ni 3', got: pl, of: 16, note: (16 - dbl) + ' equipos con 1 y ' + dbl + ' con 2' });
+  let consec = 0;
+  TEAMS.forEach(t => {
+    const js = M.filter(m => m.st === 'SA' && (m.a === t.id || m.b === t.id)).map(m => m.j).sort();
+    if (js.length > 1 && js[1] - js[0] === 1) consec++;
+  });
+  checks.push({ t: 'Nadie juega en Los Sauces dos fechas seguidas', got: 32 - consec, of: 32 });
+  const rids = Object.keys(restr).map(Number);
+  let rOk = 0;
+  rids.forEach(id => {
+    if (M.filter(m => m.a === id || m.b === id).every(m => allowed(restr[id], m.slot, m.j))) rOk++;
+  });
+  checks.push({ t: 'Las restricciones declaradas se respetan', got: rOk, of: rids.length });
+  if (variety) {
+    const st = dayStats(res);
+    checks.push({ t: 'Copa Oro: cada equipo juega un viernes', got: TEAMS.filter(t => t.cup === 'Oro' && st.C[t.id][0] === 1).length, of: 16 });
+    checks.push({ t: 'Copa Plata: viernes solo para los 5º y 6º de la tabla', got: TEAMS.filter(t => t.cup === 'Plata' && st.C[t.id][0] === (t.p < 2 ? 1 : 0)).length, of: 16, note: '8 equipos sin viernes: los 7º y 8º de la tabla' });
+    checks.push({ t: 'Nadie juega sus 3 partidos en domingo', got: 32 - st.C.filter(c => c[2] === 3).length, of: 32 });
+  }
+  checks.forEach(c => { c.ok = c.got === c.of; });
+  return checks;
+}
+
+function teamMatches(res, id) {
+  return res.matches.filter(m => m.a === id || m.b === id).sort((x, y) => x.j - y.j);
+}
+
+//#LOGIC-END
+
+/* ---------- Interfaz ---------- */
+
+const state = { seed: 'KEEPER3', restr: Object.assign({}, DEFAULT_RESTR), result: null, tab: '0', team: 0, variety: true, me: null, open: -1, dtMode: 'wheel', shown: new Set(), drawnBy: {}, drawAt: {}, liveF: 0, mapClub: -1, mapAll: false, busy: false, skip: null };
+function resetDraws() { state.shown = new Set(); state.drawnBy = {}; state.drawAt = {}; state.open = -1; }
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const SHORT_DAY = ['Vie', 'Sáb', 'Dom'];
+
+function nm(id) {
+  const r = state.restr[id];
+  return '<b' + (r ? ' class="rs" title="' + esc(RESTR_LONG[r]) + '"' : '') + '>' + esc(TEAMS[id].name) + '</b>';
+}
+function setStatus(txt, err) {
+  const s = $('#status');
+  s.textContent = txt;
+  s.className = err ? 'err' : '';
+}
+function newSeed() {
+  let s = '';
+  while (s.length < 6) s += Math.random().toString(36).slice(2).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return s.slice(0, 6);
+}
+
+function fechaHtml(j) {
+  const items = state.result.matches.filter(m => m.j === j);
+  const sa = items.filter(m => m.st === 'SA');
+  const saO = sa.filter(m => m.cup === 'Oro').length;
+  let h = '<p class="sum"><b>Fecha ' + (j + 1) + '</b> · ' + items.length + ' partidos · ' + (items.length - sa.length) +
+    ' en San Miguel y ' + sa.length + ' en Los Sauces <span class="muted">(' + saO + ' de Oro y ' + (sa.length - saO) + ' de Plata)</span></p>';
+  let n = 0;
+  DAYS.forEach((day, di) => {
+    const dayItems = items.filter(m => m.slot.dayIdx === di);
+    h += '<section class="day"><h3>' + day + '<span>' + dayItems.length + ' partidos</span></h3><div class="stads">';
+    ['SM', 'SA'].forEach(st => {
+      const list = dayItems.filter(m => m.slot.st === st).sort((x, y) => x.slot.hour - y.slot.hour);
+      h += '<div class="stad ' + st + '"><h4>' + ST_NAME[st] + '</h4><ol class="list">';
+      list.forEach(m => {
+        h += '<li class="m" style="--i:' + (n++) + '"><span class="t">' + m.slot.time + '</span><span class="vs">' +
+          nm(m.a) + '<i>vs</i>' + nm(m.b) + '</span><span class="cup ' + m.cup + '">' + m.cup + ' · G' + (m.g + 1) + '</span></li>';
+      });
+      h += '</ol></div>';
+    });
+    h += '</div></section>';
+  });
+  h += '<p class="legend"><span class="rs-dot"></span>Equipo con restricción declarada</p>';
+  return h;
+}
+
+function teamOptions(sel) {
+  let o = '';
+  ['Oro', 'Plata'].forEach(cup => {
+    for (let g = 0; g < 4; g++) {
+      o += '<optgroup label="Copa ' + cup + ' · Grupo ' + (g + 1) + '">';
+      TEAMS.filter(t => t.cup === cup && t.g === g).forEach(t => {
+        o += '<option value="' + t.id + '"' + (t.id === sel ? ' selected' : '') + '>' + esc(t.name) + '</option>';
+      });
+      o += '</optgroup>';
+    }
+  });
+  return o;
+}
+function teamShell() {
+  return '<div class="tsel"><label for="teamSel">Equipo</label><select id="teamSel">' + teamOptions(state.team) + '</select></div><div id="teamOut"></div>';
+}
+function fillTeam() {
+  const t = TEAMS[state.team];
+  const ms = teamMatches(state.result, t.id);
+  const sa = ms.filter(m => m.st === 'SA').length;
+  let h = '<h2 class="tname">' + esc(t.name) + '</h2><p class="tmeta">Copa ' + t.cup + ' · Grupo ' + (t.g + 1) + ' · ' + t.rank + 'º del grupo ' + t.from +
+    ' · ' + (3 - sa) + ' en San Miguel y ' + sa + ' en Los Sauces</p>';
+  if (state.restr[t.id]) h += '<p class="note">Restricción declarada: ' + esc(RESTR_LONG[state.restr[t.id]]) + '.</p>';
+  h += '<ol class="tlist">';
+  ms.forEach(m => {
+    const rival = m.a === t.id ? m.b : m.a;
+    h += '<li class="ti"><div class="th"><span class="tf">Fecha ' + (m.j + 1) + '</span><span class="chip ' + m.st + '">' + ST_NAME[m.st] +
+      '</span></div><div class="td"><span class="dd">' + m.slot.day + '</span><span class="tt">' + m.slot.time +
+      '</span></div><div class="tr">vs ' + nm(rival) + '</div></li>';
+  });
+  h += '</ol>';
+  $('#teamOut').innerHTML = h;
+}
+
+function controlHtml() {
+  const res = state.result;
+  const checks = verify(res, state.restr, res.variety);
+  let h = '<div class="ctl"><h2>Avance de los clubes</h2><p class="sub">' + state.shown.size + ' de 48 partidos ya sacaron su horario (' + [0, 1, 2].map(j => res.matches.filter((m, i) => m.j === j && state.shown.has(i)).length).join(' · ') + ' por fecha).</p><h2>Verificación</h2><p class="sub">Se calcula sobre el resultado que ves, no sobre lo que debería salir.</p><ul class="chks">';
+  checks.forEach(c => {
+    h += '<li class="chk' + (c.ok ? '' : ' bad') + '"><span class="mark">' + (c.ok ? 'OK' : 'Revisar') + '</span><span>' + esc(c.t) +
+      (c.note ? '<small>' + esc(c.note) + '</small>' : '') + '</span><span class="val">' + c.got + '/' + c.of + '</span></li>';
+  });
+  h += '</ul>';
+
+  const ds = dayStats(res);
+  h += '<h2>Días por equipo</h2><p class="sub">Cuántos equipos juegan 0, 1, 2 o 3 partidos cada día.' + (res.variety
+    ? ' Con 5 partidos de sábado por fecha, al menos un equipo tiene que repetir sábado.'
+    : ' Con «Repartir los días» apagado, el día sale puro azar.') + '</p>';
+  h += '<div class="scroll"><table><thead><tr><th></th><th>0 veces</th><th>1 vez</th><th>2 veces</th><th>3 veces</th></tr></thead><tbody>';
+  DAYS.forEach((d, i) => { h += '<tr><th>' + d + '</th>' + ds.table[i].map(n => '<td>' + n + '</td>').join('') + '</tr>'; });
+  h += '</tbody></table></div>';
+
+  h += '<h2>Los Sauces por fecha</h2><p class="sub">Los 2 partidos de Los Sauces de un grupo de Oro caen en la misma fecha, por eso Oro tiene un reparto como 4, 2 y 2. Plata completa hasta 6.</p>';
+  h += '<div class="scroll"><table><thead><tr><th></th><th>Fecha 1</th><th>Fecha 2</th><th>Fecha 3</th></tr></thead><tbody>';
+  const cnt = (cup, j) => res.matches.filter(m => m.st === 'SA' && m.j === j && (!cup || m.cup === cup)).length;
+  ['Oro', 'Plata'].forEach(cup => { h += '<tr><th>Copa ' + cup + '</th>' + [0, 1, 2].map(j => '<td>' + cnt(cup, j) + '</td>').join('') + '</tr>'; });
+  h += '<tr class="sep"><th>Total</th>' + [0, 1, 2].map(j => '<td><b>' + cnt(null, j) + '</b> de 6</td>').join('') + '</tr></tbody></table></div>';
+
+  const same = TEAMS.filter(t => new Set(teamMatches(res, t.id).map(m => m.slot.dayIdx)).size === 1);
+  h += '<h2>Mismo día las 3 fechas</h2><p class="sub">' + (same.length
+    ? same.length + ' equipos caen el mismo día en las 3 fechas: ' + same.map(t => esc(t.name)).join(', ') + '. Es lo que puede pasar cuando todo es azar.'
+    : 'Ningún equipo cae el mismo día en las 3 fechas.') + '</p>';
+
+  h += '<h2>Cuadro general</h2><p class="sub">SM = San Miguel, LS = Los Sauces.</p><div class="scroll"><table><thead><tr><th>Equipo</th><th>Fecha 1</th><th>Fecha 2</th><th>Fecha 3</th></tr></thead><tbody>';
+  TEAMS.forEach((t, i) => {
+    h += '<tr' + (i === 16 ? ' class="sep"' : '') + '><th>' + esc(t.name) + '</th>';
+    teamMatches(res, t.id).forEach(m => {
+      h += '<td><span class="d">' + SHORT_DAY[m.slot.dayIdx] + '</span> ' + m.slot.time + ' <span class="s ' + m.st + '">' + (m.st === 'SA' ? 'LS' : 'SM') + '</span></td>';
+    });
+    h += '</tr>';
+  });
+  h += '</tbody></table></div></div>';
+  return h;
+}
+
+function render(animate) {
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
+  const p = $('#panel');
+  p.classList.toggle('reveal', !!animate);
+  if (!state.result) { p.innerHTML = ''; return; }
+  if (state.tab === 't') { p.innerHTML = teamShell(); fillTeam(); }
+  else if (state.tab === 'c') p.innerHTML = controlHtml();
+  else p.innerHTML = fechaHtml(+state.tab);
+}
+
+function renderRestr() {
+  const ids = Object.keys(state.restr).map(Number).sort((a, b) => a - b);
+  $('#rsum').textContent = 'Restricciones declaradas (' + ids.length + ')';
+  $('#rlist').innerHTML = ids.length
+    ? ids.map(id => '<li class="rchip"><span>' + esc(TEAMS[id].name) + ' · ' + esc(RESTR[state.restr[id]]) +
+      '</span><button type="button" data-id="' + id + '" aria-label="Quitar restricción de ' + esc(TEAMS[id].name) + '">×</button></li>').join('')
+    : '<li class="muted">Ninguna restricción.</li>';
+}
+
+function doDraw(seed, animate) {
+  if (SIM.on) stopSim();
+  const res = runDraw(seed, state.restr, state.variety);
+  if (!res) { setStatus('No se pudo armar un sorteo con estas restricciones. Quita alguna e intenta de nuevo.', true); return false; }
+  state.seed = seed; state.result = res; resetDraws();
+  $('#seed').value = seed;
+  render(animate); renderDT(false); renderLive();
+  setStatus('Sorteo listo · semilla ' + seed);
+  saveConfig();
+  return true;
+}
+function tryApply(next) {
+  if (SIM.on) stopSim();
+  const res = runDraw(state.seed, next, state.variety);
+  if (!res) { $('#rmsg').textContent = 'Con esa restricción no se pueden armar las 3 fechas. Quita otra antes de agregarla.'; return; }
+  $('#rmsg').textContent = '';
+  state.restr = next; state.result = res; resetDraws();
+  renderRestr(); render(true); renderDT(false); renderLive();
+  setStatus('Sorteo actualizado · semilla ' + state.seed);
+  saveConfig();
+}
+
+function init() {
+  $('#rTeam').innerHTML = teamOptions(-1);
+  $('#rType').innerHTML = Object.keys(RESTR_LONG).filter(k => k !== 'fixDVS').map(k => '<option value="' + k + '">' + esc(RESTR[k]) + '</option>').join('');
+
+  $('#go').addEventListener('click', () => {
+    const b = $('#go');
+    b.disabled = true; b.textContent = 'Sorteando…'; setStatus('Sorteando…');
+    setTimeout(() => { doDraw(newSeed(), true); b.disabled = false; b.textContent = 'Sortear'; }, 450);
+  });
+  $('#seedForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const s = $('#seed').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || newSeed();
+    doDraw(s, true);
+  });
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { state.tab = b.dataset.tab; render(false); }));
+  $('#panel').addEventListener('change', e => {
+    if (e.target.id === 'teamSel') { state.team = +e.target.value; fillTeam(); }
+  });
+  $('#rForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const id = +$('#rTeam').value, code = $('#rType').value;
+    const t = TEAMS[id];
+    if (state.variety && code === 'noVie' && (t.cup === 'Oro' || t.p < 2)) {
+      $('#rmsg').textContent = 'Con «Repartir los días» activado, todo Oro y los 5º y 6º de Plata juegan un viernes. Apaga esa regla para probar esta restricción.';
+      return;
+    }
+    const next = Object.assign({}, state.restr);
+    next[id] = code;
+    tryApply(next);
+  });
+  $('#rlist').addEventListener('click', e => {
+    const b = e.target.closest('button[data-id]');
+    if (!b) return;
+    const next = Object.assign({}, state.restr);
+    delete next[b.dataset.id];
+    tryApply(next);
+  });
+  $('#rclear').addEventListener('click', () => tryApply({}));
+  $('#variety').addEventListener('change', e => {
+    state.variety = e.target.checked;
+    if (!doDraw(state.seed, true)) { state.variety = !state.variety; e.target.checked = state.variety; }
+  });
+
+  renderRestr();
+  doDraw(state.seed, false);
+}
+
+/* ---------- Vista DT ---------- */
+const SHARE_URL = 'https://claude.ai/artifact/KMRtfaewQXhuvHwmGswbkH';
+const normCode = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const CODES = (() => {
+  /* 3 primeras letras del club + puesto que terminó en la tabla (1 a 8). Si dos clubes chocan, se usan 4 letras. */
+  const L = t => t.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z]/g, '') + 'XXXX';
+  const base = TEAMS.map(t => L(t).slice(0, 3) + t.rank);
+  const manual = { 'San Francisco': 'SF7', 'San José': 'SJ7' };
+  return TEAMS.map((t, i) => manual[t.name] || (base.filter(c => c === base[i]).length > 1 ? L(t).slice(0, 4) + t.rank : base[i]));
+})();
+const clubMsg = id => 'Hola DT de ' + TEAMS[id].name + '. Sorteo de horarios de la Keeper Cup 3: entra a ' + SHARE_URL + ' y escribe tu código ' + CODES[id] + '. Ahí sacas tu rival, día, hora y estadio de cada fecha, y puedes ver el panel en vivo.';
+const SLOT_ORDER = SLOTS.slice().sort((a, b) => a.dayIdx - b.dayIdx || a.hour - b.hour || (a.st === b.st ? 0 : a.st === 'SM' ? -1 : 1));
+const RM = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
+
+function renderCodes() {
+  $('#clist').innerHTML = TEAMS.map(t => '<li><span><b>' + esc(t.name) + '</b><small>Copa ' + t.cup + ' · Grupo ' + (t.g + 1) + '</small></span><code>' + CODES[t.id] +
+    '</code><span class="row" style="margin:0"><a class="btn2" style="text-decoration:none;display:inline-flex;align-items:center" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(clubMsg(t.id)) + '">WhatsApp</a>' +
+    '<button type="button" class="btn2" data-id="' + t.id + '">Copiar</button></span><span class="cmsg" hidden></span></li>').join('');
+}
+function copyText(txt, btn, label, box) {
+  const show = () => { if (box) { box.hidden = false; box.textContent = txt; } };
+  try { navigator.clipboard.writeText(txt).then(() => { btn.textContent = 'Copiado'; setTimeout(() => { btn.textContent = label; }, 1500); }, show); } catch (err) { show(); }
+}
+$('#clist').addEventListener('click', e => {
+  const b = e.target.closest('button[data-id]');
+  if (!b) return;
+  copyText(clubMsg(+b.dataset.id), b, 'Copiar', b.closest('li').querySelector('.cmsg'));
+});
+$('#copyAll').addEventListener('click', e => {
+  const txt = TEAMS.map(t => t.name + ' (' + CODES[t.id] + '):\n' + clubMsg(t.id)).join('\n\n');
+  const box = document.createElement('p'); box.className = 'hint'; box.hidden = true;
+  e.target.parentNode.after(box);
+  copyText(txt, e.target, 'Copiar todos los mensajes', box);
+});
+$('#csvBtn').addEventListener('click', async () => {
+  const dl = SYNC.dl;
+  if (!dl) { $('#csvBtn').textContent = 'No disponible aquí'; return; }
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const csv = 'Club,Copa,Grupo,Codigo,Mensaje\n' + TEAMS.map(t => [t.name, t.cup, t.g + 1, CODES[t.id], clubMsg(t.id)].map(q).join(',')).join('\n');
+  try { await dl.save({ filename: 'codigos-keeper-cup-3.csv', data: csv }); } catch (err) { /* el organizador canceló */ }
+});
+
+function groupCard(cup, g, me) {
+  let h = '<div class="gcard"><h4>Grupo ' + (g + 1) + '</h4><ol>';
+  TEAMS.filter(t => t.cup === cup && t.g === g).forEach(t => {
+    h += '<li' + (t.id === me ? ' class="me"' : '') + '><span class="gp">' + t.rank + 'º ' + t.from + '</span><b>' + esc(t.name) + '</b>' +
+      (cup === 'Plata' && t.p >= 2 ? '<small>sin viernes</small>' : '') + '</li>';
+  });
+  return h + '</ol></div>';
+}
+function resultBlock(m, mi) {
+  const id = state.me, rival = m.a === id ? m.b : m.a, by = state.drawnBy[mi];
+  return '<div class="th"><span class="tf">Fecha ' + (m.j + 1) + '</span><span class="chip ' + m.st + '">' + ST_NAME[m.st] + '</span></div><div class="td"><span class="dd">' + m.slot.day +
+    '</span><span class="tt">' + m.slot.time + '</span></div><div class="tr">vs <b>' + esc(TEAMS[rival].name) + '</b>' +
+    (by !== undefined && by !== id ? ' · lo sacó ' + esc(TEAMS[by].name) : '') + '</div>';
+}
+function gateHtml() {
+  return '<h2 class="step">Entra con el código de tu club</h2>' +
+    '<p class="dt-sub" style="margin-top:0">El organizador te manda por WhatsApp un link y un código personal. El código dice qué club eres, así nadie más puede sacar tu horario.</p>' +
+    '<form id="gateForm" class="seedrow" autocomplete="off" style="margin-top:16px"><div class="f"><label for="gateCode">Código del club</label>' +
+    '<input id="gateCode" maxlength="8" spellcheck="false" autocapitalize="characters"></div><button type="submit" class="btn1 go2">Entrar</button></form>' +
+    '<p class="rmsg" id="gateMsg" role="alert"></p><p class="hint">Para probar, usa un código de ejemplo:</p><div class="row">' +
+    ['Legacy', 'Cormorán'].map(n => TEAMS.find(t => t.name === n).id).map(i => '<button type="button" class="btn2" data-act="fill" data-id="' + i + '">Probar con ' + esc(TEAMS[i].name) + ' · ' + CODES[i] + '</button>').join('') + '</div>';
+}
+function wheelSvg() {
+  const cx = 160, cy = 160, R = 152, step = 22.5;
+  const pt = (a, r) => { const t = a * Math.PI / 180; return [cx + r * Math.sin(t), cy - r * Math.cos(t)]; };
+  let s = '<svg id="wheelSvg" viewBox="0 0 320 320" aria-hidden="true">';
+  SLOT_ORDER.forEach((sl, i) => {
+    const a0 = i * step, a1 = a0 + step, am = a0 + step / 2, p0 = pt(a0, R), p1 = pt(a1, R), tp = pt(am, 106);
+    const rot = am > 180 ? am + 90 : am - 90;
+    s += '<path class="sec ' + sl.st + '" data-i="' + i + '" d="M' + cx + ' ' + cy + 'L' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) + 'A' + R + ' ' + R + ' 0 0 1 ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2) + 'Z"/>';
+    s += '<text class="lab" data-i="' + i + '" transform="rotate(' + rot.toFixed(2) + ' ' + tp[0].toFixed(2) + ' ' + tp[1].toFixed(2) + ')" x="' + tp[0].toFixed(2) + '" y="' + tp[1].toFixed(2) + '" text-anchor="middle" dominant-baseline="central">' + SHORT_DAY[sl.dayIdx] + ' ' + sl.time.replace('h00', 'h') + '</text>';
+  });
+  return s + '<circle class="rim" cx="160" cy="160" r="152"/></svg>';
+}
+function drawboxHtml(m, mi, done) {
+  const wheel = state.dtMode === 'wheel';
+  let h = '<div class="drawbox" id="drawbox">';
+  if (!done) h += '<div class="seg2" role="tablist" aria-label="Forma de sorteo"><button type="button" role="tab" data-act="mode" data-v="wheel" aria-selected="' + wheel + '">Rueda</button><button type="button" role="tab" data-act="mode" data-v="balls" aria-selected="' + !wheel + '">Bolillero</button></div>';
+  h += '<div class="stage" id="stage">' + (wheel
+    ? '<div class="wheel"><i class="ptr"></i>' + wheelSvg() + '<button type="button" class="hub" id="spinGo"' + (done ? ' disabled' : '') + '>Girar</button></div>'
+    : '<canvas id="ballsCv" class="cv" role="img" aria-label="Bolillero con 16 bolitas, una por horario"></canvas>') + '</div>';
+  h += '<div class="legend2"><span><i style="background:var(--sm)"></i>San Miguel</span><span><i style="background:var(--sa)"></i>Los Sauces</span></div>';
+  if (!wheel && !done) h += '<div class="row" style="justify-content:center"><button type="button" class="btn1 go2" id="spinGo">Sacar bolita</button></div>';
+  h += '<div class="row" style="justify-content:center"><button type="button" class="btn2" id="skipGo" hidden>Saltar animación</button></div>';
+  h += '<p class="hint">Son los 16 horarios de la fecha. Rival y horario salen juntos. El resultado ya lo fija la semilla del sorteo; ' + (wheel ? 'la rueda' : 'el bolillero') + ' solo lo muestra.</p>';
+  h += '<div id="drawRes">' + (done ? '<div class="ti resbox">' + resultBlock(m, mi) + '</div><div class="row" style="justify-content:center"><button type="button" class="btn1 go2" data-act="close">Listo</button></div>' : '') + '</div></div>';
+  return h;
+}
+function renderDT() {
+  ballsStop(); state.busy = false; state.skip = null;
+  const res = state.result, v = $('#dtView');
+  if (!res) return;
+  if (state.me === null) { v.innerHTML = gateHtml(); return; }
+  const id = state.me, t = TEAMS[id], ms = teamMatches(res, id);
+  const fri = (t.cup === 'Oro' || t.p < 2) ? 'Juegas un viernes durante el torneo.' : 'No juegas viernes: tus 3 partidos son sábado o domingo. Es la regla para los 7º y 8º de la tabla en Copa Plata.';
+  let h = '<div class="who"><div><p class="lbl">Hola, DT de</p><h2 class="club">' + esc(t.name) + '</h2><p class="tmeta">Copa ' + t.cup + ' · Grupo ' + (t.g + 1) + ' · ' + t.rank + 'º del grupo ' + t.from +
+    '</p></div><button type="button" class="linkbtn" data-act="logout">Salir</button></div><p style="margin:8px 0 0">' + fri + '</p>';
+  h += '<h2 class="step">Tu grupo</h2><div class="gboard">' + groupCard(t.cup, t.g, id) + '</div>';
+  h += '<h2 class="step">Tus fechas</h2><ol class="tlist">';
+  ms.forEach((m, k) => {
+    const mi = res.matches.indexOf(m), rival = m.a === id ? m.b : m.a;
+    const done = state.shown.has(mi), prevDone = k === 0 || state.shown.has(res.matches.indexOf(ms[k - 1]));
+    const head = '<div class="th"><span class="tf">Fecha ' + (m.j + 1) + '</span></div><div class="tr">Rival y horario por sortear</div>';
+    if (state.open === k) h += '<li class="ti">' + head + drawboxHtml(m, mi, done) + '</li>';
+    else if (done) h += '<li class="ti">' + resultBlock(m, mi) + '</li>';
+    else if (prevDone) h += '<li class="ti">' + head + '<button type="button" class="btn1 go2" data-act="open" data-k="' + k + '" style="justify-self:start;margin-top:6px">Sacar rival y horario</button></li>';
+    else h += '<li class="ti locked">' + head + '<p class="hint" style="margin:0">Se abre cuando saques tu horario de la Fecha ' + k + '.</p></li>';
+  });
+  h += '</ol><p class="hint" style="margin-top:14px">Semilla del sorteo: <b>' + esc(res.seed) + '</b>. Con la misma semilla sale siempre lo mismo.</p>';
+  h += '<div class="row"><button type="button" class="btn2" data-act="live">Ver el panel en vivo</button>' + ((!SYNC.db || SYNC.admin) ? '<button type="button" class="btn2" data-act="reset">' + (SYNC.db ? 'Borrar todos los sorteos' : 'Volver a empezar la demo') + '</button>' : '') + '</div>';
+  if (SYNC.db && SYNC.canWrite === false) h += '<p class="syncnote">Tu acceso es de solo lectura: ves los sorteos de los demás, pero el tuyo no se guardaría. Pide al organizador que te dé acceso de Colaborador.</p>';
+  else if (SYNC.writeErr) h += '<p class="syncnote">No se pudo guardar tu sorteo en el panel compartido. Avisa al organizador.</p>';
+  else if (!SYNC.db) h += '<p class="syncnote">Modo de prueba: los sorteos se ven solo en este dispositivo.</p>';
+  h += '<details><summary>Todos los grupos</summary>';
+  ['Oro', 'Plata'].forEach(cup => {
+    h += '<h3 class="bh">Copa ' + cup + '</h3><div class="gboard">';
+    for (let g = 0; g < 4; g++) h += groupCard(cup, g, id);
+    h += '</div>';
+  });
+  v.innerHTML = h + '</details>';
+  if (state.open >= 0 && state.dtMode === 'balls' && $('#ballsCv') && !state.shown.has(res.matches.indexOf(ms[state.open]))) ballsSetup($('#ballsCv'));
+}
+
+/* Rueda */
+function spinWheel(slot, cb) {
+  const svg = $('#wheelSvg');
+  const idx = SLOT_ORDER.findIndex(s => s.id === slot.id);
+  const total = 360 * 5 + (360 - (idx + 0.5) * 22.5 - (Math.random() - 0.5) * 12);
+  let timer = 0, over = false;
+  const end = () => {
+    if (over) return; over = true; clearTimeout(timer);
+    document.querySelectorAll('#wheelSvg [data-i="' + idx + '"]').forEach(el => el.classList.add('win'));
+    cb();
+  };
+  if (RM) { svg.style.transform = 'rotate(' + total + 'deg)'; setTimeout(end, 0); return; }
+  svg.style.transition = 'transform 4.6s cubic-bezier(.12,.62,.08,1)';
+  void svg.getBoundingClientRect();
+  svg.style.transform = 'rotate(' + total + 'deg)';
+  timer = setTimeout(end, 4700);
+  state.skip = () => { svg.style.transition = 'none'; svg.style.transform = 'rotate(' + total + 'deg)'; end(); };
+}
+
+/* Bolillero */
+const BW = 340, BH = 430, DCX = 170, DCY = 168, DR = 160, TRX = 170, TRY = 372;
+const BA = { raf: 0, cv: null, ctx: null, balls: [], phase: 'idle', t0: 0, target: -1, cb: null, p0: null };
+function ballsStop() { if (BA.raf) cancelAnimationFrame(BA.raf); BA.raf = 0; BA.cv = null; }
+function ballsSetup(cv) {
+  ballsStop();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = BW * dpr; cv.height = BH * dpr;
+  BA.cv = cv; BA.ctx = cv.getContext('2d'); BA.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  BA.balls = SLOT_ORDER.map((sl, i) => ({ slot: sl, n: i + 1, x: DCX - 88 + (i % 5) * 44 + (Math.floor(i / 5) % 2) * 22, y: DCY + 90 - Math.floor(i / 5) * 44, vx: 0, vy: 0, r: 22, out: false }));
+  for (let k = 0; k < 240; k++) ballsStep(false);
+  BA.phase = 'idle'; BA.target = -1; BA.cb = null;
+  ballsDraw();
+  BA.raf = requestAnimationFrame(ballsLoop);
+}
+function ballsStep(agit) {
+  const B = BA.balls, g = agit ? 0.1 : 0.4;
+  B.forEach(b => {
+    if (b.out) return;
+    b.vy += g;
+    if (agit) {
+      const dx0 = b.x - DCX, dy0 = b.y - DCY;
+      b.vx += -dy0 * 0.0025 + (Math.random() - 0.5) * 1.1;
+      b.vy += dx0 * 0.0025 + (Math.random() - 0.5) * 1.1;
+      const sp = Math.hypot(b.vx, b.vy);
+      if (sp > 9) { b.vx *= 9 / sp; b.vy *= 9 / sp; }
+    }
+    b.vx *= 0.995; b.vy *= 0.995;
+    b.x += b.vx; b.y += b.vy;
+    const dx = b.x - DCX, dy = b.y - DCY, d = Math.hypot(dx, dy) || 1, max = DR - b.r - 4;
+    if (d > max) {
+      const nx = dx / d, ny = dy / d;
+      b.x = DCX + nx * max; b.y = DCY + ny * max;
+      const vn = b.vx * nx + b.vy * ny;
+      if (vn > 0) { b.vx -= 1.7 * vn * nx; b.vy -= 1.7 * vn * ny; }
+    }
+  });
+  for (let i = 0; i < B.length; i++) for (let j = i + 1; j < B.length; j++) {
+    const a = B[i], c = B[j];
+    if (a.out || c.out) continue;
+    const dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy), min = a.r + c.r;
+    if (d < min && d > 0.001) {
+      const nx = dx / d, ny = dy / d, ov = (min - d) / 2;
+      a.x -= nx * ov; a.y -= ny * ov; c.x += nx * ov; c.y += ny * ov;
+      const vn = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny;
+      if (vn < 0) { const imp = -vn * 0.85; a.vx -= imp * nx; a.vy -= imp * ny; c.vx += imp * nx; c.vy += imp * ny; }
+    }
+  }
+}
+function ballsPlace(e) {
+  const b = BA.balls[BA.target], p0 = BA.p0, c = [DCX, DCY + DR + 24], p1 = [TRX, TRY];
+  b.x = (1 - e) * (1 - e) * p0[0] + 2 * (1 - e) * e * c[0] + e * e * p1[0];
+  b.y = (1 - e) * (1 - e) * p0[1] + 2 * (1 - e) * e * c[1] + e * e * p1[1];
+  b.r = 22 + (52 - 22) * e;
+}
+function ballsLoop(ts) {
+  if (!BA.cv || !document.body.contains(BA.cv)) { BA.raf = 0; return; }
+  const now = ts || performance.now();
+  if (BA.phase === 'agit') {
+    ballsStep(true);
+    if (now - BA.t0 > 2400) { BA.phase = 'out'; BA.t0 = now; const b = BA.balls[BA.target]; b.out = true; BA.p0 = [b.x, b.y]; }
+  } else if (BA.phase === 'out') {
+    ballsStep(false);
+    const t = Math.min(1, (now - BA.t0) / 1100);
+    ballsPlace(t * t * (3 - 2 * t));
+    if (t >= 1) { BA.phase = 'show'; const f = BA.cb; BA.cb = null; if (f) f(); }
+  } else ballsStep(false);
+  ballsDraw();
+  BA.raf = requestAnimationFrame(ballsLoop);
+}
+function ballsDraw() {
+  const ctx = BA.ctx, cs = getComputedStyle(document.documentElement);
+  const C = n => cs.getPropertyValue(n).trim();
+  ctx.clearRect(0, 0, BW, BH);
+  ctx.beginPath(); ctx.arc(DCX, DCY, DR, 0, Math.PI * 2); ctx.fillStyle = C('--surface'); ctx.fill();
+  ctx.lineWidth = 6; ctx.strokeStyle = C('--line'); ctx.stroke();
+  ctx.beginPath(); ctx.arc(TRX, TRY, 58, 0, Math.PI * 2); ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.strokeStyle = C('--line'); ctx.stroke(); ctx.setLineDash([]);
+  const one = b => {
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fillStyle = C(b.slot.st === 'SM' ? '--sm' : '--sa'); ctx.fill();
+    ctx.beginPath(); ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.26, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fill();
+    ctx.fillStyle = C('--bg'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (b.out && BA.phase === 'show') {
+      ctx.font = '700 15px Barlow, system-ui, sans-serif'; ctx.fillText(b.slot.day, b.x, b.y - 24);
+      ctx.font = 'italic 800 30px "Barlow Condensed", "Arial Narrow", sans-serif'; ctx.fillText(b.slot.time, b.x, b.y + 1);
+      ctx.font = '600 11px Barlow, system-ui, sans-serif'; ctx.fillText(ST_NAME[b.slot.st], b.x, b.y + 26);
+    } else {
+      ctx.font = '700 ' + Math.round(b.r * 0.72) + 'px Barlow, system-ui, sans-serif'; ctx.fillText(String(b.n), b.x, b.y + 1);
+    }
+  };
+  BA.balls.forEach(b => { if (!b.out) one(b); });
+  BA.balls.forEach(b => { if (b.out) one(b); });
+}
+function ballsPlay(slotId, cb) {
+  BA.target = BA.balls.findIndex(b => b.slot.id === slotId);
+  BA.cb = cb; BA.phase = 'agit'; BA.t0 = performance.now();
+  if (RM) ballsFinishNow();
+}
+function ballsFinishNow() {
+  if (BA.target < 0 || BA.phase === 'show') return;
+  const b = BA.balls[BA.target];
+  if (!b.out) { b.out = true; BA.p0 = [b.x, b.y]; }
+  ballsPlace(1); BA.phase = 'show';
+  const f = BA.cb; BA.cb = null;
+  if (f) setTimeout(f, 0);
+}
+
+/* Sorteo del club */
+function burst(host) {
+  if (RM || !host) return;
+  const cols = ['--accent', '--day', '--sa', '--oro'];
+  for (let i = 0; i < 30; i++) {
+    const e = document.createElement('i'); e.className = 'cf';
+    const ang = Math.random() * Math.PI * 2, d = 90 + Math.random() * 120;
+    e.style.setProperty('--dx', (Math.cos(ang) * d).toFixed(0) + 'px');
+    e.style.setProperty('--dy', (Math.sin(ang) * d - 40).toFixed(0) + 'px');
+    e.style.setProperty('--rot', Math.floor(Math.random() * 720) + 'deg');
+    e.style.background = 'var(' + cols[i % 4] + ')';
+    host.appendChild(e);
+    setTimeout(() => e.remove(), 1400);
+  }
+}
+function startDraw() {
+  if (state.busy || state.open < 0 || state.me === null) return;
+  const res = state.result, m = teamMatches(res, state.me)[state.open], mi = res.matches.indexOf(m);
+  if (state.shown.has(mi)) return;
+  state.busy = true;
+  const spin = $('#spinGo'); if (spin) spin.disabled = true;
+  const tg = document.querySelector('.seg2'); if (tg) tg.hidden = true;
+  const sk = $('#skipGo'); if (sk) sk.hidden = false;
+  const finish = () => {
+    state.busy = false; state.skip = null;
+    state.shown.add(mi); state.drawnBy[mi] = state.me; state.drawAt[mi] = Date.now();
+    recordDraw(mi, state.me); renderLive();
+    const k = $('#skipGo'); if (k) k.hidden = true;
+    const box = $('#drawRes');
+    if (box) box.innerHTML = '<div class="ti in resbox">' + resultBlock(m, mi) + '</div><div class="row" style="justify-content:center"><button type="button" class="btn1 go2" data-act="close">Listo</button></div>';
+    burst($('#stage'));
+    if (box && box.scrollIntoView) box.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'nearest' });
+  };
+  if (state.dtMode === 'wheel') spinWheel(m.slot, finish);
+  else { ballsPlay(m.slot.id, finish); state.skip = ballsFinishNow; }
+}
+$('#dtView').addEventListener('click', e => {
+  const t = e.target;
+  if (t.closest('#spinGo')) { startDraw(); return; }
+  if (t.closest('#skipGo')) { if (state.skip) state.skip(); return; }
+  const a = t.closest('[data-act]');
+  if (!a || state.busy) return;
+  const act = a.dataset.act;
+  if (act === 'fill') { $('#gateCode').value = CODES[+a.dataset.id]; $('#gateMsg').textContent = ''; }
+  else if (act === 'logout') { state.me = null; state.open = -1; lsSet('kc3me', null); renderDT(); }
+  else if (act === 'live') setMode('live');
+  else if (act === 'open') {
+    state.open = +a.dataset.k; renderDT();
+    const bx = $('#drawbox'); if (bx && bx.scrollIntoView) bx.scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'center' });
+  }
+  else if (act === 'mode') { state.dtMode = a.dataset.v; renderDT(); }
+  else if (act === 'close') { state.open = -1; renderDT(); }
+  else if (act === 'reset') { resetDraws(); if (SYNC.admin) clearDraws(null); renderDT(); renderLive(); }
+});
+$('#dtView').addEventListener('submit', e => {
+  if (e.target.id !== 'gateForm') return;
+  e.preventDefault();
+  const id = CODES.findIndex(c => normCode(c) === normCode($('#gateCode').value));
+  if (id < 0) { $('#gateMsg').textContent = 'Ese código no existe. Revisa que esté bien escrito.'; return; }
+  state.me = id; state.open = -1; lsSet('kc3me', normCode(CODES[id])); renderDT();
+});
+function setMode(mode) {
+  document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-selected', String(x.dataset.mode === mode)));
+  $('#dtView').hidden = mode !== 'dt';
+  $('#liveView').hidden = mode !== 'live';
+  $('#mapView').hidden = mode !== 'map';
+  $('#admView').hidden = mode !== 'adm';
+  if (mode === 'live') renderLive();
+  if (mode === 'map') renderMap();
+}
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+/* ---------- Panel en vivo ---------- */
+let lastShown = new Set();
+function fmtTime(ts) { try { return new Date(ts).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+function renderMap() {
+  const v = $('#mapView'), res = state.result;
+  if (!res || v.hidden) return;
+  const canAll = SYNC.admin || !SYNC.db;
+  $('#mapAllLbl').hidden = !canAll;
+  const all = canAll && state.mapAll, hl = state.mapClub;
+  const keys = [];
+  SLOT_ORDER.forEach(sl => { const k = sl.dayIdx + '-' + sl.hour; if (!keys.includes(k)) keys.push(k); });
+  let h = '';
+  keys.forEach(k => {
+    const sls = SLOT_ORDER.filter(sl => sl.dayIdx + '-' + sl.hour === k);
+    h += '<h3 class="lday">' + DAYS[sls[0].dayIdx] + ' ' + sls[0].time + '</h3>';
+    [0, 1, 2].forEach(j => {
+      h += '<div class="mrow"><b>F' + (j + 1) + '</b><div>';
+      sls.forEach(sl => {
+        const mi = res.matches.findIndex(m => m.j === j && m.slot.id === sl.id), m = res.matches[mi];
+        const on = mi >= 0 && (state.shown.has(mi) || all);
+        const mine = on && hl >= 0 && (m.a === hl || m.b === hl);
+        h += '<div class="ml' + (mine ? ' hl' : '') + '"><span class="chip ' + sl.st + '">' + ST_NAME[sl.st] + '</span>' +
+          (on ? '<span>' + esc(TEAMS[m.a].name) + ' vs ' + esc(TEAMS[m.b].name) + (state.shown.has(mi) ? '' : ' <span class="free">(sin sortear)</span>') + '</span>' : '<span class="free">por sortear</span>') + '</div>';
+      });
+      h += '</div></div>';
+    });
+  });
+  $('#mapBody').innerHTML = h;
+}
+function initMap() {
+  const sel = $('#mapClub');
+  sel.innerHTML = '<option value="-1">Resaltar un club (todos)</option>' + TEAMS.slice().sort((a, b) => a.name.localeCompare(b.name, 'es')).map(t => '<option value="' + t.id + '">' + esc(t.name) + '</option>').join('');
+  sel.addEventListener('change', () => { state.mapClub = +sel.value; renderMap(); });
+  $('#mapAll').addEventListener('change', e => { state.mapAll = e.target.checked; renderMap(); });
+}
+function renderLive() {
+  renderMap();
+  const v = $('#liveView'), res = state.result;
+  if (!res || v.hidden) { lastShown = new Set(state.shown); return; }
+  const per = [0, 1, 2].map(j => res.matches.filter((m, i) => m.j === j && state.shown.has(i)).length);
+  const total = per[0] + per[1] + per[2];
+  const f = state.liveF;
+  let h = '<div class="liveh"><div class="big">' + total + '<small> / 48 partidos</small></div><span class="pill"><i class="dot' + (SYNC.live && !SIM.on ? ' on' : '') + '"></i>' + (SIM.on ? 'Simulación de prueba, no es el sorteo real' : SYNC.live ? 'En vivo, se actualiza solo' : 'Modo de prueba, solo este dispositivo') + '</span></div>';
+  h += '<div class="bars">' + per.map((n, j) => '<div class="bar"><span>Fecha ' + (j + 1) + '</span><span class="tr"><i style="width:' + Math.round(n / 16 * 100) + '%"></i></span><b>' + n + '/16</b></div>').join('') + '</div>';
+  h += '<div class="tabs" role="tablist" aria-label="Fecha del panel">' + [0, 1, 2].map(j => '<button type="button" role="tab" data-lf="' + j + '" aria-selected="' + (j === f) + '">Fecha ' + (j + 1) + '</button>').join('') + '</div>';
+  [0, 1, 2].forEach(d => {
+    h += '<h3 class="lday">' + DAYS[d] + '</h3>';
+    SLOT_ORDER.filter(sl => sl.dayIdx === d).forEach(sl => {
+      const mi = res.matches.findIndex(m => m.j === f && m.slot.id === sl.id);
+      const m = res.matches[mi], on = mi >= 0 && state.shown.has(mi);
+      h += '<div class="ls' + (on && !lastShown.has(mi) && !RM ? ' pop' : '') + '"><span class="t">' + sl.time + '</span><span class="chip ' + sl.st + '">' + ST_NAME[sl.st] + '</span>' +
+        (on ? '<span><b>' + esc(TEAMS[m.a].name) + '</b> vs <b>' + esc(TEAMS[m.b].name) + '</b><span class="cupt ' + m.cup + '">' + m.cup + '</span></span>' : '<span class="free">por sortear</span>') + '</div>';
+    });
+  });
+  const recent = Object.keys(state.drawAt).map(Number).filter(mi => state.shown.has(mi)).sort((a, b) => state.drawAt[b] - state.drawAt[a]).slice(0, 8);
+  h += '<h3 class="lday">Últimos sorteos</h3>';
+  h += recent.length ? '<ul class="feed">' + recent.map(mi => {
+    const m = res.matches[mi], by = state.drawnBy[mi], other = m.a === by ? m.b : m.a;
+    return '<li><time>' + fmtTime(state.drawAt[mi]) + '</time><b>' + esc(TEAMS[by !== undefined ? by : m.a].name) + '</b> sacó fecha ' + (m.j + 1) + ': vs ' + esc(TEAMS[other].name) + ', ' + m.slot.day + ' ' + m.slot.time + ', ' + ST_NAME[m.st] + '</li>';
+  }).join('') + '</ul>' : '<p class="hint">Todavía nadie ha sorteado.</p>';
+  v.innerHTML = h;
+  lastShown = new Set(state.shown);
+}
+$('#liveView').addEventListener('click', e => {
+  const b = e.target.closest('button[data-lf]');
+  if (b) { state.liveF = +b.dataset.lf; lastShown = new Set(state.shown); renderLive(); }
+});
+
+/* ---------- Datos compartidos (db) ---------- */
+const SIM = { on: false, timer: 0, order: null };
+function simBar() { $('#simbar').hidden = !SIM.on; $('#simAuto').textContent = SIM.timer ? 'Pausar' : 'Llenar en vivo'; }
+function simStep() {
+  const res = state.result;
+  if (!res) return false;
+  if (!SIM.on) { SIM.on = true; state.shown = new Set(); state.drawnBy = {}; state.drawAt = {}; state.open = -1; SIM.order = null; }
+  if (!SIM.order) {
+    const r = makeRng('sim' + Date.now());
+    SIM.order = [].concat(...[0, 1, 2].map(j => shuffle(res.matches.map((m, i) => i).filter(i => res.matches[i].j === j), r)));
+  }
+  const mi = SIM.order.find(i => !state.shown.has(i));
+  if (mi === undefined) { simPause(); simBar(); return false; }
+  const m = res.matches[mi];
+  state.shown.add(mi); state.drawnBy[mi] = Math.random() < 0.5 ? m.a : m.b; state.drawAt[mi] = Date.now();
+  simBar(); renderLive();
+  if (state.me !== null && !state.busy && state.open < 0) renderDT();
+  return true;
+}
+function simPause() { if (SIM.timer) { clearInterval(SIM.timer); SIM.timer = 0; } }
+function stopSim() {
+  simPause(); SIM.on = false; SIM.order = null;
+  if (SYNC.db) applyDraws(); else { resetDraws(); if (state.me !== null) renderDT(); renderLive(); }
+  simBar();
+}
+$('#simStep').addEventListener('click', simStep);
+$('#simAll').addEventListener('click', () => { simPause(); while (simStep()); simBar(); });
+$('#simAuto').addEventListener('click', () => {
+  if (SIM.timer) { simPause(); simBar(); return; }
+  SIM.timer = setInterval(simStep, 700); simStep(); simBar();
+});
+$('#simReset').addEventListener('click', () => { if (SIM.on) stopSim(); });
+$('#simStop').addEventListener('click', stopSim);
+const SYNC = { db: null, dl: null, admin: false, canWrite: null, live: false, raw: [], writeErr: false, pending: false };
+function applyDraws() {
+  if (SIM.on) return;
+  const seed = state.result && state.result.seed;
+  const sh = new Set(), by = {}, at = {};
+  SYNC.raw.forEach(x => { if (x.seed === seed && typeof x.mi === 'number') { sh.add(x.mi); by[x.mi] = x.by; at[x.mi] = x.at; } });
+  state.shown = sh; state.drawnBy = by; state.drawAt = at;
+  if (state.busy) { SYNC.pending = true; renderLive(); return; }
+  const k = state.me !== null && state.open >= 0 ? teamMatches(state.result, state.me)[state.open] : null;
+  if (state.me !== null && (state.open < 0 || (k && sh.has(state.result.matches.indexOf(k))))) renderDT();
+  renderLive();
+}
+async function recordDraw(mi, by) {
+  if (!SYNC.db) return;
+  try {
+    const ref = SYNC.db.doc('draws/m' + mi);
+    const snap = await ref.get();
+    if (snap.exists && snap.data().seed === state.result.seed) return;
+    await ref.set({ mi, by, seed: state.result.seed, at: Date.now() });
+    SYNC.writeErr = false;
+  } catch (e) { SYNC.writeErr = true; if (!state.busy && state.me !== null) renderDT(); }
+}
+async function clearDraws(keepSeed) {
+  if (!SYNC.db || !SYNC.admin) return;
+  try {
+    const snap = await SYNC.db.collection('draws').get();
+    for (const d of snap.docs) { if (keepSeed === null || d.data().seed !== keepSeed) await SYNC.db.doc('draws/' + d.id).delete(); }
+  } catch (e) { /* se limpia en el próximo cambio */ }
+}
+async function saveConfig() {
+  if (!SYNC.db || !SYNC.admin) return;
+  try {
+    await SYNC.db.doc('config/main').set({ seed: state.seed, variety: state.variety, restr: state.restr, v: 1 });
+    await clearDraws(state.seed);
+  } catch (e) { setStatus('No se pudo guardar el sorteo para los demás.', true); }
+}
+function onConfig(snap) {
+  if (!snap.exists) return;
+  const c = snap.data();
+  if (!c || typeof c.seed !== 'string' || !c.restr || typeof c.restr !== 'object') return;
+  if (c.seed === state.seed && !!c.variety === state.variety && JSON.stringify(c.restr) === JSON.stringify(state.restr)) return;
+  const res = runDraw(c.seed, c.restr, !!c.variety);
+  if (!res) return;
+  state.seed = c.seed; state.variety = !!c.variety; state.restr = c.restr; state.result = res;
+  $('#seed').value = c.seed; $('#variety').checked = state.variety;
+  renderRestr(); render(false); applyDraws();
+}
+async function initSync() {
+  if (typeof claude === 'undefined' || !claude.use) return;
+  let user = null;
+  try { user = await claude.use('user'); } catch (e) { /* sin user */ }
+  try { SYNC.dl = await claude.use('downloads'); } catch (e) { /* sin descargas */ }
+  if (user) {
+    try { SYNC.admin = await user.canEdit(); SYNC.canWrite = await user.can('data.write'); } catch (e) { /* sin permisos */ }
+    if (!SYNC.admin) { const ab = document.querySelector('.seg [data-mode="adm"]'); if (ab) ab.hidden = true; }
+  }
+  let db = null;
+  try { db = await claude.use('db'); } catch (e) { db = null; }
+  if (!db) return;
+  SYNC.db = db;
+  let timer = setTimeout(() => { SYNC.live = false; renderLive(); }, 10000);
+  const fail = () => { SYNC.live = false; renderLive(); };
+  db.doc('config/main').onSnapshot(onConfig, fail);
+  db.collection('draws').onSnapshot(snap => {
+    clearTimeout(timer);
+    SYNC.live = true;
+    SYNC.raw = snap.docs.map(d => d.data()).filter(Boolean);
+    applyDraws();
+  }, fail);
+  if (state.me !== null) renderDT();
+}
+
+renderCodes();
+initMap();
+init();
+(function () { const saved = lsGet('kc3me'); if (saved) { const id = CODES.findIndex(c => normCode(c) === saved); if (id >= 0) { state.me = id; renderDT(); } } })();
+initSync();
+</script>
+</body>
+</html>
