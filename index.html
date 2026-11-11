@@ -162,6 +162,24 @@
   .sheet .sub{font-size:.78rem; color:var(--sub); margin:0 0 14px; line-height:1.4;}
   .rival-opt{display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:12px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--ink); margin-bottom:8px; font-weight:600; font-size:.88rem; text-align:left;}
   .rival-opt .warn{font-size:.66rem; color:var(--amber); font-weight:700; flex:0 0 auto;}
+  .srt-h{margin:18px 0 8px; font-size:.8rem; text-transform:uppercase; letter-spacing:.06em; color:var(--sub);}
+  .srt-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr)); gap:10px;}
+  .srt-card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 12px;}
+  .srt-card > b{display:block; margin-bottom:4px;}
+  .srt-row{display:flex; align-items:center; gap:6px; padding:5px 0; border-top:1px solid var(--border); font-size:.82rem;}
+  .srt-row.cut{border-top:2px dashed var(--gold);}
+  .srt-row .n{width:2.6em; color:var(--sub); flex:none;}
+  .srt-row .t{flex:1; min-width:0;}
+  .srt-row .p{color:var(--sub); font-size:.72rem; white-space:nowrap;}
+  .srt-row button{border:1px solid var(--border); background:var(--bg); color:var(--ink); border-radius:8px; width:30px; height:30px; font:inherit; cursor:pointer;}
+  .srt-row button:disabled{opacity:.3;}
+  .srt-row code{font-weight:700; letter-spacing:.08em;}
+  .srt-chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
+  .srt-chips button{background:none; border:0; font:inherit; font-weight:800; cursor:pointer; color:inherit;}
+  .srt-form{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:8px;}
+  .srt-form .teamsel{flex:1 1 150px; width:auto; margin:0;}
+  #view-sorteo .close-btn{margin-bottom:6px;}
+  #view-sorteo .close-btn:disabled{opacity:.45;}
   .close-btn{margin-top:4px; width:100%; height:46px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink); font-weight:700;}
 
   #toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translate(-50%,20px); z-index:300; background:var(--ink); color:var(--bg); padding:12px 18px; border-radius:12px; font-weight:700; font-size:.85rem; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; max-width:90vw; text-align:center;}
@@ -188,6 +206,7 @@
   <button data-view="balance">⚖️ Balance</button>
   <button data-view="posiciones">🏆 Posiciones</button>
   <button data-view="clubes">🏷️ Clubes</button>
+  <button data-view="sorteo">🎲 Sorteo F2</button>
 </nav>
 
 <div class="wrap">
@@ -252,12 +271,19 @@
     <div class="counter-wrap" id="sanctions"></div>
   </section>
 
+  <section class="view" id="view-sorteo">
+    <div class="section-title"><span class="ttl">🎲 Sorteo Fase 2</span> <span class="tag" id="srtTag">sin publicar</span></div>
+    <p class="fecha-sub" style="margin:-6px 0 12px">Copa Oro (puestos 1–4) y Copa Plata (5–8), Fechas 8, 9 y 10. Aquí preparas la tabla, los pedidos y la semilla, publicas el link para los DT, abres y cierras el sorteo y al final lo cargas en el fixture.</p>
+    <div id="sorteoBox"></div>
+  </section>
+
   <footer>Fixture por rotación circular (round-robin) a partir de los cruces reales ya jugados. Todo se guarda en este dispositivo.</footer>
 </div>
 
 <div id="modal-root"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="sorteo-core.js"></script>
 <script>
 const FIXTURE = {"A":{"fecha1":[["Barrio Fino","Galacticos"],["Cordovez","Arapaima"],["Huracán","Corintians"],["Gladiadores AZ","Alianza Jr."]],"fechas_2_7":[[["Barrio Fino","Arapaima"],["Galacticos","Corintians"],["Cordovez","Alianza Jr."],["Huracán","Gladiadores AZ"]],[["Barrio Fino","Corintians"],["Alianza Jr.","Arapaima"],["Galacticos","Huracán"],["Cordovez","Gladiadores AZ"]],[["Alianza Jr.","Barrio Fino"],["Arapaima","Corintians"],["Cordovez","Huracán"],["Galacticos","Gladiadores AZ"]],[["Alianza Jr.","Corintians"],["Arapaima","Gladiadores AZ"],["Barrio Fino","Huracán"],["Cordovez","Galacticos"]],[["Alianza Jr.","Galacticos"],["Arapaima","Huracán"],["Barrio Fino","Cordovez"],["Corintians","Gladiadores AZ"]],[["Alianza Jr.","Huracán"],["Arapaima","Galacticos"],["Barrio Fino","Gladiadores AZ"],["Cordovez","Corintians"]]]},"B":{"fecha1":[["Mandela","Pecezuelos"],["Leones","Real Sevilla"],["Sub 21","Jolines"],["Templo Fit","Libert"]],"fechas_2_7":[[["Mandela","Real Sevilla"],["Pecezuelos","Jolines"],["Leones","Libert"],["Sub 21","Templo Fit"]],[["Mandela","Sub 21"],["Templo Fit","Pecezuelos"],["Leones","Jolines"],["Libert","Real Sevilla"]],[["Jolines","Libert"],["Leones","Mandela"],["Pecezuelos","Sub 21"],["Real Sevilla","Templo Fit"]],[["Jolines","Mandela"],["Leones","Templo Fit"],["Libert","Pecezuelos"],["Real Sevilla","Sub 21"]],[["Jolines","Templo Fit"],["Leones","Sub 21"],["Libert","Mandela"],["Pecezuelos","Real Sevilla"]],[["Jolines","Real Sevilla"],["Leones","Pecezuelos"],["Libert","Sub 21"],["Mandela","Templo Fit"]]]},"C":{"fecha1":[["Cormoran","Vaster"],["Barcelona","Somec"],["San Francisco","La Banda"],["San Andres","Real Potosí"]],"fechas_2_7":[[["Cormoran","Somec"],["Vaster","La Banda"],["Barcelona","Real Potosí"],["San Francisco","San Andres"]],[["Barcelona","San Andres"],["Real Potosí","San Francisco"],["Vaster","Somec"],["La Banda","Cormoran"]],[["Barcelona","Cormoran"],["La Banda","Real Potosí"],["San Andres","Somec"],["San Francisco","Vaster"]],[["Barcelona","La Banda"],["Cormoran","Real Potosí"],["San Andres","Vaster"],["San Francisco","Somec"]],[["Barcelona","San Francisco"],["Cormoran","San Andres"],["La Banda","Somec"],["Real Potosí","Vaster"]],[["Barcelona","Vaster"],["Cormoran","San Francisco"],["La Banda","San Andres"],["Real Potosí","Somec"]]]},"D":{"fecha1":[["Leipzig","America"],["Juventus","Universitarios"],["Clowiss","Randagi"],["Legacy","San José"]],"fechas_2_7":[[["Legacy","Clowiss"],["Randagi","Leipzig"],["Juventus","San José"],["America","Universitarios"]],[["Universitarios","Legacy"],["Juventus","Clowiss"],["America","Randagi"],["San José","Leipzig"]],[["America","Clowiss"],["Juventus","Legacy"],["Leipzig","Universitarios"],["Randagi","San José"]],[["America","Juventus"],["Clowiss","Leipzig"],["Legacy","Randagi"],["Universitarios","San José"]],[["America","Legacy"],["Clowiss","San José"],["Juventus","Leipzig"],["Randagi","Universitarios"]],[["America","San José"],["Clowiss","Universitarios"],["Juventus","Randagi"],["Legacy","Leipzig"]]]}};
 
@@ -614,7 +640,7 @@ async function cloudSync(manual){
       if(r.needPush || !remote) await gistWrite(blobOf());
     }while(cloud.dirty);
     cloud.lastError = ''; cloud.fails = 0; clearTimeout(cloud.retryT); cloud.retryT = 0; setCloudStatus('ok', horaNow());
-    cloud.syncedOnce = true; officialSync(); swapB67(); repairCheck();
+    cloud.syncedOnce = true; srtLoadRemote(); officialSync(); swapB67(); repairCheck();
     if(manual) toast('Todo sincronizado');
   }catch(e){
     console.error('Nube:', e);
@@ -2318,7 +2344,7 @@ function showDatosExport(zip, json, base, x){
 document.querySelectorAll('.exportDataBtn').forEach(b=>b.addEventListener('click', exportDatos));
 
 /* ---- Navegación entre secciones ---- */
-const VIEWS = ['horarios','fixture','equipos','balance','posiciones','clubes'];
+const VIEWS = ['horarios','fixture','equipos','balance','posiciones','clubes','sorteo'];
 let activeView = 'horarios';
 try{ const v = localStorage.getItem('kc3_view'); if(VIEWS.includes(v)) activeView = v; }catch(e){}
 function showView(v){
@@ -2329,6 +2355,164 @@ function showView(v){
   window.scrollTo(0,0);
 }
 document.getElementById('viewbar').addEventListener('click', e=>{ const b = e.target.closest('button'); if(b) showView(b.dataset.view); });
+
+/* ---- Sorteo Fase 2: el organizador prepara la tabla final, los pedidos y la semilla, publica el link para los DT,
+   abre/cierra el sorteo y al final lo carga en el fixture. La configuración va a un gist aparte (solo lectura para los DT);
+   lo que saca cada DT viaja por ntfy.sh para el panel en vivo. El resultado lo fija la semilla. ---- */
+const SRT_FILE = 'sorteo-fase2.json', SRT_DESC = 'Keeper Cup 3 sorteo fase 2', SRT_KEY = 'kc3_sorteo_v1';
+const SRT_DATES = [[13,14,15],[20,21,22],[27,28,29]];
+const SRT_PEDIDOS0 = {Legacy:'noSab', Clowiss:'sab19', Barcelona:'sab17', Leones:'fixDVS'};
+const srt = {d:null, cfg:null, busy:false, msg:'', check:null, checkKey:''};
+try{ const raw = localStorage.getItem(SRT_KEY); if(raw) srt.d = JSON.parse(raw); }catch(e){}
+function srtSave(){ try{ localStorage.setItem(SRT_KEY, JSON.stringify(srt.d)); }catch(e){} }
+const srtSeed = ()=>{ let s = ''; while(s.length < 6) s += Math.random().toString(36).slice(2).toUpperCase().replace(/[^A-Z0-9]/g,''); return s.slice(0,6); };
+const srtTopic = ()=>'kc3-f2-' + Array.from(crypto.getRandomValues(new Uint8Array(9))).map(x=>x.toString(36).padStart(2,'0')).join('').slice(0,14);
+function srtTable(){ const o = {}; groupOrder.forEach(g=>{ o[g] = computeStandings(g).map(r=>r.team); }); return o; }
+function srtDraft(){
+  if(!srt.d) srt.d = {};
+  const d = srt.d;
+  if(!d.orig || groupOrder.some(g=>!Array.isArray(d.orig[g]) || d.orig[g].length !== roster[g].length || d.orig[g].some(t=>!roster[g].includes(t)))) d.orig = srtTable();
+  if(!d.pedidos) d.pedidos = Object.assign({}, SRT_PEDIDOS0);
+  if(!d.seed) d.seed = srtSeed();
+  if(d.abre === undefined) d.abre = 'hoy a las 20h00';
+  return d;
+}
+const srtKeyOf = d=>JSON.stringify([d.orig, d.pedidos, d.seed]);
+function srtRun(d){
+  const k = srtKeyOf(d);
+  if(srt.checkKey !== k){
+    const K = KCDraw.create(d.orig, d.pedidos), res = K.runDraw(d.seed, K.DEFAULT_RESTR, true);
+    srt.check = {K, res, checks: res ? K.verify(res, K.DEFAULT_RESTR, true) : null}; srt.checkKey = k;
+  }
+  return srt.check;
+}
+const srtLink = ()=>srt.d && srt.d.gist ? new URL('sorteo.html?g=' + srt.d.owner + '/' + srt.d.gist, location.href).href.replace(/^file:.*\/sorteo\.html/, 'https://dmaflaf.github.io/appskc3/sorteo.html') : '';
+const srtMsg = (K, i)=>`Hola DT de ${K.TEAMS[i].name} 👋 Sorteo de horarios Fase 2 de la Keeper Cup 3 (Fechas 8, 9 y 10). Entra a ${srtLink()} y escribe tu código ${K.CODES[i]}. Ahí sacas tu rival, día, hora y estadio de cada fecha y ves el panel en vivo. Semilla del sorteo: ${srt.d.seed}.`;
+async function srtGistFind(){
+  for(let page = 1; page <= 3; page++){
+    const r = await gh('/gists?per_page=100&page=' + page); if(!r.ok) await ghFail(r);
+    const list = await r.json(), hit = list.find(g=>g.description === SRT_DESC && g.files && g.files[SRT_FILE]);
+    if(hit) return hit;
+    if(list.length < 100) break;
+  }
+  return null;
+}
+async function srtPublish(patch, label){
+  if(!cloud.c){ toast('Primero conecta la nube (arriba) en este dispositivo'); return false; }
+  const d = srtDraft();
+  srt.busy = true; renderSorteo();
+  try{
+    if(!d.gist){ const hit = await srtGistFind(); if(hit){ d.gist = hit.id; d.owner = hit.owner && hit.owner.login; } }
+    const cfg = Object.assign({v:1, seed:d.seed, variety:true, orig:d.orig, pedidos:d.pedidos, topic:d.topic || srtTopic(), open:false, test:false, abre:d.abre, dates:SRT_DATES, mes:'nov', at:Date.now()}, srt.cfg || {}, {seed:d.seed, orig:d.orig, pedidos:d.pedidos, abre:d.abre}, patch);
+    const body = {files:{[SRT_FILE]:{content:JSON.stringify(cfg, null, 1)}}};
+    let r;
+    if(d.gist) r = await gh('/gists/' + d.gist, {method:'PATCH', body});
+    else r = await gh('/gists', {method:'POST', body:Object.assign({description:SRT_DESC, public:false}, body)});
+    if(!r.ok) await ghFail(r);
+    const j = await r.json(); d.gist = j.id; d.owner = (j.owner && j.owner.login) || d.owner || 'dmaflaf'; d.topic = cfg.topic;
+    srt.cfg = cfg; srtSave(); toast(label || 'Sorteo publicado'); return true;
+  }catch(e){ toast('No se pudo publicar: ' + cloudErrorText(e)); return false; }
+  finally{ srt.busy = false; renderSorteo(); }
+}
+async function srtLoadRemote(){
+  if(!cloud.c || srt.loaded) return; srt.loaded = true;
+  try{
+    const d = srtDraft(); let id = d.gist;
+    if(!id){ const hit = await srtGistFind(); if(hit){ id = d.gist = hit.id; d.owner = hit.owner && hit.owner.login; } }
+    if(!id) return;
+    const r = await gh('/gists/' + id); if(!r.ok) return;
+    const j = await r.json(), f = j.files && j.files[SRT_FILE]; if(!f) return;
+    const c = JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content);
+    srt.cfg = c; Object.assign(d, {seed:c.seed, orig:c.orig, pedidos:c.pedidos, topic:c.topic, abre:c.abre || d.abre, owner:(j.owner && j.owner.login) || d.owner});
+    srtSave(); renderSorteo();
+  }catch(e){ srt.loaded = false; }
+}
+const srtLocked = ()=>!!(srt.cfg && !srt.cfg.test && (srt.cfg.open || srt.cfg.closedAt));
+function srtEdit(fn){
+  if(srtLocked() && !confirm('El sorteo real ya se abrió. Cambiar la tabla, los pedidos o la semilla cambia TODOS los resultados. ¿Seguro?')) return;
+  fn(srtDraft()); srtSave(); renderSorteo();
+}
+function renderSorteo(){
+  const box = document.getElementById('sorteoBox'); if(!box) return;
+  const d = srtDraft(), c = srt.cfg, ck = srtRun(d), K = ck.K, okAll = ck.res && ck.checks.every(x=>x.ok);
+  const st = !c ? 'sin publicar' : c.test ? '🧪 prueba ' + (c.open ? 'abierta' : 'cerrada') : c.open ? '🟢 abierto' : c.closedAt ? '⛔ cerrado' : '🔒 publicado, sin abrir';
+  document.getElementById('srtTag').textContent = st;
+  const differs = c && srtKeyOf(d) !== srtKeyOf(c);
+  const RL = KCDraw.create(d.orig, {}).RESTR;
+  let h = '';
+  if(!cloud.c) h += `<div class="pend" style="border-color:var(--red)">⚠️ Conecta la nube en este dispositivo para poder publicar el sorteo.</div>`;
+  // 1 tabla
+  h += `<h4 class="srt-h">1 · Tabla final de la Fase 1</h4><p class="fecha-sub" style="margin:0 0 8px">Sale de Posiciones. Si hay empates que se definen por otro criterio, ordénalos con ↑ ↓.</p><div class="srt-grid">`;
+  groupOrder.forEach(g=>{
+    const rows = computeStandings(g), by = {}; rows.forEach(r=>by[r.team] = r);
+    h += `<div class="srt-card"><b>${groupNames[g]}</b>${d.orig[g].map((t,i)=>{ const r = by[t], nx = by[d.orig[g][i+1]], pv = by[d.orig[g][i-1]];
+      const tie = r && ((nx && nx.pts===r.pts && nx.gf-nx.gc===r.gf-r.gc) || (pv && pv.pts===r.pts && pv.gf-pv.gc===r.gf-r.gc));
+      return `<div class="srt-row${i===4?' cut':''}"><span class="n">${i+1}º</span><span class="t">${esc(t)}${tie?' <i title="Empate en puntos y diferencia">⚖️</i>':''}</span><span class="p">${r ? r.pts + ' pts · ' + (r.gf-r.gc >= 0 ? '+' : '') + (r.gf-r.gc) : ''}</span><button type="button" data-srt="up" data-g="${g}" data-i="${i}" ${i?'':'disabled'} aria-label="Subir">↑</button><button type="button" data-srt="down" data-g="${g}" data-i="${i}" ${i<7?'':'disabled'} aria-label="Bajar">↓</button></div>`; }).join('')}</div>`;
+  });
+  h += `</div><button type="button" class="close-btn" data-srt="retable" style="margin:6px 0 4px">↻ Volver al orden de la tabla de posiciones</button>`;
+  // 2 pedidos
+  h += `<h4 class="srt-h">2 · Pedidos de los clubes</h4><div class="srt-chips">${Object.keys(d.pedidos).map(n=>`<span class="qchip on">${esc(n)} · ${esc(RL[d.pedidos[n]] || d.pedidos[n])} <button type="button" data-srt="delped" data-n="${escAttr(n)}" aria-label="Quitar">×</button></span>`).join('') || '<span class="fecha-sub">Sin pedidos</span>'}</div>
+    <div class="srt-form"><select id="srtPT" class="teamsel">${groupOrder.flatMap(g=>roster[g]).sort((a,b)=>a.localeCompare(b,'es')).map(t=>`<option>${esc(t)}</option>`).join('')}</select><select id="srtPC" class="teamsel">${Object.keys(RL).map(k=>`<option value="${k}">${esc(RL[k])}</option>`).join('')}</select><button type="button" class="qchip" data-srt="addped">Agregar</button></div>`;
+  // 3 semilla
+  h += `<h4 class="srt-h">3 · Semilla</h4><p class="fecha-sub" style="margin:0 0 6px">Anúnciala en el grupo antes del sorteo: con la misma semilla sale siempre el mismo resultado.</p>
+    <div class="srt-form"><input id="srtSeed" class="teamsel" value="${escAttr(d.seed)}" maxlength="12" style="text-transform:uppercase;letter-spacing:.12em;font-weight:700"><button type="button" class="qchip" data-srt="seed">Usar</button><button type="button" class="qchip" data-srt="newseed">Nueva al azar</button></div>
+    <div class="srt-form"><label class="fecha-sub" style="margin:0">Texto para «se abre…»</label><input id="srtAbre" class="teamsel" value="${escAttr(d.abre)}"><button type="button" class="qchip" data-srt="abre">Guardar</button></div>`;
+  // comprobación
+  h += `<div class="pend" style="border-color:${okAll?'var(--green)':'var(--red)'};background:${okAll?'var(--green-bg)':'var(--amber-bg)'}">${!ck.res ? '❌ Con estos pedidos no se puede armar el sorteo. Quita alguno.' : okAll ? '✅ Sorteo comprobado: cumple las ' + ck.checks.length + ' reglas.' : '⚠️ ' + ck.checks.filter(x=>!x.ok).map(x=>esc(x.t)).join(' · ')}</div>`;
+  if(ck.res){
+    h += `<details><summary class="fecha-sub" style="cursor:pointer">Ver grupos y códigos</summary>${['Oro','Plata'].map(cup=>`<h4 class="srt-h">Copa ${cup}</h4><div class="srt-grid">${[0,1,2,3].map(g=>`<div class="srt-card"><b>Grupo ${g+1}</b>${K.TEAMS.filter(t=>t.cup===cup&&t.g===g).map(t=>`<div class="srt-row"><span class="n">${t.rank}º${t.from}</span><span class="t">${esc(t.name)}</span><code>${K.CODES[t.id]}</code></div>`).join('')}</div>`).join('')}</div>`).join('')}</details>`;
+  }
+  // 4 publicar
+  h += `<h4 class="srt-h">4 · Publicar, abrir y cerrar</h4>`;
+  if(differs) h += `<div class="pend">✏️ Hay cambios sin publicar (tabla, pedidos o semilla).</div>`;
+  const dis = (!cloud.c || srt.busy || !okAll) ? ' disabled' : '';
+  h += `<button type="button" class="close-btn" data-srt="test"${dis}>🧪 Publicar y abrir una PRUEBA (con otra semilla, para probar con 2 o 3 teléfonos)</button>
+    <button type="button" class="close-btn" data-srt="pub"${dis}>🔒 Publicar el sorteo real sin abrir (los DT ven «todavía no abre» y la semilla)</button>
+    <button type="button" class="close-btn" data-srt="open"${dis} style="background:var(--green);color:#fff;border-color:transparent">🟢 Abrir el sorteo real</button>
+    <button type="button" class="close-btn" data-srt="close"${(!cloud.c || srt.busy || !c || !c.open) ? ' disabled' : ''} style="background:var(--red);color:#fff;border-color:transparent">⛔ Cerrar el sorteo</button>`;
+  if(c){
+    const link = srtLink();
+    h += `<div class="pend" style="margin-top:10px"><b>Link para todos los DT</b><br><a href="${escAttr(link)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(link)}</a><br><span class="fecha-sub">Estado: ${esc(st)} · semilla ${esc(c.seed)}${c.test ? ' (prueba)' : ''}</span></div>
+      <button type="button" class="close-btn" data-srt="copylink">📋 Copiar link</button>
+      <details><summary class="fecha-sub" style="cursor:pointer">💬 Mensajes de WhatsApp con el código de cada club</summary><button type="button" class="close-btn" data-srt="copyall">📋 Copiar todos los mensajes</button>${ck.res ? K.TEAMS.map(t=>`<div class="srt-row"><span class="t">${esc(t.name)}</span><code>${K.CODES[t.id]}</code><a class="qchip" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(srtMsg(K, t.id))}">WhatsApp</a></div>`).join('') : ''}</details>`;
+  }
+  // 5 fixture
+  h += `<h4 class="srt-h">5 · Cargar en el fixture</h4><p class="fecha-sub" style="margin:0 0 6px">Crea las Fechas 8, 9 y 10 con los grupos de Copa Oro y Copa Plata, rivales, día, hora y estadio del sorteo publicado.</p>
+    <button type="button" class="close-btn" data-srt="load" disabled>📥 Cargar Fechas 8, 9 y 10 en el fixture (lo activo después del sorteo)</button>`;
+  box.innerHTML = h;
+}
+document.getElementById('sorteoBox').addEventListener('click', async e=>{
+  const b = e.target.closest('[data-srt]'); if(!b || b.disabled) return;
+  const a = b.dataset.srt, d = srtDraft();
+  if(a === 'up' || a === 'down') srtEdit(d=>{ const L = d.orig[b.dataset.g], i = +b.dataset.i, j = a === 'up' ? i-1 : i+1; [L[i], L[j]] = [L[j], L[i]]; });
+  else if(a === 'retable') srtEdit(d=>{ d.orig = srtTable(); });
+  else if(a === 'delped') srtEdit(d=>{ delete d.pedidos[b.dataset.n]; });
+  else if(a === 'addped') srtEdit(d=>{ d.pedidos[document.getElementById('srtPT').value] = document.getElementById('srtPC').value; });
+  else if(a === 'seed'){ const v = document.getElementById('srtSeed').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''); if(v) srtEdit(d=>{ d.seed = v; }); }
+  else if(a === 'newseed') srtEdit(d=>{ d.seed = srtSeed(); });
+  else if(a === 'abre'){ d.abre = document.getElementById('srtAbre').value.trim(); srtSave(); renderSorteo(); toast('Guardado'); }
+  else if(a === 'test'){
+    if(srtLocked()){ toast('El sorteo real ya está publicado: no se puede usar para pruebas'); return; }
+    const real = d.seed; d.seed = 'PRUEBA' + srtSeed().slice(0,3); d.topic = srtTopic();
+    const ok = await srtPublish({test:true, open:true, closedAt:0, topic:d.topic}, 'Prueba abierta: abre el link en 2 o 3 teléfonos');
+    d.seed = real; srtSave(); renderSorteo(); if(!ok) return;
+  }
+  else if(a === 'pub'){ if(srt.cfg && srt.cfg.test){ d.topic = srtTopic(); } await srtPublish({test:false, open:false, closedAt:0, topic:d.topic || srtTopic()}, 'Sorteo publicado (todavía cerrado)'); }
+  else if(a === 'open'){
+    if(!confirm(`¿Abrir el sorteo real con la semilla ${d.seed}? Los DT podrán sacar sus horarios desde ya.`)) return;
+    if(srt.cfg && srt.cfg.test) d.topic = srtTopic();
+    await srtPublish({test:false, open:true, closedAt:0, topic:d.topic || srtTopic(), openedAt:Date.now()}, '🟢 Sorteo abierto');
+  }
+  else if(a === 'close'){
+    if(!confirm('¿Cerrar el sorteo? Los DT ya no podrán sacar horarios (sí ver sus resultados).')) return;
+    const ok = await srtPublish({open:false, closedAt:Date.now()}, '⛔ Sorteo cerrado');
+    if(ok && srt.cfg.topic) fetch('https://ntfy.sh/' + encodeURIComponent(srt.cfg.topic), {method:'POST', body:JSON.stringify({k:'close'})}).catch(()=>{});
+  }
+  else if(a === 'copylink' || a === 'copyall'){
+    const ck = srtRun(d), txt = a === 'copylink' ? srtLink() : ck.K.TEAMS.map(t=>t.name + ' (' + ck.K.CODES[t.id] + '):\n' + srtMsg(ck.K, t.id)).join('\n\n');
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>toast('Copiado'), ()=>{ b.insertAdjacentHTML('afterend', `<textarea class="teamsel" readonly style="height:120px" onclick="this.select()">${esc(txt)}</textarea>`); });
+  }
+});
 
 /* ---- Corrección única contra los horarios oficiales de las Fechas 4 y 5 ---- */
 const OFFICIAL_FLAG = 'kc3_official45_v1', OFFICIAL_REPORT = 'kc3_official45_report';
@@ -2376,7 +2560,7 @@ function renderHero(){
   document.getElementById('heroTxt').textContent = `Todo el torneo en un solo lugar: horarios por estadio, fixture por grupo con resultados, historial por equipo, balance San Miguel / Los Sauces y tabla de posiciones. Fechas 1 a ${n} jugadas${n < 7 ? '; Fechas ' + (n+1) + ' a 7 por programar' : ''}.`;
   document.getElementById('heroBadge').textContent = `7 fechas · Fechas 1 a ${n} jugadas`;
 }
-function renderAll(){ renderHero(); renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); renderRestore(); renderSanctions(); renderClubCards(); renderClubReport(); }
+function renderAll(){ renderHero(); renderTabs(); renderFecha(); renderSchedule(); renderBalance(); renderStandings(); renderTeamHistory(); renderRestore(); renderSanctions(); renderClubCards(); renderClubReport(); renderSorteo(); }
 
 populateTeamPicker();
 renderGroupbar();
