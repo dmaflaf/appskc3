@@ -2361,6 +2361,12 @@ document.getElementById('viewbar').addEventListener('click', e=>{ const b = e.ta
    lo que saca cada DT viaja por ntfy.sh para el panel en vivo. El resultado lo fija la semilla. ---- */
 const SRT_FILE = 'sorteo-fase2.json', SRT_DESC = 'Keeper Cup 3 sorteo fase 2', SRT_KEY = 'kc3_sorteo_v1';
 const SRT_DATES = [[13,14,15],[20,21,22],[27,28,29]];
+/* Tabla final oficial de la Fase 1 (publicada el 11 de noviembre), con los nombres que usa esta herramienta. */
+const SRT_OFICIAL = {
+  A:['Barrio Fino','Cordovez','Huracán','Gladiadores AZ','Galacticos','Alianza Jr.','Arapaima','Corintians'],
+  B:['Leones','Sub 21','Mandela','Templo Fit','Libert','Real Sevilla','Jolines','Pecezuelos'],
+  C:['Vaster','Somec','Barcelona','La Banda','Real Potosí','Cormoran','San Francisco','San Andres'],
+  D:['Leipzig','Legacy','Clowiss','Randagi','America','Universitarios','San José','Juventus']};
 const SRT_PEDIDOS0 = {Legacy:'noSab', Clowiss:'sab19', Barcelona:'sab17', Leones:'fixDVS'};
 const srt = {d:null, cfg:null, busy:false, msg:'', check:null, checkKey:''};
 try{ const raw = localStorage.getItem(SRT_KEY); if(raw) srt.d = JSON.parse(raw); }catch(e){}
@@ -2371,7 +2377,8 @@ function srtTable(){ const o = {}; groupOrder.forEach(g=>{ o[g] = computeStandin
 function srtDraft(){
   if(!srt.d) srt.d = {};
   const d = srt.d;
-  if(!d.orig || groupOrder.some(g=>!Array.isArray(d.orig[g]) || d.orig[g].length !== roster[g].length || d.orig[g].some(t=>!roster[g].includes(t)))) d.orig = srtTable();
+  if(!d.ofv){ d.orig = JSON.parse(JSON.stringify(SRT_OFICIAL)); d.ofv = 1; }
+  if(!d.orig || groupOrder.some(g=>!Array.isArray(d.orig[g]) || d.orig[g].length !== roster[g].length || d.orig[g].some(t=>!roster[g].includes(t)))) d.orig = JSON.parse(JSON.stringify(SRT_OFICIAL));
   if(!d.pedidos) d.pedidos = Object.assign({}, SRT_PEDIDOS0);
   if(!d.seed) d.seed = srtSeed();
   if(d.abre === undefined) d.abre = 'hoy a las 20h00';
@@ -2423,7 +2430,8 @@ async function srtLoadRemote(){
     const r = await gh('/gists/' + id); if(!r.ok) return;
     const j = await r.json(), f = j.files && j.files[SRT_FILE]; if(!f) return;
     const c = JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content);
-    srt.cfg = c; Object.assign(d, {seed:c.seed, orig:c.orig, pedidos:c.pedidos, topic:c.topic, abre:c.abre || d.abre, owner:(j.owner && j.owner.login) || d.owner});
+    srt.cfg = c; Object.assign(d, {topic:c.topic, owner:(j.owner && j.owner.login) || d.owner});
+    if(!c.test) Object.assign(d, {seed:c.seed, orig:c.orig, pedidos:c.pedidos, abre:c.abre || d.abre});
     srtSave(); renderSorteo();
   }catch(e){ srt.loaded = false; }
 }
@@ -2442,14 +2450,15 @@ function renderSorteo(){
   let h = '';
   if(!cloud.c) h += `<div class="pend" style="border-color:var(--red)">⚠️ Conecta la nube en este dispositivo para poder publicar el sorteo.</div>`;
   // 1 tabla
-  h += `<h4 class="srt-h">1 · Tabla final de la Fase 1</h4><p class="fecha-sub" style="margin:0 0 8px">Sale de Posiciones. Si hay empates que se definen por otro criterio, ordénalos con ↑ ↓.</p><div class="srt-grid">`;
+  const isOf = JSON.stringify(d.orig) === JSON.stringify(SRT_OFICIAL), appT = srtTable(), appDif = groupOrder.filter(g=>JSON.stringify(appT[g]) !== JSON.stringify(SRT_OFICIAL[g]));
+  h += `<h4 class="srt-h">1 · Tabla final de la Fase 1</h4><p class="fecha-sub" style="margin:0 0 8px">${isOf ? '✅ Es la tabla oficial publicada.' : '✏️ Cambiaste el orden de la tabla oficial.'} Puedes mover un equipo con ↑ ↓ si hiciera falta.</p>${appDif.length ? `<div class="pend">⚠️ Los resultados cargados en esta herramienta dan otro orden en ${appDif.map(g=>groupNames[g]).join(', ')}: revisa los marcadores en Fixture. El sorteo usa la tabla oficial.</div>` : ''}<div class="srt-grid">`;
   groupOrder.forEach(g=>{
     const rows = computeStandings(g), by = {}; rows.forEach(r=>by[r.team] = r);
     h += `<div class="srt-card"><b>${groupNames[g]}</b>${d.orig[g].map((t,i)=>{ const r = by[t], nx = by[d.orig[g][i+1]], pv = by[d.orig[g][i-1]];
       const tie = r && ((nx && nx.pts===r.pts && nx.gf-nx.gc===r.gf-r.gc) || (pv && pv.pts===r.pts && pv.gf-pv.gc===r.gf-r.gc));
       return `<div class="srt-row${i===4?' cut':''}"><span class="n">${i+1}º</span><span class="t">${esc(t)}${tie?' <i title="Empate en puntos y diferencia">⚖️</i>':''}</span><span class="p">${r ? r.pts + ' pts · ' + (r.gf-r.gc >= 0 ? '+' : '') + (r.gf-r.gc) : ''}</span><button type="button" data-srt="up" data-g="${g}" data-i="${i}" ${i?'':'disabled'} aria-label="Subir">↑</button><button type="button" data-srt="down" data-g="${g}" data-i="${i}" ${i<7?'':'disabled'} aria-label="Bajar">↓</button></div>`; }).join('')}</div>`;
   });
-  h += `</div><button type="button" class="close-btn" data-srt="retable" style="margin:6px 0 4px">↻ Volver al orden de la tabla de posiciones</button>`;
+  h += `</div><button type="button" class="close-btn" data-srt="retable" style="margin:6px 0 4px">↻ Volver a la tabla oficial</button>`;
   // 2 pedidos
   h += `<h4 class="srt-h">2 · Pedidos de los clubes</h4><div class="srt-chips">${Object.keys(d.pedidos).map(n=>`<span class="qchip on">${esc(n)} · ${esc(RL[d.pedidos[n]] || d.pedidos[n])} <button type="button" data-srt="delped" data-n="${escAttr(n)}" aria-label="Quitar">×</button></span>`).join('') || '<span class="fecha-sub">Sin pedidos</span>'}</div>
     <div class="srt-form"><select id="srtPT" class="teamsel">${groupOrder.flatMap(g=>roster[g]).sort((a,b)=>a.localeCompare(b,'es')).map(t=>`<option>${esc(t)}</option>`).join('')}</select><select id="srtPC" class="teamsel">${Object.keys(RL).map(k=>`<option value="${k}">${esc(RL[k])}</option>`).join('')}</select><button type="button" class="qchip" data-srt="addped">Agregar</button></div>`;
@@ -2485,7 +2494,7 @@ document.getElementById('sorteoBox').addEventListener('click', async e=>{
   const b = e.target.closest('[data-srt]'); if(!b || b.disabled) return;
   const a = b.dataset.srt, d = srtDraft();
   if(a === 'up' || a === 'down') srtEdit(d=>{ const L = d.orig[b.dataset.g], i = +b.dataset.i, j = a === 'up' ? i-1 : i+1; [L[i], L[j]] = [L[j], L[i]]; });
-  else if(a === 'retable') srtEdit(d=>{ d.orig = srtTable(); });
+  else if(a === 'retable') srtEdit(d=>{ d.orig = JSON.parse(JSON.stringify(SRT_OFICIAL)); });
   else if(a === 'delped') srtEdit(d=>{ delete d.pedidos[b.dataset.n]; });
   else if(a === 'addped') srtEdit(d=>{ d.pedidos[document.getElementById('srtPT').value] = document.getElementById('srtPC').value; });
   else if(a === 'seed'){ const v = document.getElementById('srtSeed').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''); if(v) srtEdit(d=>{ d.seed = v; }); }
